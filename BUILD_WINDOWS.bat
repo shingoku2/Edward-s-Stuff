@@ -84,12 +84,18 @@ python -m PyInstaller --name=GamingAIAssistant ^
     --onedir ^
     --clean ^
     --noconfirm ^
+    --paths=src ^
     --add-data=".env.example;." ^
     --add-data="README.md;." ^
     --add-data="SETUP.md;." ^
     --hidden-import=PyQt6.QtCore ^
     --hidden-import=PyQt6.QtGui ^
     --hidden-import=PyQt6.QtWidgets ^
+    --hidden-import=config ^
+    --hidden-import=game_detector ^
+    --hidden-import=ai_assistant ^
+    --hidden-import=info_scraper ^
+    --hidden-import=gui ^
     --hidden-import=anthropic ^
     --hidden-import=openai ^
     --hidden-import=psutil ^

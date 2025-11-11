@@ -110,7 +110,7 @@ REM Install PyInstaller
 python -m pip install pyinstaller
 
 REM Build the executable
-python -m PyInstaller --name=GamingAIAssistant --windowed --onedir --add-data=".env.example;." --hidden-import=PyQt6.QtCore --hidden-import=PyQt6.QtGui --hidden-import=PyQt6.QtWidgets main.py
+python -m PyInstaller --name=GamingAIAssistant --windowed --onedir --paths=src --add-data=".env.example;." --hidden-import=PyQt6.QtCore --hidden-import=PyQt6.QtGui --hidden-import=PyQt6.QtWidgets --hidden-import=config --hidden-import=game_detector --hidden-import=ai_assistant --hidden-import=info_scraper --hidden-import=gui --hidden-import=anthropic --hidden-import=openai --hidden-import=psutil --hidden-import=bs4 --hidden-import=dotenv main.py
 
 REM Your .exe will be at: dist\GamingAIAssistant\GamingAIAssistant.exe
 ```
