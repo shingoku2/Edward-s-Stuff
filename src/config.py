@@ -4,6 +4,7 @@ Handles application configuration and settings
 """
 
 import os
+import sys
 from pathlib import Path
 from typing import Optional
 from dotenv import load_dotenv
@@ -23,10 +24,24 @@ class Config:
         if env_file and os.path.exists(env_file):
             load_dotenv(env_file)
         else:
-            # Try to load from default location
-            env_path = Path(__file__).parent.parent / '.env'
-            if env_path.exists():
-                load_dotenv(env_path)
+            # Try multiple locations for .env file
+            # This handles both development and PyInstaller bundled scenarios
+            possible_paths = [
+                Path('.env'),  # Current working directory
+                Path(__file__).parent.parent / '.env',  # Relative to this file
+                Path(sys.executable).parent / '.env',  # Next to executable
+            ]
+
+            # For PyInstaller, also check sys._MEIPASS
+            if getattr(sys, 'frozen', False):
+                # Running in a bundle
+                bundle_dir = Path(sys.executable).parent
+                possible_paths.insert(0, bundle_dir / '.env')
+
+            for env_path in possible_paths:
+                if env_path.exists():
+                    load_dotenv(env_path)
+                    break
 
         # AI Configuration
         self.ai_provider = os.getenv('AI_PROVIDER', 'anthropic').lower()
