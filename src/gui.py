@@ -245,6 +245,10 @@ class MainWindow(QMainWindow):
         self.current_game = None
         self.detection_thread = None
 
+        # Worker threads for button actions (prevents garbage collection crashes)
+        self.tips_worker = None
+        self.overview_worker = None
+
         self.init_ui()
         self.start_game_detection()
 
@@ -530,10 +534,15 @@ class MainWindow(QMainWindow):
                 result = self.func()
                 self.result_ready.emit(result)
 
-        worker = TipsWorker(get_tips_impl)
-        worker.result_ready.connect(lambda tips: self.chat_widget.add_message("AI Assistant", tips, is_user=False))
-        worker.finished.connect(lambda: self.tips_button.setEnabled(True))
-        worker.start()
+        def cleanup_tips_worker():
+            self.tips_button.setEnabled(True)
+            self.tips_worker = None  # Clear reference after completion
+
+        # Store worker as instance variable to prevent garbage collection
+        self.tips_worker = TipsWorker(get_tips_impl)
+        self.tips_worker.result_ready.connect(lambda tips: self.chat_widget.add_message("AI Assistant", tips, is_user=False))
+        self.tips_worker.finished.connect(cleanup_tips_worker)
+        self.tips_worker.start()
 
     def get_overview(self):
         """Request and display overview of the currently detected game"""
@@ -589,14 +598,16 @@ class MainWindow(QMainWindow):
         def cleanup_worker():
             try:
                 self.overview_button.setEnabled(True)
+                self.overview_worker = None  # Clear reference after completion
             except Exception as e:
                 logger.error(f"Error re-enabling button: {e}")
 
-        worker = OverviewWorker(get_overview_impl)
-        worker.result_ready.connect(handle_overview_result)
-        worker.error_occurred.connect(handle_overview_error)
-        worker.finished.connect(cleanup_worker)
-        worker.start()
+        # Store worker as instance variable to prevent garbage collection
+        self.overview_worker = OverviewWorker(get_overview_impl)
+        self.overview_worker.result_ready.connect(handle_overview_result)
+        self.overview_worker.error_occurred.connect(handle_overview_error)
+        self.overview_worker.finished.connect(cleanup_worker)
+        self.overview_worker.start()
 
     def quit_application(self):
         """Quit the application cleanly"""
@@ -622,6 +633,20 @@ class MainWindow(QMainWindow):
                 self.chat_widget.ai_worker.wait(2000)
                 if self.chat_widget.ai_worker.isRunning():
                     self.chat_widget.ai_worker.terminate()
+
+        # Stop tips worker if running
+        if self.tips_worker and self.tips_worker.isRunning():
+            self.tips_worker.wait(2000)
+            if self.tips_worker.isRunning():
+                logger.warning("Tips worker did not stop gracefully")
+                self.tips_worker.terminate()
+
+        # Stop overview worker if running
+        if self.overview_worker and self.overview_worker.isRunning():
+            self.overview_worker.wait(2000)
+            if self.overview_worker.isRunning():
+                logger.warning("Overview worker did not stop gracefully")
+                self.overview_worker.terminate()
 
         logger.info("Cleanup complete")
 
