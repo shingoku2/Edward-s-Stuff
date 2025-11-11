@@ -85,9 +85,6 @@ python -m PyInstaller --name=GamingAIAssistant ^
     --clean ^
     --noconfirm ^
     --paths=src ^
-    --add-data=".env.example;." ^
-    --add-data="README.md;." ^
-    --add-data="SETUP.md;." ^
     --hidden-import=PyQt6.QtCore ^
     --hidden-import=PyQt6.QtGui ^
     --hidden-import=PyQt6.QtWidgets ^
@@ -186,8 +183,11 @@ echo File size: ~150-200 MB (includes all dependencies)
 echo.
 echo NEXT STEPS:
 echo -----------
-echo 1. Test the .exe by double-clicking it
-echo 2. Make sure to add your API key to .env file
+echo 1. Copy your .env file to dist folder:
+echo    copy .env dist\GamingAIAssistant\.env
+echo.
+echo 2. Test the .exe by double-clicking it
+echo.
 echo 3. To distribute:
 echo    - Zip the entire "dist\GamingAIAssistant" folder
 echo    - Share with friends/users

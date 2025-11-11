@@ -77,7 +77,28 @@ echo Building executable (this takes 3-5 minutes)...
 echo Please wait...
 echo.
 
-python -m PyInstaller --name=GamingAIAssistant --windowed --onedir --clean --noconfirm --paths=src --add-data=".env.example;." --add-data="README.md;." --add-data="SETUP.md;." --hidden-import=PyQt6.QtCore --hidden-import=PyQt6.QtGui --hidden-import=PyQt6.QtWidgets --hidden-import=config --hidden-import=game_detector --hidden-import=ai_assistant --hidden-import=info_scraper --hidden-import=gui --hidden-import=anthropic --hidden-import=openai --hidden-import=psutil --hidden-import=requests --hidden-import=bs4 --hidden-import=dotenv main.py
+python -m PyInstaller ^
+    --name=GamingAIAssistant ^
+    --windowed ^
+    --onedir ^
+    --clean ^
+    --noconfirm ^
+    --paths=src ^
+    --hidden-import=PyQt6.QtCore ^
+    --hidden-import=PyQt6.QtGui ^
+    --hidden-import=PyQt6.QtWidgets ^
+    --hidden-import=config ^
+    --hidden-import=game_detector ^
+    --hidden-import=ai_assistant ^
+    --hidden-import=info_scraper ^
+    --hidden-import=gui ^
+    --hidden-import=anthropic ^
+    --hidden-import=openai ^
+    --hidden-import=psutil ^
+    --hidden-import=requests ^
+    --hidden-import=bs4 ^
+    --hidden-import=dotenv ^
+    main.py
 
 if errorlevel 1 (
     echo.
@@ -94,9 +115,13 @@ echo ====================================
 echo.
 echo Your .exe is at: dist\GamingAIAssistant\GamingAIAssistant.exe
 echo.
-echo Don't forget to:
-echo 1. Copy .env.example to .env
-echo 2. Add your Anthropic API key to .env
+echo IMPORTANT - Next steps:
+echo 1. Copy your .env file to the dist folder:
+echo    copy .env dist\GamingAIAssistant\.env
+echo.
+echo 2. Make sure your .env has your Anthropic API key:
+echo    ANTHROPIC_API_KEY=sk-ant-api03-your-key-here
+echo.
 echo 3. Run GamingAIAssistant.exe
 echo.
 pause
