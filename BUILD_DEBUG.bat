@@ -27,7 +27,6 @@ python -m PyInstaller ^
     --clean ^
     --noconfirm ^
     --paths=src ^
-    --add-data=".env.example;." ^
     --hidden-import=PyQt6.QtCore ^
     --hidden-import=PyQt6.QtGui ^
     --hidden-import=PyQt6.QtWidgets ^
@@ -57,6 +56,9 @@ echo ====================================
 echo.
 echo Your DEBUG .exe is at:
 echo dist\GamingAIAssistant_DEBUG\GamingAIAssistant_DEBUG.exe
+echo.
+echo IMPORTANT: Copy your .env file to the same folder:
+echo copy .env dist\GamingAIAssistant_DEBUG\.env
 echo.
 echo This version shows a console window with error messages.
 echo Run it to see what's wrong!
