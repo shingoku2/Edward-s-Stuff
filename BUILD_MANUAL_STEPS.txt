@@ -1,0 +1,180 @@
+================================================================================
+GAMING AI ASSISTANT - MANUAL BUILD STEPS
+================================================================================
+
+If the batch files don't work, follow these steps one by one in Command Prompt:
+
+================================================================================
+STEP 1: VERIFY PYTHON IS INSTALLED
+================================================================================
+
+Open Command Prompt and type:
+
+    python --version
+
+You should see something like: Python 3.11.x or Python 3.12.x
+
+If you get an error:
+- Install Python from: https://www.python.org/downloads/
+- During install, CHECK THE BOX: "Add Python to PATH"
+- After install, RESTART Command Prompt
+
+================================================================================
+STEP 2: NAVIGATE TO PROJECT FOLDER
+================================================================================
+
+Type (replace with your actual path):
+
+    cd C:\path\to\Edward-s-Stuff
+
+Example:
+    cd C:\Users\YourName\Downloads\Edward-s-Stuff
+
+================================================================================
+STEP 3: VERIFY YOU'RE IN THE RIGHT FOLDER
+================================================================================
+
+Type:
+
+    dir
+
+You should see files like:
+- main.py
+- requirements.txt
+- BUILD_WINDOWS.bat
+- src (folder)
+
+================================================================================
+STEP 4: INSTALL DEPENDENCIES
+================================================================================
+
+Type this command (copy and paste it):
+
+    python -m pip install -r requirements.txt
+
+Wait 2-3 minutes for it to install packages.
+
+If you get errors about permissions, close Command Prompt and:
+- Right-click Command Prompt
+- Choose "Run as administrator"
+- Navigate back to the project folder (Step 2)
+- Try again
+
+================================================================================
+STEP 5: INSTALL PYINSTALLER
+================================================================================
+
+Type:
+
+    python -m pip install pyinstaller
+
+Wait for it to install.
+
+================================================================================
+STEP 6: CLEAN OLD BUILDS (if any)
+================================================================================
+
+Type:
+
+    rmdir /s /q dist
+    rmdir /s /q build
+
+(It's OK if these give errors if the folders don't exist)
+
+================================================================================
+STEP 7: BUILD THE EXECUTABLE
+================================================================================
+
+Copy and paste this ENTIRE command (it's long!):
+
+python -m PyInstaller --name=GamingAIAssistant --windowed --onedir --clean --noconfirm --paths=src --add-data=".env.example;." --add-data="README.md;." --add-data="SETUP.md;." --hidden-import=PyQt6.QtCore --hidden-import=PyQt6.QtGui --hidden-import=PyQt6.QtWidgets --hidden-import=config --hidden-import=game_detector --hidden-import=ai_assistant --hidden-import=info_scraper --hidden-import=gui --hidden-import=anthropic --hidden-import=openai --hidden-import=psutil --hidden-import=requests --hidden-import=bs4 --hidden-import=dotenv main.py
+
+Press Enter and WAIT 3-5 minutes.
+
+You'll see lots of text scrolling. This is normal.
+
+================================================================================
+STEP 8: CHECK IF BUILD SUCCEEDED
+================================================================================
+
+Type:
+
+    dir dist\GamingAIAssistant
+
+You should see:
+- GamingAIAssistant.exe
+- Many .dll files
+- Other folders
+
+================================================================================
+STEP 9: COPY YOUR API KEY
+================================================================================
+
+Type:
+
+    copy .env dist\GamingAIAssistant\.env
+
+Then edit dist\GamingAIAssistant\.env and add your Anthropic API key.
+
+================================================================================
+STEP 10: TEST THE EXECUTABLE
+================================================================================
+
+Navigate to the folder:
+
+    cd dist\GamingAIAssistant
+
+Run it:
+
+    GamingAIAssistant.exe
+
+The application should start!
+
+================================================================================
+YOUR .EXE LOCATION
+================================================================================
+
+Your executable is at:
+
+    dist\GamingAIAssistant\GamingAIAssistant.exe
+
+To distribute to others:
+1. Zip the entire "dist\GamingAIAssistant" folder
+2. Share the zip file
+3. Recipients extract and add their own API key to .env
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+Problem: "python is not recognized"
+Solution: Install Python and add to PATH (see Step 1)
+
+Problem: "pip is not recognized"
+Solution: Use "python -m pip" instead of just "pip"
+
+Problem: "Permission denied" errors
+Solution: Run Command Prompt as Administrator
+
+Problem: Build fails with module errors
+Solution: Make sure you're in the correct folder (Step 2-3)
+
+Problem: .exe doesn't start
+Solution:
+- Make sure .env file exists with API key
+- Try running from Command Prompt to see error messages
+- Check if antivirus is blocking it
+
+Problem: "ModuleNotFoundError: No module named 'config'"
+Solution: Make sure you used the command in Step 7 with --paths=src
+
+================================================================================
+NEED MORE HELP?
+================================================================================
+
+Check these files in the project:
+- PYTHON_SETUP_WINDOWS.md
+- WINDOWS_BUILD_INSTRUCTIONS.md
+- README.md
+
+================================================================================
