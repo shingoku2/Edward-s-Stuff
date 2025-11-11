@@ -9,17 +9,61 @@ and provides tips, strategies, and answers to your questions.
 
 import sys
 import os
+import logging
 from pathlib import Path
+from datetime import datetime
+
+# Setup logging FIRST - before any other imports
+log_file = f"gaming_ai_assistant_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(log_file),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger(__name__)
 
 # Add src directory to path
 src_path = Path(__file__).parent / 'src'
 sys.path.insert(0, str(src_path))
 
-from config import Config
-from game_detector import GameDetector
-from ai_assistant import AIAssistant
-from info_scraper import GameInfoScraper
-from gui import run_gui
+logger.info("=" * 70)
+logger.info("GAMING AI ASSISTANT STARTING")
+logger.info("=" * 70)
+logger.info(f"Log file: {log_file}")
+logger.info(f"Python version: {sys.version}")
+logger.info(f"Working directory: {os.getcwd()}")
+logger.info(f"Executable: {sys.executable}")
+logger.info(f"Frozen (bundled): {getattr(sys, 'frozen', False)}")
+logger.info("")
+
+try:
+    logger.info("Importing modules...")
+    from config import Config
+    logger.info("  ✓ config imported")
+
+    from game_detector import GameDetector
+    logger.info("  ✓ game_detector imported")
+
+    from ai_assistant import AIAssistant
+    logger.info("  ✓ ai_assistant imported")
+
+    from info_scraper import GameInfoScraper
+    logger.info("  ✓ info_scraper imported")
+
+    from gui import run_gui
+    logger.info("  ✓ gui imported")
+    logger.info("")
+
+except Exception as e:
+    logger.error(f"FATAL: Import failed: {e}", exc_info=True)
+    print(f"\n❌ FATAL ERROR: Failed to import modules")
+    print(f"Error: {e}")
+    print(f"\nCheck the log file for details: {log_file}")
+    input("\nPress Enter to exit...")
+    sys.exit(1)
 
 
 def main():
@@ -28,45 +72,83 @@ def main():
     print("🎮 Gaming AI Assistant")
     print("=" * 60)
     print()
+    print(f"📝 Logging to: {log_file}")
+    print()
 
     try:
         # Load configuration
+        logger.info("Step 1: Loading configuration...")
         print("Loading configuration...")
+
         config = Config()
+
+        logger.info(f"Configuration loaded successfully")
+        logger.info(f"  AI Provider: {config.ai_provider}")
+        logger.info(f"  Hotkey: {config.overlay_hotkey}")
+        logger.info(f"  Check interval: {config.check_interval}")
+        logger.info(f"  OpenAI key present: {bool(config.openai_api_key)}")
+        logger.info(f"  Anthropic key present: {bool(config.anthropic_api_key)}")
+
         print(f"✓ Configuration loaded")
         print(f"  AI Provider: {config.ai_provider}")
         print(f"  Hotkey: {config.overlay_hotkey}")
         print()
 
         # Initialize game detector
+        logger.info("Step 2: Initializing game detector...")
         print("Initializing game detector...")
+
         game_detector = GameDetector()
+
+        logger.info(f"Game detector initialized")
+        logger.info(f"  Known games: {len(game_detector.KNOWN_GAMES)}")
+
         print("✓ Game detector ready")
         print()
 
         # Initialize AI assistant
+        logger.info("Step 3: Initializing AI assistant...")
         print("Initializing AI assistant...")
+
         ai_assistant = AIAssistant(
             provider=config.ai_provider,
             api_key=config.get_api_key()
         )
+
+        logger.info(f"AI assistant initialized")
+        logger.info(f"  Provider: {ai_assistant.provider}")
+
         print("✓ AI assistant ready")
         print()
 
         # Initialize info scraper
+        logger.info("Step 4: Initializing information scraper...")
         print("Initializing information scraper...")
+
         info_scraper = GameInfoScraper()
+
+        logger.info(f"Info scraper initialized")
+        logger.info(f"  Wiki sources: {len(info_scraper.wiki_urls)}")
+
         print("✓ Info scraper ready")
         print()
 
         # Test game detection
+        logger.info("Step 5: Scanning for running games...")
         print("Scanning for running games...")
+
         game = game_detector.detect_running_game()
         if game:
+            logger.info(f"Detected game: {game['name']} (PID: {game.get('pid', 'unknown')})")
             print(f"✓ Detected game: {game['name']}")
         else:
+            logger.info("No game currently running")
             print("  No game currently running")
         print()
+
+        logger.info("=" * 70)
+        logger.info("All initialization complete - Starting GUI...")
+        logger.info("=" * 70)
 
         print("=" * 60)
         print("Starting GUI...")
@@ -80,40 +162,60 @@ def main():
         print()
 
         # Run the GUI
+        logger.info("Calling run_gui()...")
         run_gui(game_detector, ai_assistant, info_scraper)
 
+        logger.info("GUI exited normally")
+
     except ValueError as e:
+        logger.error(f"Configuration error: {e}", exc_info=True)
         print(f"\n❌ Configuration Error: {e}")
         print("\nSetup instructions:")
-        print("1. Copy .env.example to .env:")
-        print("   cp .env.example .env")
+        print("1. Make sure .env file exists in the same folder as the .exe")
         print()
         print("2. Edit .env and add your API key:")
-        print("   - For OpenAI: Add your OpenAI API key")
-        print("   - For Anthropic: Add your Anthropic API key")
+        print("   ANTHROPIC_API_KEY=sk-ant-api03-your-key-here")
+        print("   AI_PROVIDER=anthropic")
         print()
-        print("3. Set your preferred AI provider in .env:")
-        print("   AI_PROVIDER=anthropic  (or 'openai')")
+        print(f"3. Check the log file for details: {log_file}")
         print()
+        input("Press Enter to exit...")
         sys.exit(1)
 
     except ImportError as e:
+        logger.error(f"Import error: {e}", exc_info=True)
         print(f"\n❌ Import Error: {e}")
-        print("\nPlease install required dependencies:")
-        print("  pip install -r requirements.txt")
+        print("\nThis usually means a required library is missing.")
+        print(f"Check the log file for details: {log_file}")
         print()
+        input("Press Enter to exit...")
         sys.exit(1)
 
     except KeyboardInterrupt:
+        logger.info("User interrupted (Ctrl+C)")
         print("\n\n👋 Shutting down...")
         sys.exit(0)
 
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        logger.error(f"Unexpected error: {e}", exc_info=True)
+        print(f"\n❌ Unexpected Error: {e}")
+        print()
+        print("Full error details:")
         import traceback
         traceback.print_exc()
+        print()
+        print(f"📝 Full log saved to: {log_file}")
+        print()
+        input("Press Enter to exit...")
         sys.exit(1)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        logger.error(f"Fatal error in main: {e}", exc_info=True)
+        print(f"\n💥 FATAL ERROR: {e}")
+        print(f"📝 Check log file: {log_file}")
+        input("\nPress Enter to exit...")
+        sys.exit(1)
