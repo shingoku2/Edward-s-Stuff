@@ -5,10 +5,16 @@ Scrapes gaming wikis, forums, and guides for real-time information
 
 import requests
 from bs4 import BeautifulSoup
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Any
 import json
 import re
+import time
+import logging
 from urllib.parse import quote
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class GameInfoScraper:
@@ -19,6 +25,8 @@ class GameInfoScraper:
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         })
+        self.last_request_time = 0
+        self.min_request_interval = 1.0  # Minimum 1 second between requests
 
         # Game wiki mappings
         self.wiki_urls = {
@@ -35,7 +43,7 @@ class GameInfoScraper:
             "Cyberpunk 2077": "https://cyberpunk.fandom.com/wiki/",
         }
 
-    def search_game_info(self, game_name: str, query: Optional[str] = None) -> Dict[str, any]:
+    def search_game_info(self, game_name: str, query: Optional[str] = None) -> Dict[str, Any]:
         """
         Search for information about a game
 
@@ -69,9 +77,23 @@ class GameInfoScraper:
 
         return results
 
+    def _rate_limit(self):
+        """Implement rate limiting to avoid getting banned"""
+        current_time = time.time()
+        time_since_last_request = current_time - self.last_request_time
+
+        if time_since_last_request < self.min_request_interval:
+            sleep_time = self.min_request_interval - time_since_last_request
+            time.sleep(sleep_time)
+
+        self.last_request_time = time.time()
+
     def _search_wiki(self, game_name: str, query: Optional[str] = None) -> Optional[Dict]:
         """Search game-specific wiki"""
         try:
+            # Rate limiting
+            self._rate_limit()
+
             # Check if we have a known wiki for this game
             wiki_base = self.wiki_urls.get(game_name)
 
@@ -100,8 +122,12 @@ class GameInfoScraper:
                     'source': 'wiki'
                 }
 
+        except requests.exceptions.Timeout:
+            logger.warning(f"Wiki search timeout for {game_name}")
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"Wiki search request error: {e}")
         except Exception as e:
-            print(f"Wiki search error: {e}")
+            logger.error(f"Wiki search error: {e}", exc_info=True)
 
         return None
 
@@ -130,9 +156,9 @@ class GameInfoScraper:
                         content_parts.append(list_text)
 
         except Exception as e:
-            print(f"Content extraction error: {e}")
+            logger.error(f"Content extraction error: {e}", exc_info=True)
 
-        return '\n\n'.join(content_parts[:3])  # Limit to avoid too much text
+        return '\n\n'.join(content_parts[:3]) if content_parts else ""
 
     def _search_web(self, game_name: str, query: Optional[str] = None) -> List[Dict]:
         """
@@ -155,6 +181,9 @@ class GameInfoScraper:
 
         for site_url in gaming_sites[:1]:  # Limit to avoid too many requests
             try:
+                # Rate limiting
+                self._rate_limit()
+
                 response = self.session.get(site_url, timeout=10)
                 if response.status_code == 200:
                     soup = BeautifulSoup(response.content, 'html.parser')
@@ -166,8 +195,14 @@ class GameInfoScraper:
                         'snippet': 'Search results available'
                     })
 
+            except requests.exceptions.Timeout:
+                logger.warning(f"Web search timeout for {site_url}")
+                continue
+            except requests.exceptions.RequestException as e:
+                logger.warning(f"Web search request error: {e}")
+                continue
             except Exception as e:
-                print(f"Web search error: {e}")
+                logger.error(f"Web search error: {e}", exc_info=True)
                 continue
 
         return results
@@ -224,6 +259,8 @@ class RedditScraper:
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         })
+        self.last_request_time = 0
+        self.min_request_interval = 2.0  # Reddit is more strict
 
         # Common gaming subreddits
         self.game_subreddits = {
@@ -235,11 +272,25 @@ class RedditScraper:
             "World of Warcraft": "wow",
         }
 
+    def _rate_limit(self):
+        """Implement rate limiting"""
+        current_time = time.time()
+        time_since_last_request = current_time - self.last_request_time
+
+        if time_since_last_request < self.min_request_interval:
+            sleep_time = self.min_request_interval - time_since_last_request
+            time.sleep(sleep_time)
+
+        self.last_request_time = time.time()
+
     def get_hot_posts(self, game_name: str, limit: int = 5) -> List[Dict]:
         """Get hot posts from game's subreddit"""
         subreddit = self.game_subreddits.get(game_name, game_name.replace(' ', ''))
 
         try:
+            # Rate limiting
+            self._rate_limit()
+
             url = f"https://www.reddit.com/r/{subreddit}/hot.json?limit={limit}"
             response = self.session.get(url, timeout=10)
 
@@ -257,9 +308,17 @@ class RedditScraper:
                     })
 
                 return posts
+            elif response.status_code == 429:
+                logger.warning(f"Reddit rate limit exceeded for r/{subreddit}")
+            else:
+                logger.warning(f"Reddit returned status code {response.status_code}")
 
+        except requests.exceptions.Timeout:
+            logger.warning(f"Reddit request timeout for r/{subreddit}")
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"Reddit request error: {e}")
         except Exception as e:
-            print(f"Reddit scraping error: {e}")
+            logger.error(f"Reddit scraping error: {e}", exc_info=True)
 
         return []
 

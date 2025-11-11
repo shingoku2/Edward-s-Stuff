@@ -7,8 +7,13 @@ import psutil
 import re
 import json
 import os
+import logging
 from typing import Optional, Dict, List
 from pathlib import Path
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class GameDetector:
@@ -52,7 +57,7 @@ class GameDetector:
 
         # Minecraft
         "minecraft.exe": "Minecraft",
-        "javaw.exe": "Minecraft (Java)",
+        "minecraftlauncher.exe": "Minecraft",
 
         # Battle Royale
         "pubg.exe": "PUBG",
@@ -86,7 +91,11 @@ class GameDetector:
             try:
                 with open(self.cache_file, 'r') as f:
                     return json.load(f)
-            except:
+            except json.JSONDecodeError as e:
+                logger.warning(f"Invalid JSON in cache file: {e}")
+                return {}
+            except Exception as e:
+                logger.error(f"Error loading cache: {e}", exc_info=True)
                 return {}
         return {}
 
@@ -96,7 +105,7 @@ class GameDetector:
             with open(self.cache_file, 'w') as f:
                 json.dump(self.game_info_cache, f, indent=2)
         except Exception as e:
-            print(f"Error saving cache: {e}")
+            logger.error(f"Error saving cache: {e}", exc_info=True)
 
     def detect_running_game(self) -> Optional[Dict[str, str]]:
         """
@@ -138,8 +147,10 @@ class GameDetector:
                     self.current_game = game
                     return game
 
+        except psutil.Error as e:
+            logger.error(f"PSUtil error detecting game: {e}")
         except Exception as e:
-            print(f"Error detecting game: {e}")
+            logger.error(f"Error detecting game: {e}", exc_info=True)
 
         return None
 
@@ -148,8 +159,13 @@ class GameDetector:
         try:
             proc_name = proc.info['name'].lower()
 
-            # Skip system processes
-            if any(x in proc_name for x in ['windows', 'microsoft', 'system32', 'svchost']):
+            # Skip system processes and common non-game applications
+            skip_keywords = [
+                'windows', 'microsoft', 'system32', 'svchost', 'explorer',
+                'chrome', 'firefox', 'edge', 'discord', 'spotify', 'slack',
+                'code', 'visual', 'pycharm', 'intellij', 'eclipse', 'javaw', 'java'
+            ]
+            if any(x in proc_name for x in skip_keywords):
                 return False
 
             # Check for game-related keywords
@@ -168,8 +184,10 @@ class GameDetector:
                 if any(path in exe_path for path in game_paths):
                     return True
 
-        except:
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
             pass
+        except Exception as e:
+            logger.debug(f"Error checking if process looks like game: {e}")
 
         return False
 
@@ -201,7 +219,7 @@ class GameDetector:
             }
 
         except Exception as e:
-            print(f"Error identifying unknown game: {e}")
+            logger.error(f"Error identifying unknown game: {e}", exc_info=True)
             return None
 
     def _clean_game_name(self, name: str) -> str:

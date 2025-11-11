@@ -4,15 +4,41 @@ Main application interface with overlay capabilities
 """
 
 import sys
+import logging
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QTextEdit, QLineEdit, QPushButton, QLabel, QSystemTrayIcon,
-    QMenu, QFrame, QScrollArea, QSplitter
+    QMenu, QFrame
 )
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QThread
-from PyQt6.QtGui import QIcon, QAction, QFont, QPalette, QColor, QKeySequence, QShortcut
+from PyQt6.QtCore import Qt, pyqtSignal, QThread
+from PyQt6.QtGui import QAction, QKeySequence, QShortcut, QIcon, QPixmap, QPainter, QColor
 from typing import Optional, Dict
 import os
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+class AIWorkerThread(QThread):
+    """Background thread for AI API calls to prevent GUI freezing"""
+    response_ready = pyqtSignal(str)
+    error_occurred = pyqtSignal(str)
+
+    def __init__(self, ai_assistant, question, game_context=None):
+        super().__init__()
+        self.ai_assistant = ai_assistant
+        self.question = question
+        self.game_context = game_context
+
+    def run(self):
+        """Run AI query in background"""
+        try:
+            response = self.ai_assistant.ask_question(self.question, self.game_context)
+            self.response_ready.emit(response)
+        except Exception as e:
+            logger.error(f"AI worker thread error: {e}", exc_info=True)
+            self.error_occurred.emit(str(e))
 
 
 class GameDetectionThread(QThread):
@@ -28,21 +54,27 @@ class GameDetectionThread(QThread):
 
     def run(self):
         """Run game detection loop"""
-        while self.running:
-            game = self.detector.detect_running_game()
+        try:
+            while self.running:
+                game = self.detector.detect_running_game()
 
-            if game and game != self.current_game:
-                self.current_game = game
-                self.game_detected.emit(game)
-            elif not game and self.current_game:
-                self.current_game = None
-                self.game_lost.emit()
+                if game and game != self.current_game:
+                    self.current_game = game
+                    self.game_detected.emit(game)
+                    logger.info(f"Game detected: {game.get('name')}")
+                elif not game and self.current_game:
+                    self.current_game = None
+                    self.game_lost.emit()
+                    logger.info("Game closed")
 
-            self.msleep(5000)  # Check every 5 seconds
+                self.msleep(5000)  # Check every 5 seconds
+        except Exception as e:
+            logger.error(f"Game detection thread error: {e}", exc_info=True)
 
     def stop(self):
         """Stop the detection thread"""
         self.running = False
+        logger.info("Game detection thread stopped")
 
 
 class ChatWidget(QWidget):
@@ -51,6 +83,7 @@ class ChatWidget(QWidget):
     def __init__(self, ai_assistant):
         super().__init__()
         self.ai_assistant = ai_assistant
+        self.ai_worker = None
         self.init_ui()
 
     def init_ui(self):
@@ -107,6 +140,10 @@ class ChatWidget(QWidget):
             QPushButton:pressed {
                 background-color: #0a5a5d;
             }
+            QPushButton:disabled {
+                background-color: #374151;
+                color: #6b7280;
+            }
         """)
         self.send_button.clicked.connect(self.send_message)
         input_layout.addWidget(self.send_button)
@@ -134,7 +171,7 @@ class ChatWidget(QWidget):
         self.setLayout(layout)
 
     def send_message(self):
-        """Send message to AI"""
+        """Send message to AI (in background thread)"""
         question = self.input_field.text().strip()
 
         if not question:
@@ -144,23 +181,39 @@ class ChatWidget(QWidget):
         self.add_message("You", question, is_user=True)
         self.input_field.clear()
 
-        # Get AI response
+        # Disable input while processing
         self.send_button.setEnabled(False)
+        self.input_field.setEnabled(False)
         self.send_button.setText("Thinking...")
 
-        try:
-            response = self.ai_assistant.ask_question(question)
-            self.add_message("AI Assistant", response, is_user=False)
-        except Exception as e:
-            self.add_message("System", f"Error: {str(e)}", is_user=False)
+        # Create and start worker thread
+        self.ai_worker = AIWorkerThread(self.ai_assistant, question)
+        self.ai_worker.response_ready.connect(self.on_ai_response)
+        self.ai_worker.error_occurred.connect(self.on_ai_error)
+        self.ai_worker.finished.connect(self.on_ai_finished)
+        self.ai_worker.start()
 
+    def on_ai_response(self, response: str):
+        """Handle AI response"""
+        self.add_message("AI Assistant", response, is_user=False)
+
+    def on_ai_error(self, error: str):
+        """Handle AI error"""
+        self.add_message("System", f"Error: {error}", is_user=False)
+
+    def on_ai_finished(self):
+        """Re-enable input after AI finishes"""
         self.send_button.setEnabled(True)
+        self.input_field.setEnabled(True)
         self.send_button.setText("Send")
+        self.ai_worker = None
 
     def add_message(self, sender: str, message: str, is_user: bool = True):
         """Add message to chat display"""
         color = "#14b8a6" if is_user else "#f59e0b"
-        self.chat_display.append(f'<p><span style="color: {color}; font-weight: bold;">{sender}:</span> {message}</p>')
+        # Escape HTML to prevent issues with special characters
+        message_escaped = message.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        self.chat_display.append(f'<p><span style="color: {color}; font-weight: bold;">{sender}:</span> {message_escaped}</p>')
         self.chat_display.verticalScrollBar().setValue(
             self.chat_display.verticalScrollBar().maximum()
         )
@@ -169,6 +222,7 @@ class ChatWidget(QWidget):
         """Clear chat history"""
         self.chat_display.clear()
         self.ai_assistant.clear_history()
+        logger.info("Chat history cleared")
 
 
 class MainWindow(QMainWindow):
@@ -273,6 +327,8 @@ class MainWindow(QMainWindow):
         # Keyboard shortcuts
         self.create_shortcuts()
 
+        logger.info("Main window initialized")
+
     def create_header(self) -> QWidget:
         """Create header widget"""
         header = QFrame()
@@ -312,6 +368,10 @@ class MainWindow(QMainWindow):
         """Create system tray icon"""
         self.tray_icon = QSystemTrayIcon(self)
 
+        # Create a simple icon
+        icon = self.create_tray_icon()
+        self.tray_icon.setIcon(icon)
+
         # Create menu
         tray_menu = QMenu()
 
@@ -324,11 +384,26 @@ class MainWindow(QMainWindow):
         tray_menu.addAction(hide_action)
 
         quit_action = QAction("Quit", self)
-        quit_action.triggered.connect(QApplication.quit)
+        quit_action.triggered.connect(self.quit_application)
         tray_menu.addAction(quit_action)
 
         self.tray_icon.setContextMenu(tray_menu)
         self.tray_icon.show()
+
+        logger.info("System tray icon created")
+
+    def create_tray_icon(self) -> QIcon:
+        """Create a simple icon for the system tray"""
+        pixmap = QPixmap(32, 32)
+        pixmap.fill(Qt.GlobalColor.transparent)
+
+        painter = QPainter(pixmap)
+        painter.setBrush(QColor("#14b8a6"))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawEllipse(4, 4, 24, 24)
+        painter.end()
+
+        return QIcon(pixmap)
 
     def create_shortcuts(self):
         """Create keyboard shortcuts"""
@@ -340,9 +415,11 @@ class MainWindow(QMainWindow):
         """Toggle window visibility"""
         if self.isVisible():
             self.hide()
+            logger.info("Window hidden")
         else:
             self.show()
             self.activateWindow()
+            logger.info("Window shown")
 
     def start_game_detection(self):
         """Start game detection thread"""
@@ -350,6 +427,7 @@ class MainWindow(QMainWindow):
         self.detection_thread.game_detected.connect(self.on_game_detected)
         self.detection_thread.game_lost.connect(self.on_game_lost)
         self.detection_thread.start()
+        logger.info("Game detection thread started")
 
     def on_game_detected(self, game: Dict):
         """Handle game detection"""
@@ -375,8 +453,14 @@ class MainWindow(QMainWindow):
         # Update AI context
         self.ai_assistant.set_current_game(game)
 
-        # Auto-get overview
-        self.get_overview()
+        # Show notification in chat
+        self.chat_widget.add_message(
+            "System",
+            f"Detected {game_name}! Click 'Game Overview' for info or ask me any questions.",
+            is_user=False
+        )
+
+        logger.info(f"Game detected event handled: {game_name}")
 
     def on_game_lost(self):
         """Handle game close"""
@@ -397,19 +481,43 @@ class MainWindow(QMainWindow):
         self.tips_button.setEnabled(False)
         self.overview_button.setEnabled(False)
 
+        logger.info("Game lost event handled")
+
     def get_tips(self):
         """Get tips for current game"""
         if not self.current_game:
             return
 
-        game_name = self.current_game.get('name')
         self.chat_widget.add_message("System", "Getting tips...", is_user=False)
+        logger.info("Getting tips for current game")
 
-        try:
-            tips = self.ai_assistant.get_tips_and_strategies()
-            self.chat_widget.add_message("AI Assistant", tips, is_user=False)
-        except Exception as e:
-            self.chat_widget.add_message("System", f"Error: {str(e)}", is_user=False)
+        # Use worker thread
+        self.tips_button.setEnabled(False)
+        worker = AIWorkerThread(self.ai_assistant, "")
+
+        def get_tips_impl():
+            try:
+                tips = self.ai_assistant.get_tips_and_strategies()
+                return tips
+            except Exception as e:
+                logger.error(f"Error getting tips: {e}", exc_info=True)
+                return f"Error getting tips: {str(e)}"
+
+        class TipsWorker(QThread):
+            result_ready = pyqtSignal(str)
+
+            def __init__(self, func):
+                super().__init__()
+                self.func = func
+
+            def run(self):
+                result = self.func()
+                self.result_ready.emit(result)
+
+        worker = TipsWorker(get_tips_impl)
+        worker.result_ready.connect(lambda tips: self.chat_widget.add_message("AI Assistant", tips, is_user=False))
+        worker.finished.connect(lambda: self.tips_button.setEnabled(True))
+        worker.start()
 
     def get_overview(self):
         """Get game overview"""
@@ -418,15 +526,64 @@ class MainWindow(QMainWindow):
 
         game_name = self.current_game.get('name')
         self.chat_widget.add_message("System", f"Getting overview of {game_name}...", is_user=False)
+        logger.info(f"Getting overview for {game_name}")
 
-        try:
-            overview = self.ai_assistant.get_game_overview(game_name)
-            self.chat_widget.add_message("AI Assistant", overview, is_user=False)
-        except Exception as e:
-            self.chat_widget.add_message("System", f"Error: {str(e)}", is_user=False)
+        # Use worker thread
+        self.overview_button.setEnabled(False)
+
+        def get_overview_impl():
+            try:
+                overview = self.ai_assistant.get_game_overview(game_name)
+                return overview
+            except Exception as e:
+                logger.error(f"Error getting overview: {e}", exc_info=True)
+                return f"Error getting overview: {str(e)}"
+
+        class OverviewWorker(QThread):
+            result_ready = pyqtSignal(str)
+
+            def __init__(self, func):
+                super().__init__()
+                self.func = func
+
+            def run(self):
+                result = self.func()
+                self.result_ready.emit(result)
+
+        worker = OverviewWorker(get_overview_impl)
+        worker.result_ready.connect(lambda overview: self.chat_widget.add_message("AI Assistant", overview, is_user=False))
+        worker.finished.connect(lambda: self.overview_button.setEnabled(True))
+        worker.start()
+
+    def quit_application(self):
+        """Quit the application cleanly"""
+        logger.info("Quitting application")
+        self.cleanup()
+        QApplication.quit()
+
+    def cleanup(self):
+        """Cleanup resources before closing"""
+        logger.info("Cleaning up resources")
+
+        # Stop game detection thread
+        if self.detection_thread and self.detection_thread.isRunning():
+            self.detection_thread.stop()
+            self.detection_thread.wait(3000)  # Wait up to 3 seconds
+            if self.detection_thread.isRunning():
+                logger.warning("Game detection thread did not stop gracefully")
+                self.detection_thread.terminate()
+
+        # Stop any active AI worker threads
+        if hasattr(self.chat_widget, 'ai_worker') and self.chat_widget.ai_worker:
+            if self.chat_widget.ai_worker.isRunning():
+                self.chat_widget.ai_worker.wait(2000)
+                if self.chat_widget.ai_worker.isRunning():
+                    self.chat_widget.ai_worker.terminate()
+
+        logger.info("Cleanup complete")
 
     def closeEvent(self, event):
-        """Handle window close"""
+        """Handle window close event"""
         event.ignore()
         self.hide()
         self.tray_icon.showMessage(
@@ -435,17 +592,26 @@ class MainWindow(QMainWindow):
             QSystemTrayIcon.MessageIcon.Information,
             2000
         )
+        logger.info("Window close event - minimized to tray")
 
 
 def run_gui(game_detector, ai_assistant, info_scraper):
     """Run the GUI application"""
-    app = QApplication(sys.argv)
-    app.setApplicationName("Gaming AI Assistant")
+    try:
+        app = QApplication(sys.argv)
+        app.setApplicationName("Gaming AI Assistant")
 
-    window = MainWindow(game_detector, ai_assistant, info_scraper)
-    window.show()
+        window = MainWindow(game_detector, ai_assistant, info_scraper)
+        window.show()
 
-    sys.exit(app.exec())
+        # Handle application quit
+        app.aboutToQuit.connect(window.cleanup)
+
+        sys.exit(app.exec())
+
+    except Exception as e:
+        logger.error(f"GUI error: {e}", exc_info=True)
+        raise
 
 
 if __name__ == "__main__":
