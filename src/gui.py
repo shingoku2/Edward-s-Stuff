@@ -549,26 +549,53 @@ class MainWindow(QMainWindow):
 
         def get_overview_impl():
             try:
+                logger.info(f"Requesting game overview for: {game_name}")
                 overview = self.ai_assistant.get_game_overview(game_name)
+                logger.info("Overview received successfully")
                 return overview
             except Exception as e:
                 logger.error(f"Error getting overview: {e}", exc_info=True)
-                return f"Error getting overview: {str(e)}"
+                error_msg = f"Sorry, I couldn't get the overview. Error: {str(e)}\n\nPlease check your internet connection and API key."
+                return error_msg
 
         class OverviewWorker(QThread):
             result_ready = pyqtSignal(str)
+            error_occurred = pyqtSignal(str)
 
             def __init__(self, func):
                 super().__init__()
                 self.func = func
 
             def run(self):
-                result = self.func()
-                self.result_ready.emit(result)
+                try:
+                    result = self.func()
+                    self.result_ready.emit(result)
+                except Exception as e:
+                    logger.error(f"Worker thread error: {e}", exc_info=True)
+                    self.error_occurred.emit(f"Worker error: {str(e)}")
+
+        def handle_overview_result(overview):
+            try:
+                self.chat_widget.add_message("AI Assistant", overview, is_user=False)
+            except Exception as e:
+                logger.error(f"Error displaying overview: {e}", exc_info=True)
+
+        def handle_overview_error(error):
+            try:
+                self.chat_widget.add_message("System", f"Error: {error}", is_user=False)
+            except Exception as e:
+                logger.error(f"Error displaying error message: {e}", exc_info=True)
+
+        def cleanup_worker():
+            try:
+                self.overview_button.setEnabled(True)
+            except Exception as e:
+                logger.error(f"Error re-enabling button: {e}")
 
         worker = OverviewWorker(get_overview_impl)
-        worker.result_ready.connect(lambda overview: self.chat_widget.add_message("AI Assistant", overview, is_user=False))
-        worker.finished.connect(lambda: self.overview_button.setEnabled(True))
+        worker.result_ready.connect(handle_overview_result)
+        worker.error_occurred.connect(handle_overview_error)
+        worker.finished.connect(cleanup_worker)
         worker.start()
 
     def quit_application(self):
