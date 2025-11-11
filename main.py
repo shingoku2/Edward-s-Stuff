@@ -42,19 +42,19 @@ logger.info("")
 try:
     logger.info("Importing modules...")
     from config import Config
-    logger.info("  ✓ config imported")
+    logger.info("  [OK] config imported")
 
     from game_detector import GameDetector
-    logger.info("  ✓ game_detector imported")
+    logger.info("  [OK] game_detector imported")
 
     from ai_assistant import AIAssistant
-    logger.info("  ✓ ai_assistant imported")
+    logger.info("  [OK] ai_assistant imported")
 
     from info_scraper import GameInfoScraper
-    logger.info("  ✓ info_scraper imported")
+    logger.info("  [OK] info_scraper imported")
 
     from gui import run_gui
-    logger.info("  ✓ gui imported")
+    logger.info("  [OK] gui imported")
     logger.info("")
 
 except Exception as e:
@@ -89,7 +89,7 @@ def main():
         logger.info(f"  OpenAI key present: {bool(config.openai_api_key)}")
         logger.info(f"  Anthropic key present: {bool(config.anthropic_api_key)}")
 
-        print(f"✓ Configuration loaded")
+        print(f"[OK] Configuration loaded")
         print(f"  AI Provider: {config.ai_provider}")
         print(f"  Hotkey: {config.overlay_hotkey}")
         print()
@@ -103,7 +103,7 @@ def main():
         logger.info(f"Game detector initialized")
         logger.info(f"  Known games: {len(game_detector.KNOWN_GAMES)}")
 
-        print("✓ Game detector ready")
+        print("[OK] Game detector ready")
         print()
 
         # Initialize AI assistant
@@ -118,7 +118,7 @@ def main():
         logger.info(f"AI assistant initialized")
         logger.info(f"  Provider: {ai_assistant.provider}")
 
-        print("✓ AI assistant ready")
+        print("[OK] AI assistant ready")
         print()
 
         # Initialize info scraper
@@ -130,7 +130,7 @@ def main():
         logger.info(f"Info scraper initialized")
         logger.info(f"  Wiki sources: {len(info_scraper.wiki_urls)}")
 
-        print("✓ Info scraper ready")
+        print("[OK] Info scraper ready")
         print()
 
         # Test game detection
@@ -140,7 +140,7 @@ def main():
         game = game_detector.detect_running_game()
         if game:
             logger.info(f"Detected game: {game['name']} (PID: {game.get('pid', 'unknown')})")
-            print(f"✓ Detected game: {game['name']}")
+            print(f"[OK] Detected game: {game['name']}")
         else:
             logger.info("No game currently running")
             print("  No game currently running")
