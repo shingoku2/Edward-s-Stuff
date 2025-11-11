@@ -51,7 +51,7 @@ pip install pyinstaller
 
 ### Step 2: Build the Executable
 ```cmd
-pyinstaller --name=GamingAIAssistant --windowed --onedir --clean --noconfirm --add-data=".env.example;." --add-data="README.md;." --hidden-import=PyQt6.QtCore --hidden-import=PyQt6.QtGui --hidden-import=PyQt6.QtWidgets --hidden-import=anthropic --hidden-import=openai --hidden-import=psutil --hidden-import=requests --hidden-import=bs4 --hidden-import=dotenv main.py
+python -m PyInstaller --name=GamingAIAssistant --windowed --onedir --clean --noconfirm --paths=src --add-data=".env.example;." --add-data="README.md;." --hidden-import=PyQt6.QtCore --hidden-import=PyQt6.QtGui --hidden-import=PyQt6.QtWidgets --hidden-import=config --hidden-import=game_detector --hidden-import=ai_assistant --hidden-import=info_scraper --hidden-import=gui --hidden-import=anthropic --hidden-import=openai --hidden-import=psutil --hidden-import=requests --hidden-import=bs4 --hidden-import=dotenv main.py
 ```
 
 ### Step 3: Copy Additional Files
@@ -68,7 +68,7 @@ copy SETUP.md dist\GamingAIAssistant\SETUP.md
 For a single .exe file (larger but more portable):
 
 ```cmd
-pyinstaller --name=GamingAIAssistant --windowed --onefile --clean --noconfirm --add-data=".env.example;." --hidden-import=PyQt6.QtCore --hidden-import=PyQt6.QtGui --hidden-import=PyQt6.QtWidgets --hidden-import=anthropic --hidden-import=openai --hidden-import=psutil --hidden-import=bs4 main.py
+python -m PyInstaller --name=GamingAIAssistant --windowed --onefile --clean --noconfirm --paths=src --add-data=".env.example;." --hidden-import=PyQt6.QtCore --hidden-import=PyQt6.QtGui --hidden-import=PyQt6.QtWidgets --hidden-import=config --hidden-import=game_detector --hidden-import=ai_assistant --hidden-import=info_scraper --hidden-import=gui --hidden-import=anthropic --hidden-import=openai --hidden-import=psutil --hidden-import=bs4 --hidden-import=dotenv main.py
 ```
 
 **Note:** Single-file builds are slower to start but easier to distribute.
