@@ -67,12 +67,14 @@ class GameInfoScraper:
             if wiki_info:
                 results['wiki_info'] = wiki_info
 
-            # Search the web for additional info
-            web_results = self._search_web(game_name, query)
-            if web_results:
-                results['web_results'] = web_results
+            # DISABLED: Web scraping can be unreliable and cause crashes
+            # If needed, enable this after testing
+            # web_results = self._search_web(game_name, query)
+            # if web_results:
+            #     results['web_results'] = web_results
 
         except Exception as e:
+            logger.error(f"Error in search_game_info: {e}", exc_info=True)
             results['error'] = str(e)
 
         return results
@@ -108,7 +110,7 @@ class GameInfoScraper:
                 # Get main page
                 search_url = wiki_base
 
-            response = self.session.get(search_url, timeout=10)
+            response = self.session.get(search_url, timeout=5)  # Shorter timeout to prevent hanging
 
             if response.status_code == 200:
                 soup = BeautifulSoup(response.content, 'html.parser')
@@ -132,33 +134,66 @@ class GameInfoScraper:
         return None
 
     def _extract_wiki_content(self, soup: BeautifulSoup) -> str:
-        """Extract relevant content from wiki page"""
+        """Extract relevant content from wiki page - with extra safety"""
         content_parts = []
 
         try:
+            if not soup:
+                return ""
+
             # Try to find main content area
             main_content = soup.find('div', {'class': ['mw-parser-output', 'page-content', 'content']})
 
             if main_content:
-                # Get first few paragraphs
-                paragraphs = main_content.find_all('p', limit=5)
-                for p in paragraphs:
-                    text = p.get_text().strip()
-                    if len(text) > 50:  # Skip very short paragraphs
-                        content_parts.append(text)
+                # Get first few paragraphs - with safety checks
+                try:
+                    paragraphs = main_content.find_all('p', limit=5)
+                    for p in paragraphs:
+                        try:
+                            if p:
+                                text = p.get_text().strip()
+                                if text and len(text) > 50:  # Skip very short paragraphs
+                                    content_parts.append(text)
+                        except (AttributeError, TypeError) as e:
+                            logger.debug(f"Error extracting paragraph: {e}")
+                            continue
+                except Exception as e:
+                    logger.debug(f"Error finding paragraphs: {e}")
 
-                # Get any lists (tips, strategies, etc.)
-                lists = main_content.find_all(['ul', 'ol'], limit=3)
-                for lst in lists:
-                    items = lst.find_all('li', limit=10)
-                    list_text = '\n'.join([f"• {item.get_text().strip()}" for item in items])
-                    if list_text:
-                        content_parts.append(list_text)
+                # Get any lists (tips, strategies, etc.) - with safety checks
+                try:
+                    lists = main_content.find_all(['ul', 'ol'], limit=3)
+                    for lst in lists:
+                        try:
+                            if lst:
+                                items = lst.find_all('li', limit=10)
+                                list_items = []
+                                for item in items:
+                                    try:
+                                        if item:
+                                            text = item.get_text().strip()
+                                            if text:
+                                                list_items.append(f"• {text}")
+                                    except (AttributeError, TypeError):
+                                        continue
+                                if list_items:
+                                    content_parts.append('\n'.join(list_items))
+                        except (AttributeError, TypeError) as e:
+                            logger.debug(f"Error extracting list: {e}")
+                            continue
+                except Exception as e:
+                    logger.debug(f"Error finding lists: {e}")
 
         except Exception as e:
             logger.error(f"Content extraction error: {e}", exc_info=True)
 
-        return '\n\n'.join(content_parts[:3]) if content_parts else ""
+        # Safely join content with length limit
+        try:
+            result = '\n\n'.join(content_parts[:3]) if content_parts else ""
+            return result[:2000]  # Limit to 2000 chars
+        except Exception as e:
+            logger.error(f"Error joining content: {e}")
+            return ""
 
     def _search_web(self, game_name: str, query: Optional[str] = None) -> List[Dict]:
         """
