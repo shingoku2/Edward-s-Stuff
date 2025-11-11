@@ -178,6 +178,16 @@ class ChatWidget(QWidget):
         if not question:
             return
 
+        # Check if AI assistant is configured
+        if not self.ai_assistant:
+            self.add_message(
+                "System",
+                "⚠️ AI assistant not configured. Please click the ⚙️ Settings button to add your API keys.",
+                is_user=False
+            )
+            self.input_field.clear()
+            return
+
         # Display user's question in chat
         self.add_message("You", question, is_user=True)
         self.input_field.clear()
@@ -530,7 +540,7 @@ class MainWindow(QMainWindow):
     def __init__(self, game_detector, ai_assistant, info_scraper, config):
         super().__init__()
         self.game_detector = game_detector
-        self.ai_assistant = ai_assistant
+        self.ai_assistant = ai_assistant  # Can be None if no API keys configured
         self.info_scraper = info_scraper
         self.config = config
 
@@ -540,6 +550,9 @@ class MainWindow(QMainWindow):
         # Worker threads for button actions (prevents garbage collection crashes)
         self.tips_worker = None
         self.overview_worker = None
+
+        # Track if this is first show (for auto-opening settings)
+        self.first_show = True
 
         self.init_ui()
         self.start_game_detection()
@@ -821,6 +834,15 @@ class MainWindow(QMainWindow):
         if not self.current_game:
             return
 
+        # Check if AI assistant is configured
+        if not self.ai_assistant:
+            self.chat_widget.add_message(
+                "System",
+                "⚠️ AI assistant not configured. Please click the ⚙️ Settings button to add your API keys.",
+                is_user=False
+            )
+            return
+
         self.chat_widget.add_message("System", "Getting tips...", is_user=False)
         logger.info("Getting tips for current game")
 
@@ -859,6 +881,15 @@ class MainWindow(QMainWindow):
     def get_overview(self):
         """Request and display overview of the currently detected game"""
         if not self.current_game:
+            return
+
+        # Check if AI assistant is configured
+        if not self.ai_assistant:
+            self.chat_widget.add_message(
+                "System",
+                "⚠️ AI assistant not configured. Please click the ⚙️ Settings button to add your API keys.",
+                is_user=False
+            )
             return
 
         game_name = self.current_game.get('name')
@@ -1021,6 +1052,36 @@ class MainWindow(QMainWindow):
                 self.overview_worker.terminate()
 
         logger.info("Cleanup complete")
+
+    def showEvent(self, event):
+        """
+        Handle window show event - auto-open settings on first show if not configured
+
+        Args:
+            event: QShowEvent to be handled
+        """
+        super().showEvent(event)
+
+        # On first show, check if AI assistant is configured
+        if self.first_show:
+            self.first_show = False
+
+            # If no AI assistant or no API keys configured, auto-open settings
+            if not self.ai_assistant or not self.config.is_configured():
+                logger.info("No API keys configured - auto-opening settings dialog")
+
+                # Show welcome message in chat
+                self.chat_widget.add_message(
+                    "System",
+                    "Welcome to Gaming AI Assistant! 🎮\n\n"
+                    "To get started, please configure your API keys in the Settings dialog.\n\n"
+                    "Click the ⚙️ Settings button to enter your OpenAI or Anthropic API key.",
+                    is_user=False
+                )
+
+                # Schedule settings dialog to open after a short delay (so window is fully shown)
+                from PyQt6.QtCore import QTimer
+                QTimer.singleShot(500, self.open_settings)
 
     def closeEvent(self, event):
         """

@@ -76,22 +76,26 @@ def main():
     print()
 
     try:
-        # Load configuration
+        # Load configuration (without requiring API keys)
         logger.info("Step 1: Loading configuration...")
         print("Loading configuration...")
 
-        config = Config()
+        config = Config(require_keys=False)
 
-        logger.info(f"Configuration loaded successfully")
+        logger.info(f"Configuration loaded")
         logger.info(f"  AI Provider: {config.ai_provider}")
         logger.info(f"  Hotkey: {config.overlay_hotkey}")
         logger.info(f"  Check interval: {config.check_interval}")
         logger.info(f"  OpenAI key present: {bool(config.openai_api_key)}")
         logger.info(f"  Anthropic key present: {bool(config.anthropic_api_key)}")
+        logger.info(f"  Configuration complete: {config.is_configured()}")
 
         print(f"[OK] Configuration loaded")
         print(f"  AI Provider: {config.ai_provider}")
         print(f"  Hotkey: {config.overlay_hotkey}")
+
+        if not config.is_configured():
+            print(f"  ⚠️  No API keys configured - Settings dialog will open")
         print()
 
         # Initialize game detector
@@ -106,20 +110,26 @@ def main():
         print("[OK] Game detector ready")
         print()
 
-        # Initialize AI assistant
-        logger.info("Step 3: Initializing AI assistant...")
-        print("Initializing AI assistant...")
+        # Initialize AI assistant (only if API keys are configured)
+        ai_assistant = None
+        if config.has_provider_key():
+            logger.info("Step 3: Initializing AI assistant...")
+            print("Initializing AI assistant...")
 
-        ai_assistant = AIAssistant(
-            provider=config.ai_provider,
-            api_key=config.get_api_key()
-        )
+            ai_assistant = AIAssistant(
+                provider=config.ai_provider,
+                api_key=config.get_api_key()
+            )
 
-        logger.info(f"AI assistant initialized")
-        logger.info(f"  Provider: {ai_assistant.provider}")
+            logger.info(f"AI assistant initialized")
+            logger.info(f"  Provider: {ai_assistant.provider}")
 
-        print("[OK] AI assistant ready")
-        print()
+            print("[OK] AI assistant ready")
+            print()
+        else:
+            logger.info("Step 3: Skipping AI assistant initialization (no API keys)")
+            print("[INFO] AI assistant will be initialized after you configure API keys")
+            print()
 
         # Initialize info scraper
         logger.info("Step 4: Initializing information scraper...")

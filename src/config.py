@@ -13,12 +13,13 @@ from dotenv import load_dotenv
 class Config:
     """Application configuration"""
 
-    def __init__(self, env_file: Optional[str] = None):
+    def __init__(self, env_file: Optional[str] = None, require_keys: bool = False):
         """
         Initialize configuration
 
         Args:
             env_file: Path to .env file (optional)
+            require_keys: If True, raise error if API keys are missing (default: False)
         """
         # Load environment variables
         if env_file and os.path.exists(env_file):
@@ -52,11 +53,12 @@ class Config:
         self.overlay_hotkey = os.getenv('OVERLAY_HOTKEY', 'ctrl+shift+g')
         self.check_interval = int(os.getenv('CHECK_INTERVAL', '5'))
 
-        # Validate configuration
-        self._validate()
+        # Validate configuration (only if required)
+        if require_keys:
+            self._validate()
 
     def _validate(self):
-        """Validate configuration"""
+        """Validate configuration - raises ValueError if invalid"""
         # Check if we have at least one API key
         if self.ai_provider == 'openai' and not self.openai_api_key:
             raise ValueError("OpenAI API key not found. Please set OPENAI_API_KEY in .env")
@@ -66,6 +68,28 @@ class Config:
 
         if self.ai_provider not in ['openai', 'anthropic']:
             raise ValueError(f"Invalid AI provider: {self.ai_provider}. Must be 'openai' or 'anthropic'")
+
+    def is_configured(self) -> bool:
+        """
+        Check if configuration has valid API keys
+
+        Returns:
+            True if at least one API key is configured, False otherwise
+        """
+        return bool(self.openai_api_key or self.anthropic_api_key)
+
+    def has_provider_key(self) -> bool:
+        """
+        Check if the selected provider has a valid API key
+
+        Returns:
+            True if current provider has an API key, False otherwise
+        """
+        if self.ai_provider == 'openai':
+            return bool(self.openai_api_key)
+        elif self.ai_provider == 'anthropic':
+            return bool(self.anthropic_api_key)
+        return False
 
     def get_api_key(self) -> str:
         """Get the API key for the selected provider"""
