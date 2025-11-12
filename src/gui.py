@@ -474,17 +474,18 @@ class SettingsDialog(QDialog):
         keys_layout.addWidget(ollama_label)
 
         self.ollama_endpoint_input = QLineEdit()
-        self.ollama_endpoint_input.setPlaceholderText("http://localhost:11434")
+        self.ollama_endpoint_input.setPlaceholderText("http://localhost:11434 or http://localhost:8080")
         self.ollama_endpoint_input.setText(self.config.ollama_endpoint)
         keys_layout.addWidget(self.ollama_endpoint_input)
 
         # Ollama help text
         ollama_help = QLabel(
-            "💡 Ollama Setup (No package needed - uses REST API!):\n"
-            "• Windows: Use http://localhost:11434\n"
-            "• WSL: Use http://localhost:11434 (WSL2 auto-forwards)\n"
-            "• Open WebUI users: Same endpoint works!\n"
-            "• Just ensure Ollama is running in WSL: ollama serve"
+            "💡 Ollama/Open WebUI Setup (No package needed - uses REST API!):\n"
+            "• Native Ollama: http://localhost:11434\n"
+            "• Open WebUI: http://localhost:8080 (or your custom port)\n"
+            "• WSL: Use http://localhost:<port> (WSL2 auto-forwards)\n"
+            "• Supports both native Ollama and OpenAI-compatible APIs\n"
+            "• WSL: Ensure Ollama is running: ollama serve"
         )
         ollama_help.setStyleSheet("""
             QLabel {
