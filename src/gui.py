@@ -478,6 +478,25 @@ class SettingsDialog(QDialog):
         self.ollama_endpoint_input.setText(self.config.ollama_endpoint)
         keys_layout.addWidget(self.ollama_endpoint_input)
 
+        # Ollama help text
+        ollama_help = QLabel(
+            "💡 Ollama Setup:\n"
+            "• Windows: Use http://localhost:11434\n"
+            "• WSL: Use http://localhost:11434 (WSL2 auto-forwards)\n"
+            "• Requires: pip install ollama"
+        )
+        ollama_help.setStyleSheet("""
+            QLabel {
+                color: #9ca3af;
+                font-size: 9pt;
+                padding: 5px;
+                background-color: #1f2937;
+                border-radius: 3px;
+            }
+        """)
+        ollama_help.setWordWrap(True)
+        keys_layout.addWidget(ollama_help)
+
         keys_group.setLayout(keys_layout)
         layout.addWidget(keys_group)
 

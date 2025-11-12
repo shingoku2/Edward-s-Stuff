@@ -69,7 +69,17 @@ class AIAssistant:
                 self.client = genai.GenerativeModel('gemini-pro')
                 logger.info("Gemini client initialized")
             elif self.provider == "ollama":
-                import ollama
+                try:
+                    import ollama
+                except ImportError:
+                    raise ImportError(
+                        "Ollama package not installed. Install it with:\n"
+                        "pip install ollama\n\n"
+                        "Also ensure Ollama is running:\n"
+                        "- Windows: Start Ollama from Start Menu or run 'ollama serve'\n"
+                        "- WSL: Run 'ollama serve' in WSL terminal\n"
+                        "- For WSL users: Endpoint should be http://localhost:11434 (WSL2 auto-forwards ports)"
+                    )
                 self.client = ollama.Client(host=self.ollama_endpoint)
                 logger.info(f"Ollama client initialized (endpoint: {self.ollama_endpoint})")
             else:
