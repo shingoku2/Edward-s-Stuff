@@ -85,15 +85,22 @@ class AIAssistant:
                 logger.info(f"Ollama configured for REST API (endpoint: {self.ollama_endpoint})")
 
                 # Test connection (optional, but helpful)
+                # Try both Open WebUI and native Ollama endpoints
                 try:
-                    response = requests.get(f"{self.ollama_endpoint}/api/tags", timeout=2)
+                    # Try OpenAI-compatible endpoint first (Open WebUI)
+                    response = requests.get(f"{self.ollama_endpoint}/v1/models", timeout=2)
                     if response.status_code == 200:
-                        logger.info("Ollama connection test successful")
+                        logger.info("Open WebUI connection test successful (OpenAI-compatible API)")
                     else:
-                        logger.warning(f"Ollama endpoint returned status {response.status_code}")
+                        # Try native Ollama endpoint
+                        response = requests.get(f"{self.ollama_endpoint}/api/tags", timeout=2)
+                        if response.status_code == 200:
+                            logger.info("Native Ollama connection test successful")
+                        else:
+                            logger.warning(f"Ollama endpoint returned status {response.status_code}")
                 except Exception as e:
                     logger.warning(f"Could not connect to Ollama endpoint: {e}")
-                    logger.info("Will attempt to use anyway - ensure Ollama is running")
+                    logger.info("Will attempt to use anyway - ensure Ollama/Open WebUI is running")
 
                 # Don't set self.client for ollama, we'll use requests directly
                 self.client = None
@@ -343,10 +350,41 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
             if system_msg:
                 messages = [{"role": "system", "content": system_msg}] + messages
 
-            # Call Ollama API directly via REST
-            api_url = f"{self.ollama_endpoint}/api/chat"
+            # Try Open WebUI's OpenAI-compatible API first (most common for Open WebUI)
+            # This uses the /v1/chat/completions endpoint
+            openai_api_url = f"{self.ollama_endpoint}/v1/chat/completions"
 
-            payload = {
+            openai_payload = {
+                "model": "llama2",  # Default model, can be made configurable
+                "messages": messages,
+                "stream": False,
+                "temperature": 0.7,
+                "max_tokens": 1000,
+            }
+
+            logger.debug(f"Trying OpenAI-compatible API at {openai_api_url}")
+            try:
+                response = requests.post(openai_api_url, json=openai_payload, timeout=30)
+
+                if response.status_code == 200:
+                    result = response.json()
+                    return result['choices'][0]['message']['content']
+                elif response.status_code == 404:
+                    # OpenAI-compatible endpoint not found, try native Ollama API
+                    logger.info("OpenAI-compatible endpoint not found, trying native Ollama API")
+                else:
+                    response.raise_for_status()
+            except requests.exceptions.HTTPError as e:
+                if e.response.status_code == 404:
+                    logger.info("OpenAI-compatible endpoint returned 404, trying native Ollama API")
+                else:
+                    raise
+
+            # Fall back to native Ollama API
+            # This uses the /api/chat endpoint
+            native_api_url = f"{self.ollama_endpoint}/api/chat"
+
+            native_payload = {
                 "model": "llama2",  # Default model, can be made configurable
                 "messages": messages,
                 "stream": False,
@@ -356,8 +394,8 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
                 }
             }
 
-            logger.debug(f"Calling Ollama API at {api_url}")
-            response = requests.post(api_url, json=payload, timeout=30)
+            logger.debug(f"Calling native Ollama API at {native_api_url}")
+            response = requests.post(native_api_url, json=native_payload, timeout=30)
             response.raise_for_status()
 
             result = response.json()
@@ -369,9 +407,10 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
                 f"Cannot connect to Ollama at {self.ollama_endpoint}\n\n"
                 "Troubleshooting:\n"
                 "• WSL: Run 'ollama serve' in WSL terminal\n"
-                "• Check endpoint in settings (default: http://localhost:11434)\n"
+                "• Open WebUI: Ensure it's running (default: http://localhost:8080)\n"
+                "• Native Ollama: Check endpoint in settings (default: http://localhost:11434)\n"
                 "• WSL2 users: Should auto-forward to localhost\n"
-                "• Open WebUI users: This connects to the same Ollama instance"
+                "• Update endpoint in Settings to match your setup"
             )
         except requests.exceptions.Timeout as e:
             logger.error(f"Ollama request timeout: {e}")
