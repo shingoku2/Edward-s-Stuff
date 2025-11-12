@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
     QMenu, QFrame, QDialog, QRadioButton, QButtonGroup, QMessageBox,
     QGroupBox, QSpinBox, QDoubleSpinBox
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QThread
+from PyQt6.QtCore import Qt, pyqtSignal, QThread, QEvent, QTimer
 from PyQt6.QtGui import QAction, QKeySequence, QShortcut, QIcon, QPixmap, QPainter, QColor
 from typing import Optional, Dict
 import os
@@ -264,16 +264,25 @@ class OverlayWindow(QWidget):
     """Floating in-game overlay window"""
 
     def __init__(self, parent, ai_assistant, config):
-        super().__init__(parent, Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Tool)
+        window_flags = (
+            Qt.WindowType.Window
+            | Qt.WindowType.FramelessWindowHint
+            | Qt.WindowType.WindowStaysOnTopHint
+        )
+        super().__init__(None, window_flags)
         self.setWindowTitle("Gaming AI Overlay")
         self.ai_assistant = ai_assistant
         self.config = config
+        self._hidden_by_user = True
+
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.setStyleSheet("background: transparent;")
 
         self.chat_widget = ChatWidget(self.ai_assistant, font_size=self.config.overlay_font_size)
 
         self.init_ui()
         self.apply_preferences(self.config)
-        self.hide()
+        self.hide_overlay()
 
     def init_ui(self):
         """Build overlay UI"""
@@ -316,7 +325,7 @@ class OverlayWindow(QWidget):
             " }"
             " QPushButton:hover { background-color: #ef4444; }"
         )
-        close_button.clicked.connect(self.hide)
+        close_button.clicked.connect(self.hide_overlay)
         header_layout.addWidget(close_button, alignment=Qt.AlignmentFlag.AlignRight)
 
         container_layout.addLayout(header_layout)
@@ -346,10 +355,34 @@ class OverlayWindow(QWidget):
         self.ai_assistant = ai_assistant
         self.chat_widget.ai_assistant = ai_assistant
 
+    @property
+    def hidden_by_user(self) -> bool:
+        """Return whether the overlay has been intentionally hidden"""
+        return self._hidden_by_user
+
+    def show_overlay(self):
+        """Show the overlay with the latest preferences"""
+        self._hidden_by_user = False
+        self.apply_preferences(self.config)
+        super().show()
+        self.raise_()
+        self.activateWindow()
+
+    def hide_overlay(self):
+        """Hide the overlay at the user's request"""
+        self._hidden_by_user = True
+        super().hide()
+
+    def restore_visibility(self):
+        """Ensure the overlay remains visible when the main window is minimized"""
+        if not self._hidden_by_user:
+            super().show()
+            self.raise_()
+
     def closeEvent(self, event):
         """Ensure overlay hides instead of closing"""
         event.ignore()
-        self.hide()
+        self.hide_overlay()
 
 
 class SettingsDialog(QDialog):
@@ -1211,13 +1244,10 @@ class MainWindow(QMainWindow):
             return
 
         if self.overlay_window.isVisible():
-            self.overlay_window.hide()
+            self.overlay_window.hide_overlay()
             logger.info("Overlay hidden")
         else:
-            self.overlay_window.apply_preferences(self.config)
-            self.overlay_window.show()
-            self.overlay_window.raise_()
-            self.overlay_window.activateWindow()
+            self.overlay_window.show_overlay()
             logger.info("Overlay shown")
 
     def show_overlay(self):
@@ -1225,11 +1255,17 @@ class MainWindow(QMainWindow):
         if not self.overlay_window:
             return
 
-        self.overlay_window.apply_preferences(self.config)
-        self.overlay_window.show()
-        self.overlay_window.raise_()
-        self.overlay_window.activateWindow()
+        self.overlay_window.show_overlay()
         logger.info("Overlay opened from main window")
+
+    def changeEvent(self, event):
+        """Ensure the overlay remains visible when the window is minimized"""
+        super().changeEvent(event)
+
+        if event.type() == QEvent.Type.WindowStateChange:
+            if self.windowState() & Qt.WindowState.WindowMinimized:
+                if self.overlay_window:
+                    QTimer.singleShot(0, self.overlay_window.restore_visibility)
 
     def relay_overlay_message(self, sender: str, message: str, is_user: bool):
         """Forward overlay chat messages to the main chat widget"""
@@ -1571,7 +1607,7 @@ class MainWindow(QMainWindow):
 
         # Hide overlay window
         if self.overlay_window:
-            self.overlay_window.hide()
+            self.overlay_window.hide_overlay()
 
         logger.info("Cleanup complete")
 
@@ -1602,7 +1638,6 @@ class MainWindow(QMainWindow):
                 )
 
                 # Schedule settings dialog to open after a short delay (so window is fully shown)
-                from PyQt6.QtCore import QTimer
                 QTimer.singleShot(500, self.open_settings)
 
     def closeEvent(self, event):

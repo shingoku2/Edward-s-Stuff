@@ -713,3 +713,24 @@ INFO - Native /api/chat endpoint returned 405, trying /api/generate
 *Last Updated: 2025-11-12*
 *Session: Persist Open WebUI API Key*
 *Status: Complete ✅*
+
+## Current Session: Decouple Overlay from Main Window (2025-11-13)
+
+### Session Goals
+1. Allow the main application window to minimize to the taskbar without hiding the in-game overlay.
+2. Preserve overlay interactivity and visibility while the main window is minimized.
+
+### Actions Taken
+- Refactored `OverlayWindow` in `src/gui.py` to be a top-level, frameless window with translucent background and stay-on-top behavior, independent of the main window parent.
+- Added overlay state tracking helpers (`show_overlay`, `hide_overlay`, `restore_visibility`, and `hidden_by_user`) so user intent is preserved across window state changes.
+- Updated main window controls to use the new overlay helpers, ensuring overlay visibility toggles respect user intent and minimizing the main window no longer hides the overlay.
+- Introduced a `changeEvent` handler in `MainWindow` that restores the overlay after minimization when appropriate.
+- Executed `python -m compileall src` to validate syntax after refactoring.
+
+### Outcome
+- The overlay now remains visible and interactive even when the main application is minimized to the taskbar, meeting the decoupling requirement.
+- Syntax validation completed successfully with no errors reported.
+
+*Last Updated: 2025-11-13*
+*Session: Decouple Overlay from Main Window*
+*Status: Complete ✅*
