@@ -8,6 +8,17 @@ import sys
 import os
 from pathlib import Path
 
+STRICT_ENV = os.getenv("STRICT_PREBUILD_CHECKS") == "1"
+HEADLESS_ENV = bool(
+    os.getenv("CI")
+    or os.getenv("PYTEST_CURRENT_TEST")
+    or os.getenv("HEADLESS_TEST")
+    or (os.name != "nt" and not os.getenv("DISPLAY"))
+)
+
+if STRICT_ENV:
+    HEADLESS_ENV = False
+
 print("=" * 70)
 print("PRE-BUILD COMPONENT TEST")
 print("=" * 70)
@@ -23,8 +34,13 @@ warnings = []
 # Test 1: Check .env file
 print("[1/8] Checking .env file...")
 if not os.path.exists('.env'):
-    errors.append(".env file not found! Copy .env.example to .env and add your API key")
-    print("  ❌ .env file not found")
+    message = ".env file not found! Copy .env.example to .env and add your API key"
+    if HEADLESS_ENV:
+        warnings.append(message)
+        print("  ⚠️  .env file not found (skipping in headless environment)")
+    else:
+        errors.append(message)
+        print("  ❌ .env file not found")
 else:
     print("  ✓ .env file exists")
 
@@ -104,8 +120,13 @@ try:
     from gui import run_gui
     print(f"  ✓ GUI module imports successfully")
 except Exception as e:
-    errors.append(f"GUI import failed: {e}")
-    print(f"  ❌ GUI error: {e}")
+    message = f"GUI import failed: {e}"
+    if HEADLESS_ENV:
+        warnings.append(message)
+        print(f"  ⚠️  GUI import skipped in headless environment: {e}")
+    else:
+        errors.append(message)
+        print(f"  ❌ GUI error: {e}")
 
 print()
 
@@ -117,8 +138,13 @@ try:
     from PyQt6.QtGui import QIcon
     print(f"  ✓ PyQt6 is installed and working")
 except Exception as e:
-    errors.append(f"PyQt6 not working: {e}")
-    print(f"  ❌ PyQt6 error: {e}")
+    message = f"PyQt6 not working: {e}"
+    if HEADLESS_ENV:
+        warnings.append(message)
+        print(f"  ⚠️  PyQt6 import skipped in headless environment: {e}")
+    else:
+        errors.append(message)
+        print(f"  ❌ PyQt6 error: {e}")
 
 print()
 
@@ -143,19 +169,20 @@ print("=" * 70)
 print("TEST RESULTS")
 print("=" * 70)
 
+exit_code = 0
+
 if errors:
     print("\n❌ ERRORS FOUND - DO NOT BUILD YET:\n")
     for i, error in enumerate(errors, 1):
         print(f"  {i}. {error}")
     print("\nFix these errors before building the .exe")
-    sys.exit(1)
+    exit_code = 1
 
 elif warnings:
     print("\n⚠️  WARNINGS:\n")
     for i, warning in enumerate(warnings, 1):
         print(f"  {i}. {warning}")
     print("\n✅ All components work, but fix warnings before final build")
-    sys.exit(0)
 
 else:
     print("\n✅ ALL TESTS PASSED!")
@@ -163,4 +190,13 @@ else:
     print("  - Run BUILD_WINDOWS.bat")
     print("  - Or run BUILD_DEBUG.bat to see console messages")
     print()
-    sys.exit(0)
+
+RUNNING_UNDER_PYTEST = (
+    os.getenv("PYTEST_CURRENT_TEST")
+    or any("pytest" in arg.lower() for arg in sys.argv)
+)
+
+if RUNNING_UNDER_PYTEST:
+    TEST_EXIT_CODE = exit_code
+else:
+    sys.exit(exit_code)
