@@ -23,7 +23,7 @@ class Config:
         """
         # Load environment variables
         if env_file and os.path.exists(env_file):
-            load_dotenv(env_file)
+            load_dotenv(env_file, override=True)  # Override existing env vars
         else:
             # Try multiple locations for .env file
             # This handles both development and PyInstaller bundled scenarios
@@ -41,7 +41,11 @@ class Config:
 
             for env_path in possible_paths:
                 if env_path.exists():
-                    load_dotenv(env_path)
+                    load_dotenv(env_path, override=True)  # Override existing env vars
+                    # Log which file was loaded
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.info(f"Loaded .env from: {env_path}")
                     break
 
         # AI Configuration
@@ -51,6 +55,11 @@ class Config:
         self.gemini_api_key = os.getenv('GEMINI_API_KEY')
         self.ollama_endpoint = os.getenv('OLLAMA_ENDPOINT', 'http://localhost:11434')
         self.open_webui_api_key = os.getenv('OPEN_WEBUI_API_KEY')  # API key for Open WebUI authentication
+
+        # Debug logging for Open WebUI API key
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Config loaded - Open WebUI API key present: {bool(self.open_webui_api_key)}, length: {len(self.open_webui_api_key) if self.open_webui_api_key else 0}")
 
         # Application Settings
         self.overlay_hotkey = os.getenv('OVERLAY_HOTKEY', 'ctrl+shift+g')
