@@ -9,7 +9,7 @@ import json
 import os
 import logging
 from typing import Optional, Dict, List
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -216,8 +216,42 @@ class GameDetector:
             game_name = None
 
             if exe_path:
-                # Try to get folder name
-                path = Path(exe_path)
+                # Use PureWindowsPath to handle Windows paths correctly
+                # (works on any OS)
+                path = PureWindowsPath(exe_path)
+
+                # Check the full path for system folders
+                path_lower = str(path).lower()
+
+                # First, check if it's in a known game directory
+                # These paths are allowed even if in Program Files
+                game_directories = [
+                    '\\steam\\steamapps\\',
+                    '\\steamapps\\',
+                    '\\epic games\\',
+                    '\\riot games\\',
+                    '\\games\\',
+                    '\\gog galaxy\\games\\',
+                ]
+
+                is_in_game_directory = any(gdir in path_lower for gdir in game_directories)
+
+                # Only filter out system folders if it's NOT in a game directory
+                if not is_in_game_directory:
+                    # Filter out system and common folders
+                    system_folders = [
+                        '\\system32\\', '\\syswow64\\', '\\windows\\',
+                        '\\program files\\', '\\program files (x86)\\',
+                        '\\programdata\\', '\\common files\\',
+                        '\\microsoft\\', '\\windowsapps\\', '\\temp\\',
+                        '\\appdata\\', 'c:\\windows\\'
+                    ]
+
+                    if any(folder in path_lower for folder in system_folders):
+                        # This is likely a system process, not a game
+                        return None
+
+                # Get parent folder name for game name extraction
                 parent_folder = path.parent.name
 
                 # Clean up the name
