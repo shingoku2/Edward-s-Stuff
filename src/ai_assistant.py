@@ -69,19 +69,34 @@ class AIAssistant:
                 self.client = genai.GenerativeModel('gemini-pro')
                 logger.info("Gemini client initialized")
             elif self.provider == "ollama":
+                # Ollama uses REST API - no package needed!
+                # We'll use requests library which is commonly available
                 try:
-                    import ollama
+                    import requests
                 except ImportError:
                     raise ImportError(
-                        "Ollama package not installed. Install it with:\n"
-                        "pip install ollama\n\n"
-                        "Also ensure Ollama is running:\n"
-                        "- Windows: Start Ollama from Start Menu or run 'ollama serve'\n"
-                        "- WSL: Run 'ollama serve' in WSL terminal\n"
-                        "- For WSL users: Endpoint should be http://localhost:11434 (WSL2 auto-forwards ports)"
+                        "requests package not installed. Install it with:\n"
+                        "pip install requests\n\n"
+                        "Note: Ollama support uses REST API, no ollama package needed!"
                     )
-                self.client = ollama.Client(host=self.ollama_endpoint)
-                logger.info(f"Ollama client initialized (endpoint: {self.ollama_endpoint})")
+
+                # Store endpoint for API calls
+                self.ollama_endpoint = self.ollama_endpoint.rstrip('/')
+                logger.info(f"Ollama configured for REST API (endpoint: {self.ollama_endpoint})")
+
+                # Test connection (optional, but helpful)
+                try:
+                    response = requests.get(f"{self.ollama_endpoint}/api/tags", timeout=2)
+                    if response.status_code == 200:
+                        logger.info("Ollama connection test successful")
+                    else:
+                        logger.warning(f"Ollama endpoint returned status {response.status_code}")
+                except Exception as e:
+                    logger.warning(f"Could not connect to Ollama endpoint: {e}")
+                    logger.info("Will attempt to use anyway - ensure Ollama is running")
+
+                # Don't set self.client for ollama, we'll use requests directly
+                self.client = None
             else:
                 raise ValueError(f"Unknown provider: {self.provider}")
         except ImportError as e:
@@ -299,8 +314,10 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
             raise Exception(f"Gemini API error: {str(e)}")
 
     def _ask_ollama(self) -> str:
-        """Get response from Ollama (local LLM)"""
+        """Get response from Ollama (local LLM) via REST API"""
         try:
+            import requests
+
             # Separate system message from conversation
             system_msg = ""
             messages = []
@@ -322,17 +339,43 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
                 }]
                 logger.warning("No user messages in history, using default greeting")
 
-            response = self.client.chat(
-                model='llama2',  # Default model, can be made configurable
-                messages=messages,
-                options={
-                    'temperature': 0.7,
-                    'num_predict': 1000,
+            # Add system message as first message if present
+            if system_msg:
+                messages = [{"role": "system", "content": system_msg}] + messages
+
+            # Call Ollama API directly via REST
+            api_url = f"{self.ollama_endpoint}/api/chat"
+
+            payload = {
+                "model": "llama2",  # Default model, can be made configurable
+                "messages": messages,
+                "stream": False,
+                "options": {
+                    "temperature": 0.7,
+                    "num_predict": 1000,
                 }
+            }
+
+            logger.debug(f"Calling Ollama API at {api_url}")
+            response = requests.post(api_url, json=payload, timeout=30)
+            response.raise_for_status()
+
+            result = response.json()
+            return result['message']['content']
+
+        except requests.exceptions.ConnectionError as e:
+            logger.error(f"Cannot connect to Ollama: {e}")
+            raise Exception(
+                f"Cannot connect to Ollama at {self.ollama_endpoint}\n\n"
+                "Troubleshooting:\n"
+                "• WSL: Run 'ollama serve' in WSL terminal\n"
+                "• Check endpoint in settings (default: http://localhost:11434)\n"
+                "• WSL2 users: Should auto-forward to localhost\n"
+                "• Open WebUI users: This connects to the same Ollama instance"
             )
-
-            return response['message']['content']
-
+        except requests.exceptions.Timeout as e:
+            logger.error(f"Ollama request timeout: {e}")
+            raise Exception("Ollama request timed out. The model may be loading or the server is slow.")
         except Exception as e:
             logger.error(f"Ollama API error: {e}", exc_info=True)
             raise Exception(f"Ollama API error: {str(e)}")

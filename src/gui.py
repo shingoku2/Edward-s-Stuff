@@ -480,10 +480,11 @@ class SettingsDialog(QDialog):
 
         # Ollama help text
         ollama_help = QLabel(
-            "💡 Ollama Setup:\n"
+            "💡 Ollama Setup (No package needed - uses REST API!):\n"
             "• Windows: Use http://localhost:11434\n"
             "• WSL: Use http://localhost:11434 (WSL2 auto-forwards)\n"
-            "• Requires: pip install ollama"
+            "• Open WebUI users: Same endpoint works!\n"
+            "• Just ensure Ollama is running in WSL: ollama serve"
         )
         ollama_help.setStyleSheet("""
             QLabel {
