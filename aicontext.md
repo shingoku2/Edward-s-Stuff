@@ -713,3 +713,24 @@ INFO - Native /api/chat endpoint returned 405, trying /api/generate
 *Last Updated: 2025-11-12*
 *Session: Persist Open WebUI API Key*
 *Status: Complete ✅*
+
+## Current Session: Expand Open WebUI Endpoint Compatibility (2025-11-14)
+
+### Session Goals
+1. Resolve persistent `405 Method Not Allowed` errors when using Open WebUI via the Windows debug build.
+2. Broaden REST endpoint detection to accommodate newer Open WebUI deployments that nest APIs under `/api/v1`.
+3. Provide richer authentication headers compatible with both legacy and current Open WebUI releases.
+
+### Actions Taken
+- Refactored `src/ai_assistant.py` Ollama/Open WebUI request flow to iterate through a prioritized list of candidate endpoints, automatically falling back across OpenAI-compatible, native, and legacy generate routes (including the new `/api/v1/*` variants).
+- Added dual authentication headers (`Authorization: Bearer` and `X-API-Key`) plus `Accept: application/json` to satisfy stricter Open WebUI API gateways.
+- Introduced centralized error tracking so the final exception bubbles up the last encountered HTTP or transport issue for clearer GUI notifications.
+
+### Outcome
+- The assistant now gracefully retries alternate endpoints instead of halting after the first 405 response, improving compatibility with Open WebUI releases that re-map APIs.
+- Users running behind locked-down reverse proxies gain broader header support, reducing false "authentication failed" alerts when valid API keys are supplied.
+- Verified source tree compiles successfully via `python -m compileall src`.
+
+*Last Updated: 2025-11-14*
+*Session: Expand Open WebUI Endpoint Compatibility*
+*Status: In Progress ⚙️*

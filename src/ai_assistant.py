@@ -355,16 +355,13 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
                 messages = [{"role": "system", "content": system_msg}] + messages
 
             # Prepare headers for authentication (if Open WebUI API key is provided)
-            headers = {"Content-Type": "application/json"}
+            headers = {"Content-Type": "application/json", "Accept": "application/json"}
             if self.open_webui_api_key:
                 headers["Authorization"] = f"Bearer {self.open_webui_api_key}"
+                headers["X-API-Key"] = self.open_webui_api_key
                 logger.debug("Using Open WebUI API key for authentication")
             else:
                 logger.warning("No Open WebUI API key provided - requests may fail if authentication is required")
-
-            # Try Open WebUI's OpenAI-compatible API first (most common for Open WebUI)
-            # This uses the /v1/chat/completions endpoint
-            openai_api_url = f"{self.ollama_endpoint}/v1/chat/completions"
 
             openai_payload = {
                 "model": "llama2",  # Default model, can be made configurable
@@ -374,29 +371,21 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
                 "max_tokens": 1000,
             }
 
-            logger.debug(f"Trying OpenAI-compatible API at {openai_api_url}")
-            try:
-                response = requests.post(openai_api_url, json=openai_payload, headers=headers, timeout=30)
-
-                if response.status_code == 200:
-                    result = response.json()
-                    return result['choices'][0]['message']['content']
-                elif response.status_code in [404, 405]:
-                    # OpenAI-compatible endpoint not found or method not allowed
-                    # Try native Ollama API instead
-                    logger.info(f"OpenAI-compatible endpoint returned {response.status_code}, trying native Ollama API")
-                else:
-                    response.raise_for_status()
-            except requests.exceptions.HTTPError as e:
-                if e.response.status_code in [404, 405]:
-                    # Endpoint structure doesn't match OpenAI format, try native Ollama
-                    logger.info(f"OpenAI-compatible endpoint returned {e.response.status_code}, trying native Ollama API")
-                else:
-                    raise
-
-            # Fall back to native Ollama API
-            # This uses the /api/chat endpoint
-            native_api_url = f"{self.ollama_endpoint}/api/chat"
+            endpoint_attempts = [
+                {
+                    "url": f"{self.ollama_endpoint}/v1/chat/completions",
+                    "type": "openai",
+                    "payload": openai_payload,
+                    "parser": lambda data: data['choices'][0]['message']['content'],
+                },
+                {
+                    # Open WebUI 0.3+ exposes OpenAI-compatible endpoints under /api/v1
+                    "url": f"{self.ollama_endpoint}/api/v1/chat/completions",
+                    "type": "openai",
+                    "payload": openai_payload,
+                    "parser": lambda data: data['choices'][0]['message']['content'],
+                },
+            ]
 
             native_payload = {
                 "model": "llama2",  # Default model, can be made configurable
@@ -408,57 +397,104 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
                 }
             }
 
-            logger.debug(f"Calling native Ollama API at {native_api_url}")
-            try:
-                response = requests.post(native_api_url, json=native_payload, headers=headers, timeout=30)
+            endpoint_attempts.extend([
+                {
+                    "url": f"{self.ollama_endpoint}/api/chat",
+                    "type": "native",
+                    "payload": native_payload,
+                    "parser": lambda data: data['message']['content'],
+                },
+                {
+                    # Open WebUI may mount native API under /api/v1 as well
+                    "url": f"{self.ollama_endpoint}/api/v1/chat",
+                    "type": "native",
+                    "payload": native_payload,
+                    "parser": lambda data: data['message']['content'],
+                },
+            ])
 
-                if response.status_code == 200:
-                    result = response.json()
-                    return result['message']['content']
-                elif response.status_code in [404, 405]:
-                    # /api/chat not found or method not allowed, try older /api/generate endpoint
-                    logger.info(f"Native /api/chat endpoint returned {response.status_code}, trying /api/generate")
-                else:
-                    response.raise_for_status()
-            except requests.exceptions.HTTPError as e:
-                if e.response.status_code in [404, 405]:
-                    logger.info(f"Native /api/chat endpoint returned {e.response.status_code}, trying /api/generate")
-                else:
-                    raise
+            # Last resort: /api/generate style endpoints (Ollama legacy / Open WebUI relay)
+            def _build_generate_payload(msgs):
+                prompt_parts = []
+                for item in msgs:
+                    role = item.get("role", "user")
+                    content = item.get("content", "")
+                    if role == "system":
+                        prompt_parts.append(f"System: {content}")
+                    elif role == "user":
+                        prompt_parts.append(f"User: {content}")
+                    elif role == "assistant":
+                        prompt_parts.append(f"Assistant: {content}")
 
-            # Last resort: try /api/generate (older Ollama endpoint)
-            generate_api_url = f"{self.ollama_endpoint}/api/generate"
+                prompt = "\n\n".join(prompt_parts) + "\n\nAssistant:"
 
-            # Convert messages to a single prompt for /api/generate
-            prompt_parts = []
-            for msg in messages:
-                role = msg.get("role", "user")
-                content = msg.get("content", "")
-                if role == "system":
-                    prompt_parts.append(f"System: {content}")
-                elif role == "user":
-                    prompt_parts.append(f"User: {content}")
-                elif role == "assistant":
-                    prompt_parts.append(f"Assistant: {content}")
-
-            prompt = "\n\n".join(prompt_parts) + "\n\nAssistant:"
-
-            generate_payload = {
-                "model": "llama2",
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "temperature": 0.7,
-                    "num_predict": 1000,
+                return {
+                    "model": "llama2",
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {
+                        "temperature": 0.7,
+                        "num_predict": 1000,
+                    }
                 }
-            }
 
-            logger.debug(f"Calling Ollama /api/generate at {generate_api_url}")
-            response = requests.post(generate_api_url, json=generate_payload, headers=headers, timeout=30)
-            response.raise_for_status()
+            generate_payload = _build_generate_payload(messages)
 
-            result = response.json()
-            return result['response']
+            endpoint_attempts.extend([
+                {
+                    "url": f"{self.ollama_endpoint}/api/generate",
+                    "type": "generate",
+                    "payload": generate_payload,
+                    "parser": lambda data: data['response'],
+                },
+                {
+                    "url": f"{self.ollama_endpoint}/api/v1/generate",
+                    "type": "generate",
+                    "payload": generate_payload,
+                    "parser": lambda data: data['response'],
+                },
+            ])
+
+            last_error: Optional[Exception] = None
+
+            for attempt in endpoint_attempts:
+                url = attempt["url"]
+                payload = attempt["payload"]
+                parser = attempt["parser"]
+
+                logger.debug(f"Attempting Ollama/Open WebUI request via {url}")
+                try:
+                    response = requests.post(url, json=payload, headers=headers, timeout=30)
+
+                    if response.status_code == 200:
+                        result = response.json()
+                        return parser(result)
+
+                    if response.status_code in [404, 405]:
+                        logger.info(
+                            "Endpoint %s returned %s - continuing with fallbacks", url, response.status_code
+                        )
+                        last_error = requests.exceptions.HTTPError(response=response)
+                        continue
+
+                    response.raise_for_status()
+                except requests.exceptions.HTTPError as e:
+                    status_code = getattr(e.response, "status_code", None)
+                    if status_code in [404, 405]:
+                        logger.info(
+                            "Endpoint %s raised %s - continuing with fallbacks", url, status_code
+                        )
+                        last_error = e
+                        continue
+                    last_error = e
+                except Exception as e:
+                    logger.debug(f"Endpoint {url} failed: {e}")
+                    last_error = e
+
+            if last_error:
+                raise last_error
+
+            raise Exception("No valid Ollama/Open WebUI endpoint responded successfully")
 
         except requests.exceptions.ConnectionError as e:
             logger.error(f"Cannot connect to Ollama: {e}")
