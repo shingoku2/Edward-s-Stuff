@@ -5,6 +5,8 @@ Handles AI queries using OpenAI or Anthropic APIs
 
 import os
 import logging
+import requests
+import json
 from typing import Optional, Dict, List
 
 # Configure logging
@@ -15,7 +17,6 @@ logger = logging.getLogger(__name__)
 class AIAssistant:
     """AI-powered gaming assistant"""
 
-    # Maximum conversation history to keep
     MAX_CONVERSATION_MESSAGES = 20
 
     def __init__(self, provider: str = "anthropic", api_key: Optional[str] = None,
@@ -26,9 +27,9 @@ class AIAssistant:
 
         Args:
             provider: 'openai', 'anthropic', 'gemini', or 'ollama'
-            api_key: API key for the chosen provider (not needed for ollama)
-            ollama_endpoint: Ollama endpoint URL (default: http://localhost:11434)
-            open_webui_api_key: API key for Open WebUI authentication (optional)
+            api_key: API key for the chosen provider
+            ollama_endpoint: Ollama endpoint URL
+            open_webui_api_key: API key for Open WebUI authentication
         """
         self.provider = provider.lower()
         self.api_key = api_key or self._get_api_key()
@@ -50,12 +51,11 @@ class AIAssistant:
         elif self.provider == "gemini":
             return os.getenv("GEMINI_API_KEY")
         elif self.provider == "ollama":
-            return None  # Ollama doesn't need API key
+            return None
         return None
 
     def _initialize_client(self):
         """Initialize the AI client"""
-        # Ollama doesn't require API key
         if not self.api_key and self.provider != "ollama":
             raise ValueError(f"No API key provided for {self.provider}")
 
@@ -64,55 +64,24 @@ class AIAssistant:
                 import openai
                 self.client = openai.OpenAI(api_key=self.api_key)
                 logger.info("OpenAI client initialized")
+                
             elif self.provider == "anthropic":
                 import anthropic
                 self.client = anthropic.Anthropic(api_key=self.api_key)
                 logger.info("Anthropic client initialized")
+                
             elif self.provider == "gemini":
                 import google.generativeai as genai
                 genai.configure(api_key=self.api_key)
                 self.client = genai.GenerativeModel('gemini-pro')
                 logger.info("Gemini client initialized")
+                
             elif self.provider == "ollama":
-                # Ollama uses REST API - no package needed!
-                # We'll use requests library which is commonly available
-                try:
-                    import requests
-                except ImportError:
-                    raise ImportError(
-                        "requests package not installed. Install it with:\n"
-                        "pip install requests\n\n"
-                        "Note: Ollama support uses REST API, no ollama package needed!"
-                    )
-
-                # Store endpoint for API calls
-                self.ollama_endpoint = self.ollama_endpoint.rstrip('/')
-                logger.info(f"Ollama configured for REST API (endpoint: {self.ollama_endpoint})")
-
-                # Test connection (optional, but helpful)
-                # Try both Open WebUI and native Ollama endpoints
-                try:
-                    # Try OpenAI-compatible endpoint first (Open WebUI)
-                    response = requests.get(f"{self.ollama_endpoint}/v1/models", timeout=2)
-                    if response.status_code == 200:
-                        logger.info("Open WebUI connection test successful (OpenAI-compatible API)")
-                        self._update_default_model_from_openai_response(response.json())
-                    else:
-                        # Try native Ollama endpoint
-                        response = requests.get(f"{self.ollama_endpoint}/api/tags", timeout=2)
-                        if response.status_code == 200:
-                            logger.info("Native Ollama connection test successful")
-                            self._update_default_model_from_native_response(response.json())
-                        else:
-                            logger.warning(f"Ollama endpoint returned status {response.status_code}")
-                except Exception as e:
-                    logger.warning(f"Could not connect to Ollama endpoint: {e}")
-                    logger.info("Will attempt to use anyway - ensure Ollama/Open WebUI is running")
-
-                # Don't set self.client for ollama, we'll use requests directly
-                self.client = None
+                logger.info(f"Ollama client configured at {self.ollama_endpoint}")
+                
             else:
                 raise ValueError(f"Unknown provider: {self.provider}")
+                
         except ImportError as e:
             raise ImportError(f"Required library not installed: {e}")
         except Exception as e:
@@ -124,23 +93,15 @@ class AIAssistant:
         self.current_game = game_info
         self.conversation_history = []
 
-        # Add system context
         game_name = game_info.get('name', 'Unknown Game')
         self._add_system_context(game_name)
         logger.info(f"Set current game context: {game_name}")
 
     def _add_system_context(self, game_name: str):
         """Add system context about the current game"""
-        system_message = f"""You are a specialized gaming assistant ONLY for {game_name}.
+        system_message = f"""You are a specialized gaming assistant for {game_name}.
 
-CRITICAL RULES:
-- You ONLY answer questions about {game_name}
-- You MUST refuse to answer any questions not related to {game_name}
-- Do NOT engage in general conversation, chitchat, or off-topic discussions
-- Do NOT answer questions about other games, programming, life advice, or any non-game topics
-- If asked something unrelated to {game_name}, politely remind the user you only help with {game_name}
-
-What you CAN help with for {game_name}:
+Help with:
 - Game strategies and tips
 - Character/weapon/item builds
 - Quest walkthroughs and missions
@@ -149,7 +110,7 @@ What you CAN help with for {game_name}:
 - Lore and story questions
 - Where to find items, NPCs, or locations
 
-Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
+Be concise, accurate, and helpful. Stay focused on {game_name}."""
 
         self.conversation_history.append({
             "role": "system",
@@ -158,12 +119,10 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
 
     def _trim_conversation_history(self):
         """Trim conversation history to prevent token limit issues"""
-        # Keep system message + last N messages
         if len(self.conversation_history) > self.MAX_CONVERSATION_MESSAGES:
             system_messages = [msg for msg in self.conversation_history if msg["role"] == "system"]
             recent_messages = [msg for msg in self.conversation_history if msg["role"] != "system"]
 
-            # Keep system message and most recent messages
             recent_messages = recent_messages[-(self.MAX_CONVERSATION_MESSAGES - len(system_messages)):]
             self.conversation_history = system_messages + recent_messages
 
@@ -183,27 +142,22 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
         if not question or not question.strip():
             return "Please provide a question."
 
-        # Check if a game is currently set
         if not self.current_game:
-            return "🎮 No game detected!\n\nPlease start a game to get assistance. I'm here to help you with gaming questions once you're playing."
+            return "🎮 No game detected! Please start a game to get assistance."
 
         try:
-            # Build the user message
             user_message = question.strip()
 
             if game_context:
-                user_message = f"{user_message}\n\nAdditional context from game resources:\n{game_context}"
+                user_message = f"{question}\n\nContext: {game_context}"
 
-            # Add to conversation history
             self.conversation_history.append({
                 "role": "user",
                 "content": user_message
             })
 
-            # Trim history if needed
             self._trim_conversation_history()
 
-            # Get response based on provider
             if self.provider == "openai":
                 response = self._ask_openai()
             elif self.provider == "anthropic":
@@ -215,7 +169,6 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
             else:
                 response = "Error: Invalid AI provider"
 
-            # Add response to history
             self.conversation_history.append({
                 "role": "assistant",
                 "content": response
@@ -231,35 +184,26 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
     def _ask_openai(self) -> str:
         """Get response from OpenAI"""
         try:
-            # Convert history to OpenAI format
-            messages = []
-            for msg in self.conversation_history:
-                messages.append({
-                    "role": msg["role"],
-                    "content": msg["content"]
-                })
-
-            # Ensure we have messages
-            if not messages:
-                raise ValueError("No messages in conversation history")
+            messages = [{"role": msg["role"], "content": msg["content"]} for msg in self.conversation_history]
 
             response = self.client.chat.completions.create(
-                model="gpt-4-turbo",  # Updated model name
+                model="gpt-4-turbo",
                 messages=messages,
                 max_tokens=1000,
                 temperature=0.7
             )
 
-            return response.choices[0].message.content
+            if response.choices and response.choices[0].message.content:
+                return response.choices[0].message.content
+            return "No response received from OpenAI"
 
         except Exception as e:
             logger.error(f"OpenAI API error: {e}", exc_info=True)
-            raise Exception(f"OpenAI API error: {str(e)}")
+            raise
 
     def _ask_anthropic(self) -> str:
         """Get response from Anthropic (Claude)"""
         try:
-            # Separate system message from conversation
             system_msg = ""
             messages = []
 
@@ -267,359 +211,90 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
                 if msg["role"] == "system":
                     system_msg = msg["content"]
                 else:
-                    messages.append({
-                        "role": msg["role"],
-                        "content": msg["content"]
-                    })
-
-            # Ensure we have messages
-            if not messages:
-                # If no messages yet, create a default one
-                messages = [{
-                    "role": "user",
-                    "content": "Hello! I just started playing. What can you help me with?"
-                }]
-                logger.warning("No user messages in history, using default greeting")
+                    messages.append({"role": msg["role"], "content": msg["content"]})
 
             response = self.client.messages.create(
-                model="claude-3-haiku-20240307",
+                model="claude-3-5-sonnet-20241022",
                 max_tokens=1000,
                 system=system_msg,
                 messages=messages
             )
 
-            return response.content[0].text
+            if response.content and len(response.content) > 0:
+                return response.content[0].text
+            return "No response received from Anthropic"
 
         except Exception as e:
             logger.error(f"Anthropic API error: {e}", exc_info=True)
-            raise Exception(f"Anthropic API error: {str(e)}")
+            raise
 
     def _ask_gemini(self) -> str:
         """Get response from Google Gemini"""
         try:
-            # Build conversation context for Gemini
-            # Gemini uses a different format - we'll pass the full conversation
-            system_msg = ""
-            conversation_text = ""
-
-            for msg in self.conversation_history:
-                if msg["role"] == "system":
-                    system_msg = msg["content"]
-                elif msg["role"] == "user":
-                    conversation_text += f"User: {msg['content']}\n\n"
-                elif msg["role"] == "assistant":
-                    conversation_text += f"Assistant: {msg['content']}\n\n"
-
-            # Combine system message with conversation
-            full_prompt = f"{system_msg}\n\n{conversation_text}Assistant:"
-
-            response = self.client.generate_content(
-                full_prompt,
-                generation_config={
-                    'temperature': 0.7,
-                    'max_output_tokens': 1000,
-                }
-            )
-
-            return response.text
+            conversation_text = "\n".join([f"{msg['role']}: {msg['content']}" for msg in self.conversation_history])
+            response = self.client.generate_content(conversation_text)
+            
+            if response.text:
+                return response.text
+            return "No response received from Gemini"
 
         except Exception as e:
             logger.error(f"Gemini API error: {e}", exc_info=True)
-            raise Exception(f"Gemini API error: {str(e)}")
-
-    def _update_default_model_from_openai_response(self, data: Dict) -> None:
-        """Extract default model from OpenAI-compatible /v1/models response."""
-        try:
-            models = data.get("data", [])
-            if models:
-                first_model = models[0]
-                model_id = first_model.get("id") or first_model.get("name")
-                if isinstance(model_id, str) and model_id.strip():
-                    self.default_ollama_model = model_id.strip()
-                    logger.info(f"Detected Open WebUI default model: {self.default_ollama_model}")
-        except Exception as exc:
-            logger.debug(f"Failed to parse Open WebUI models response: {exc}")
-
-    def _update_default_model_from_native_response(self, data: Dict) -> None:
-        """Extract default model from native Ollama /api/tags response."""
-        try:
-            models = data.get("models", [])
-            if models:
-                first_model = models[0]
-                model_name = first_model.get("name") or first_model.get("model")
-                if isinstance(model_name, str) and model_name.strip():
-                    self.default_ollama_model = model_name.strip()
-                    logger.info(f"Detected native Ollama model: {self.default_ollama_model}")
-        except Exception as exc:
-            logger.debug(f"Failed to parse Ollama tags response: {exc}")
-
-    def _refresh_default_model(self) -> None:
-        """Refresh the default Ollama/Open WebUI model list when a request fails."""
-        try:
-            import requests
-
-            response = requests.get(f"{self.ollama_endpoint}/v1/models", timeout=5)
-            if response.status_code == 200:
-                self._update_default_model_from_openai_response(response.json())
-                return
-
-            response = requests.get(f"{self.ollama_endpoint}/api/tags", timeout=5)
-            if response.status_code == 200:
-                self._update_default_model_from_native_response(response.json())
-        except Exception as exc:
-            logger.debug(f"Failed to refresh Ollama model list: {exc}")
+            raise
 
     def _ask_ollama(self) -> str:
-        """Get response from Ollama (local LLM) via REST API"""
+        """Get response from Ollama (local LLM)"""
         try:
-            import requests
+            conversation_text = "\n".join([f"{msg['role']}: {msg['content']}" for msg in self.conversation_history])
 
-            # Separate system message from conversation
-            system_msg = ""
-            messages = []
-
-            for msg in self.conversation_history:
-                if msg["role"] == "system":
-                    system_msg = msg["content"]
-                else:
-                    messages.append({
-                        "role": msg["role"],
-                        "content": msg["content"]
-                    })
-
-            # Ensure we have messages
-            if not messages:
-                messages = [{
-                    "role": "user",
-                    "content": "Hello! I just started playing. What can you help me with?"
-                }]
-                logger.warning("No user messages in history, using default greeting")
-
-            # Add system message as first message if present
-            if system_msg:
-                messages = [{"role": "system", "content": system_msg}] + messages
-
-            # Prepare headers for authentication (if Open WebUI API key is provided)
-            headers = {"Content-Type": "application/json", "Accept": "application/json"}
+            headers = {}
             if self.open_webui_api_key:
                 headers["Authorization"] = f"Bearer {self.open_webui_api_key}"
-                headers["X-API-Key"] = self.open_webui_api_key
-                logger.debug("Using Open WebUI API key for authentication")
-            else:
-                logger.warning("No Open WebUI API key provided - requests may fail if authentication is required")
 
-            model_name = self.default_ollama_model
-
-            openai_payload = {
-                "model": model_name,
-                "messages": messages,
-                "stream": False,
-                "temperature": 0.7,
-                "max_tokens": 1000,
-            }
-
-            endpoint_attempts = [
-                {
-                    "url": f"{self.ollama_endpoint}/v1/chat/completions",
-                    "type": "openai",
-                    "payload": openai_payload,
-                    "parser": lambda data: data['choices'][0]['message']['content'],
+            response = requests.post(
+                f"{self.ollama_endpoint}/api/generate",
+                json={
+                    "model": self.default_ollama_model,
+                    "prompt": conversation_text,
+                    "stream": False
                 },
-                {
-                    # Open WebUI 0.3+ exposes OpenAI-compatible endpoints under /api/v1
-                    "url": f"{self.ollama_endpoint}/api/v1/chat/completions",
-                    "type": "openai",
-                    "payload": openai_payload,
-                    "parser": lambda data: data['choices'][0]['message']['content'],
-                },
-            ]
+                headers=headers,
+                timeout=30
+            )
 
-            native_payload = {
-                "model": model_name,
-                "messages": messages,
-                "stream": False,
-                "options": {
-                    "temperature": 0.7,
-                    "num_predict": 1000,
-                }
-            }
-
-            endpoint_attempts.extend([
-                {
-                    "url": f"{self.ollama_endpoint}/api/chat",
-                    "type": "native",
-                    "payload": native_payload,
-                    "parser": lambda data: data['message']['content'],
-                },
-                {
-                    # Open WebUI may mount native API under /api/v1 as well
-                    "url": f"{self.ollama_endpoint}/api/v1/chat",
-                    "type": "native",
-                    "payload": native_payload,
-                    "parser": lambda data: data['message']['content'],
-                },
-            ])
-
-            # Last resort: /api/generate style endpoints (Ollama legacy / Open WebUI relay)
-            def _build_generate_payload(msgs, detected_model):
-                prompt_parts = []
-                for item in msgs:
-                    role = item.get("role", "user")
-                    content = item.get("content", "")
-                    if role == "system":
-                        prompt_parts.append(f"System: {content}")
-                    elif role == "user":
-                        prompt_parts.append(f"User: {content}")
-                    elif role == "assistant":
-                        prompt_parts.append(f"Assistant: {content}")
-
-                prompt = "\n\n".join(prompt_parts) + "\n\nAssistant:"
-
-                return {
-                    "model": detected_model,
-                    "prompt": prompt,
-                    "stream": False,
-                    "options": {
-                        "temperature": 0.7,
-                        "num_predict": 1000,
-                    }
-                }
-
-            generate_payload = _build_generate_payload(messages, model_name)
-
-            endpoint_attempts.extend([
-                {
-                    "url": f"{self.ollama_endpoint}/api/generate",
-                    "type": "generate",
-                    "payload": generate_payload,
-                    "parser": lambda data: data['response'],
-                },
-                {
-                    "url": f"{self.ollama_endpoint}/api/v1/generate",
-                    "type": "generate",
-                    "payload": generate_payload,
-                    "parser": lambda data: data['response'],
-                },
-            ])
-
-            last_error: Optional[Exception] = None
-
-            for attempt in endpoint_attempts:
-                url = attempt["url"]
-                payload = attempt["payload"]
-                parser = attempt["parser"]
-
-                logger.debug(f"Attempting Ollama/Open WebUI request via {url}")
-                try:
-                    response = requests.post(url, json=payload, headers=headers, timeout=30)
-
-                    if response.status_code == 200:
-                        result = response.json()
-                        return parser(result)
-
-                    if response.status_code in [404, 405]:
-                        logger.info(
-                            "Endpoint %s returned %s - continuing with fallbacks", url, response.status_code
-                        )
-                        last_error = requests.exceptions.HTTPError(response=response)
-                        continue
-
-                    if response.status_code == 400:
-                        try:
-                            error_detail = response.json()
-                        except ValueError:
-                            error_detail = {"detail": response.text}
-
-                        message = str(error_detail)
-                        if "model" in message.lower() and "not" in message.lower():
-                            logger.warning(
-                                "Model '%s' rejected by %s (400). Refreshing model list and retrying.",
-                                model_name,
-                                url,
-                            )
-                            previous_model = self.default_ollama_model
-                            self._refresh_default_model()
-                            if self.default_ollama_model != previous_model:
-                                logger.info(
-                                    "Retrying with detected model '%s'", self.default_ollama_model
-                                )
-                                return self._ask_ollama()
-
-                        last_error = requests.exceptions.HTTPError(response=response)
-                        continue
-
-                    response.raise_for_status()
-                except requests.exceptions.HTTPError as e:
-                    status_code = getattr(e.response, "status_code", None)
-                    if status_code in [404, 405]:
-                        logger.info(
-                            "Endpoint %s raised %s - continuing with fallbacks", url, status_code
-                        )
-                        last_error = e
-                        continue
-                    last_error = e
-                except Exception as e:
-                    logger.debug(f"Endpoint {url} failed: {e}")
-                    last_error = e
-
-            if last_error:
-                raise last_error
-
-            raise Exception("No valid Ollama/Open WebUI endpoint responded successfully")
+            response.raise_for_status()
+            data = response.json()
+            
+            if "response" in data:
+                return data["response"]
+            return "No response received from Ollama"
 
         except requests.exceptions.ConnectionError as e:
-            logger.error(f"Cannot connect to Ollama: {e}")
-            raise Exception(
-                f"Cannot connect to Ollama at {self.ollama_endpoint}\n\n"
-                "Troubleshooting:\n"
-                "• WSL: Run 'ollama serve' in WSL terminal\n"
-                "• Open WebUI: Ensure it's running (default: http://localhost:8080)\n"
-                "• Native Ollama: Check endpoint in settings (default: http://localhost:11434)\n"
-                "• WSL2 users: Should auto-forward to localhost\n"
-                "• Update endpoint in Settings to match your setup"
-            )
+            logger.error(f"Ollama connection error: {e}")
+            raise Exception("Cannot connect to Ollama. Make sure it's running at " + self.ollama_endpoint)
         except requests.exceptions.Timeout as e:
-            logger.error(f"Ollama request timeout: {e}")
-            raise Exception("Ollama request timed out. The model may be loading or the server is slow.")
-        except requests.exceptions.HTTPError as e:
-            # Check if it's a 405 error (likely authentication issue with Open WebUI)
-            if e.response.status_code == 405:
-                logger.error(f"405 Method Not Allowed - likely authentication required")
-                if not self.open_webui_api_key:
-                    raise Exception(
-                        "Open WebUI requires authentication!\n\n"
-                        "To fix this:\n"
-                        "1. Open your Open WebUI in browser (Settings > click 'Open Open WebUI')\n"
-                        "2. Log in to your account\n"
-                        "3. Go to Settings > Account\n"
-                        "4. Copy your API key\n"
-                        "5. Paste it into the 'Open WebUI API Key' field in Settings\n"
-                        "6. Save settings and try again"
-                    )
-                else:
-                    raise Exception(f"Authentication failed with Open WebUI (405 error). Your API key may be invalid or expired.")
-            else:
-                raise Exception(f"Ollama API error: {str(e)}")
+            logger.error(f"Ollama timeout: {e}")
+            raise Exception("Ollama request timed out")
         except Exception as e:
-            logger.error(f"Ollama API error: {e}", exc_info=True)
-            raise Exception(f"Ollama API error: {str(e)}")
+            logger.error(f"Ollama error: {e}", exc_info=True)
+            raise
 
     def get_game_overview(self, game_name: str) -> str:
         """Get a general overview of the game"""
-        question = f"Give me a brief overview of {game_name}, including its genre, main gameplay mechanics, and key tips for beginners."
+        question = f"Give me a brief overview of {game_name}, including genre, mechanics, and beginner tips."
         return self.ask_question(question)
 
     def get_tips_and_strategies(self, specific_topic: Optional[str] = None) -> str:
         """Get tips and strategies for the current game"""
         if not self.current_game:
-            return "🎮 No game detected!\n\nPlease start a game to get tips and strategies. I'm here to help you once you're playing."
+            return "No game currently detected."
 
         game_name = self.current_game.get('name', 'the current game')
 
         if specific_topic:
             question = f"Give me tips and strategies for {specific_topic} in {game_name}."
         else:
-            question = f"Give me some general tips and strategies for playing {game_name} effectively."
+            question = f"Give me some general tips for playing {game_name} effectively."
 
         return self.ask_question(question)
 
@@ -636,28 +311,19 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
 
 
 if __name__ == "__main__":
-    # Test the AI assistant
-    import sys
-
-    # Test with environment variables
     provider = os.getenv("AI_PROVIDER", "anthropic")
 
     try:
         assistant = AIAssistant(provider=provider)
-
-        # Set a test game
         assistant.set_current_game({"name": "League of Legends"})
 
-        # Ask a test question
         print("Testing AI Assistant...")
         print("\nQuestion: What are some tips for playing ADC?")
 
         response = assistant.ask_question("What are some tips for playing ADC?")
         print(f"\nResponse:\n{response}")
 
+    except ValueError as ve:
+        print(f"Configuration Error: {ve}")
     except Exception as e:
         print(f"Error: {e}")
-        print("\nMake sure to:")
-        print("1. Copy .env.example to .env")
-        print("2. Add your API key to .env")
-        print("3. Set AI_PROVIDER in .env")
