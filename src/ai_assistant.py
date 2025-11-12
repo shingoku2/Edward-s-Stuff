@@ -403,14 +403,14 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
                 if response.status_code == 200:
                     result = response.json()
                     return result['message']['content']
-                elif response.status_code == 404:
-                    # /api/chat not found, try older /api/generate endpoint
-                    logger.info("Native /api/chat endpoint returned 404, trying /api/generate")
+                elif response.status_code in [404, 405]:
+                    # /api/chat not found or method not allowed, try older /api/generate endpoint
+                    logger.info(f"Native /api/chat endpoint returned {response.status_code}, trying /api/generate")
                 else:
                     response.raise_for_status()
             except requests.exceptions.HTTPError as e:
-                if e.response.status_code == 404:
-                    logger.info("Native /api/chat endpoint not found, trying /api/generate")
+                if e.response.status_code in [404, 405]:
+                    logger.info(f"Native /api/chat endpoint returned {e.response.status_code}, trying /api/generate")
                 else:
                     raise
 
