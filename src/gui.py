@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QTextEdit, QLineEdit, QPushButton, QLabel, QSystemTrayIcon,
     QMenu, QFrame, QDialog, QRadioButton, QButtonGroup, QMessageBox,
-    QGroupBox
+    QGroupBox, QColorDialog
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QThread
 from PyQt6.QtGui import QAction, QKeySequence, QShortcut, QIcon, QPixmap, QPainter, QColor
@@ -20,6 +20,65 @@ import webbrowser
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def lighten_color(color: str, amount: int = 20) -> str:
+    """Return a lighter shade of the provided color."""
+    qcolor = QColor(color)
+    if not qcolor.isValid():
+        return color
+    return qcolor.lighter(100 + max(0, amount)).name()
+
+
+def darken_color(color: str, amount: int = 20) -> str:
+    """Return a darker shade of the provided color."""
+    qcolor = QColor(color)
+    if not qcolor.isValid():
+        return color
+    return qcolor.darker(100 + max(0, amount)).name()
+
+
+def get_contrasting_text_color(color: str) -> str:
+    """Return black or white text depending on color luminance for readability."""
+    qcolor = QColor(color)
+    if not qcolor.isValid():
+        return "#ffffff"
+
+    r, g, b, _ = qcolor.getRgb()
+    luminance = (0.299 * r) + (0.587 * g) + (0.114 * b)
+    return "#000000" if luminance > 186 else "#ffffff"
+
+
+def build_button_stylesheet(color: str, *, padding: str = "10px 20px", font_size: str = "11pt",
+                            font_weight: str = "bold", border_radius: int = 5) -> str:
+    """Generate a stylesheet string for a primary button using the provided color."""
+    text_color = get_contrasting_text_color(color)
+    hover_color = lighten_color(color, 15)
+    pressed_color = darken_color(color, 20)
+    disabled_color = darken_color(color, 35)
+    disabled_text_color = get_contrasting_text_color(disabled_color)
+
+    return (
+        f"QPushButton {{"
+        f"background-color: {color};"
+        f"color: {text_color};"
+        f"border: none;"
+        f"border-radius: {border_radius}px;"
+        f"padding: {padding};"
+        f"font-size: {font_size};"
+        f"font-weight: {font_weight};"
+        f"}}"
+        f"QPushButton:hover {{"
+        f"background-color: {hover_color};"
+        f"}}"
+        f"QPushButton:pressed {{"
+        f"background-color: {pressed_color};"
+        f"}}"
+        f"QPushButton:disabled {{"
+        f"background-color: {disabled_color};"
+        f"color: {disabled_text_color};"
+        f"}}"
+    )
 
 
 class AIWorkerThread(QThread):
@@ -82,11 +141,15 @@ class GameDetectionThread(QThread):
 class ChatWidget(QWidget):
     """Chat interface widget for Q&A interactions with AI assistant"""
 
-    def __init__(self, ai_assistant):
+    def __init__(self, ai_assistant, config):
         super().__init__()
         self.ai_assistant = ai_assistant
+        self.config = config
         self.ai_worker = None
+        self.background_color = getattr(config, "background_color", "#121212")
+        self.button_color = getattr(config, "button_color", "#6366f1")
         self.init_ui()
+        self.apply_theme(self.background_color, self.button_color)
 
     def init_ui(self):
         """Initialize the chat widget UI components"""
@@ -95,16 +158,6 @@ class ChatWidget(QWidget):
         # Chat history display area
         self.chat_display = QTextEdit()
         self.chat_display.setReadOnly(True)
-        self.chat_display.setStyleSheet("""
-            QTextEdit {
-                background-color: #1e1e1e;
-                color: #ffffff;
-                border: 1px solid #3a3a3a;
-                border-radius: 5px;
-                padding: 10px;
-                font-size: 12pt;
-            }
-        """)
         layout.addWidget(self.chat_display)
 
         # User input area
@@ -112,41 +165,10 @@ class ChatWidget(QWidget):
 
         self.input_field = QLineEdit()
         self.input_field.setPlaceholderText("Ask a question about the game...")
-        self.input_field.setStyleSheet("""
-            QLineEdit {
-                background-color: #2a2a2a;
-                color: #ffffff;
-                border: 1px solid #3a3a3a;
-                border-radius: 5px;
-                padding: 8px;
-                font-size: 11pt;
-            }
-        """)
         self.input_field.returnPressed.connect(self.send_message)
         input_layout.addWidget(self.input_field)
 
         self.send_button = QPushButton("Send")
-        self.send_button.setStyleSheet("""
-            QPushButton {
-                background-color: #0d7377;
-                color: #ffffff;
-                border: none;
-                border-radius: 5px;
-                padding: 8px 20px;
-                font-size: 11pt;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #14b8a6;
-            }
-            QPushButton:pressed {
-                background-color: #0a5a5d;
-            }
-            QPushButton:disabled {
-                background-color: #374151;
-                color: #6b7280;
-            }
-        """)
         self.send_button.clicked.connect(self.send_message)
         input_layout.addWidget(self.send_button)
 
@@ -154,10 +176,64 @@ class ChatWidget(QWidget):
 
         # Clear chat history button
         self.clear_button = QPushButton("Clear Chat")
-        self.clear_button.setStyleSheet("""
+        self.clear_button.clicked.connect(self.clear_chat)
+        layout.addWidget(self.clear_button)
+
+        self.setLayout(layout)
+
+    def apply_theme(self, background_color: Optional[str] = None, button_color: Optional[str] = None):
+        """Apply theme colors to the chat widget."""
+        if background_color:
+            self.background_color = background_color
+        if button_color:
+            self.button_color = button_color
+
+        panel_color = darken_color(self.background_color, 8)
+        border_color = darken_color(self.background_color, 25)
+        display_text_color = get_contrasting_text_color(panel_color)
+        input_background = darken_color(self.background_color, 4)
+        input_text_color = get_contrasting_text_color(input_background)
+
+        self.chat_display.setStyleSheet(
+            """
+            QTextEdit {
+                background-color: %s;
+                color: %s;
+                border: 1px solid %s;
+                border-radius: 5px;
+                padding: 10px;
+                font-size: 12pt;
+            }
+            """ % (panel_color, display_text_color, border_color)
+        )
+
+        self.input_field.setStyleSheet(
+            """
+            QLineEdit {
+                background-color: %s;
+                color: %s;
+                border: 1px solid %s;
+                border-radius: 5px;
+                padding: 8px;
+                font-size: 11pt;
+            }
+            """ % (input_background, input_text_color, border_color)
+        )
+
+        self.send_button.setStyleSheet(
+            build_button_stylesheet(
+                self.button_color,
+                padding="8px 20px",
+                font_size="11pt",
+                font_weight="bold",
+            )
+        )
+
+        self.clear_button.setStyleSheet(
+            """
             QPushButton {
                 background-color: #dc2626;
-                color: #ffffff;
+                color: %s;
                 border: none;
                 border-radius: 5px;
                 padding: 5px;
@@ -166,11 +242,8 @@ class ChatWidget(QWidget):
             QPushButton:hover {
                 background-color: #ef4444;
             }
-        """)
-        self.clear_button.clicked.connect(self.clear_chat)
-        layout.addWidget(self.clear_button)
-
-        self.setLayout(layout)
+            """ % get_contrasting_text_color("#dc2626")
+        )
 
     def send_message(self):
         """Process and send user message to AI assistant"""
@@ -249,7 +322,9 @@ class ChatWidget(QWidget):
 class SettingsDialog(QDialog):
     """Settings dialog for managing API keys and AI provider selection"""
 
-    settings_saved = pyqtSignal(str, str, str, str, str, str)  # provider, openai_key, anthropic_key, gemini_key, ollama_endpoint, open_webui_api_key
+    settings_saved = pyqtSignal(
+        str, str, str, str, str, str, str, str
+    )  # provider, openai_key, anthropic_key, gemini_key, ollama_endpoint, open_webui_api_key, background_color, button_color
 
     def __init__(self, parent, config):
         super().__init__(parent)
@@ -373,6 +448,95 @@ class SettingsDialog(QDialog):
         provider_layout.addWidget(self.ollama_radio)
         provider_group.setLayout(provider_layout)
         layout.addWidget(provider_group)
+
+        # Appearance settings
+        appearance_group = QGroupBox("Appearance")
+        appearance_layout = QVBoxLayout()
+
+        # Background color selection
+        background_layout = QHBoxLayout()
+        background_label = QLabel("Background Color:")
+        self.background_color_input = QLineEdit()
+        self.background_color_input.setPlaceholderText("#121212")
+        self.background_color_input.setText(getattr(self.config, 'background_color', '#121212'))
+        self.background_color_input.textChanged.connect(
+            lambda text: self.update_color_preview(self.background_color_preview, text)
+        )
+        background_layout.addWidget(background_label)
+        background_layout.addWidget(self.background_color_input)
+
+        self.background_color_preview = QFrame()
+        self.background_color_preview.setFixedSize(40, 20)
+        background_layout.addWidget(self.background_color_preview)
+
+        background_pick_button = QPushButton("Pick")
+        background_pick_button.setFixedWidth(80)
+        background_pick_button.setStyleSheet(
+            """
+            QPushButton {
+                background-color: #374151;
+                color: #ffffff;
+                border: none;
+                border-radius: 3px;
+                padding: 5px;
+                font-size: 9pt;
+            }
+            QPushButton:hover {
+                background-color: #4b5563;
+            }
+            """
+        )
+        background_pick_button.clicked.connect(
+            lambda: self.open_color_dialog(self.background_color_input, self.background_color_preview)
+        )
+        background_layout.addWidget(background_pick_button)
+
+        appearance_layout.addLayout(background_layout)
+
+        self.update_color_preview(self.background_color_preview, self.background_color_input.text())
+
+        # Button color selection
+        button_layout = QHBoxLayout()
+        button_label = QLabel("Button Color:")
+        self.button_color_input = QLineEdit()
+        self.button_color_input.setPlaceholderText("#6366f1")
+        self.button_color_input.setText(getattr(self.config, 'button_color', '#6366f1'))
+        self.button_color_input.textChanged.connect(self.on_button_color_changed)
+        button_layout.addWidget(button_label)
+        button_layout.addWidget(self.button_color_input)
+
+        self.button_color_preview = QFrame()
+        self.button_color_preview.setFixedSize(40, 20)
+        button_layout.addWidget(self.button_color_preview)
+
+        button_pick_button = QPushButton("Pick")
+        button_pick_button.setFixedWidth(80)
+        button_pick_button.setStyleSheet(
+            """
+            QPushButton {
+                background-color: #374151;
+                color: #ffffff;
+                border: none;
+                border-radius: 3px;
+                padding: 5px;
+                font-size: 9pt;
+            }
+            QPushButton:hover {
+                background-color: #4b5563;
+            }
+            """
+        )
+        button_pick_button.clicked.connect(
+            lambda: self.open_color_dialog(self.button_color_input, self.button_color_preview)
+        )
+        button_layout.addWidget(button_pick_button)
+
+        appearance_layout.addLayout(button_layout)
+
+        self.update_color_preview(self.button_color_preview, self.button_color_input.text())
+
+        appearance_group.setLayout(appearance_layout)
+        layout.addWidget(appearance_group)
 
         # API Keys Section
         keys_group = QGroupBox("API Keys")
@@ -603,21 +767,8 @@ class SettingsDialog(QDialog):
         button_layout = QHBoxLayout()
 
         self.save_button = QPushButton("Save Settings")
-        self.save_button.setStyleSheet("""
-            QPushButton {
-                background-color: #0d7377;
-                color: #ffffff;
-                border: none;
-                border-radius: 5px;
-                padding: 10px 20px;
-                font-size: 11pt;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #14b8a6;
-            }
-        """)
         self.save_button.clicked.connect(self.save_settings)
+        self.update_save_button_style(self.button_color_input.text())
         button_layout.addWidget(self.save_button)
 
         self.cancel_button = QPushButton("Cancel")
@@ -642,6 +793,77 @@ class SettingsDialog(QDialog):
         self.setLayout(layout)
 
         logger.info("Settings dialog initialized")
+
+    def update_color_preview(self, frame: QFrame, color_value: str):
+        """Update the preview frame to reflect the selected color."""
+        if self.is_valid_color(color_value):
+            frame.setStyleSheet(
+                """
+                QFrame {
+                    background-color: %s;
+                    border: 1px solid #3a3a3a;
+                    border-radius: 3px;
+                }
+                """ % color_value
+            )
+        else:
+            frame.setStyleSheet(
+                """
+                QFrame {
+                    background-color: transparent;
+                    border: 1px dashed #ef4444;
+                    border-radius: 3px;
+                }
+                """
+            )
+
+    def on_button_color_changed(self, color_value: str):
+        """Handle updates to the button color input."""
+        self.update_color_preview(self.button_color_preview, color_value)
+        self.update_save_button_style(color_value)
+
+    def open_color_dialog(self, input_field: QLineEdit, preview_frame: QFrame):
+        """Open a color dialog and update the associated input and preview."""
+        current_value = input_field.text().strip()
+        initial_color = QColor(current_value) if self.is_valid_color(current_value) else QColor("#ffffff")
+        color = QColorDialog.getColor(initial_color, self, "Select Color")
+        if color.isValid():
+            input_field.setText(color.name())
+            self.update_color_preview(preview_frame, color.name())
+            if input_field is self.button_color_input:
+                self.update_save_button_style(color.name())
+
+    def is_valid_color(self, color_value: str) -> bool:
+        """Return True if the provided string is a valid color."""
+        return QColor(color_value).isValid()
+
+    def update_save_button_style(self, color_value: Optional[str] = None):
+        """Apply theming to the save button based on the selected color."""
+        if not hasattr(self, "save_button"):
+            return
+
+        color = color_value or self.button_color_input.text().strip() or "#6366f1"
+        if self.is_valid_color(color):
+            self.save_button.setStyleSheet(
+                build_button_stylesheet(color, padding="10px 20px", font_size="11pt")
+            )
+        else:
+            self.save_button.setStyleSheet(
+                """
+                QPushButton {
+                    background-color: #0d7377;
+                    color: #ffffff;
+                    border: none;
+                    border-radius: 5px;
+                    padding: 10px 20px;
+                    font-size: 11pt;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #14b8a6;
+                }
+                """
+            )
 
     def toggle_key_visibility(self, input_field, button):
         """Toggle password visibility for API key fields"""
@@ -706,9 +928,28 @@ class SettingsDialog(QDialog):
         gemini_key = self.gemini_key_input.text().strip()
         ollama_endpoint = self.ollama_endpoint_input.text().strip() or "http://localhost:11434"
         open_webui_api_key = self.open_webui_key_input.text().strip()
+        background_color = self.background_color_input.text().strip() or "#121212"
+        button_color = self.button_color_input.text().strip() or "#6366f1"
 
         # Debug logging
         logger.info(f"Saving settings - Open WebUI API key present: {bool(open_webui_api_key)}, length: {len(open_webui_api_key) if open_webui_api_key else 0}")
+
+        # Validate colors
+        if not self.is_valid_color(background_color):
+            QMessageBox.warning(
+                self,
+                "Invalid Background Color",
+                "Please enter a valid background color (e.g., #121212)."
+            )
+            return
+
+        if not self.is_valid_color(button_color):
+            QMessageBox.warning(
+                self,
+                "Invalid Button Color",
+                "Please enter a valid button color (e.g., #6366F1)."
+            )
+            return
 
         # Validate that at least one key is provided (or ollama is selected)
         if not openai_key and not anthropic_key and not gemini_key and provider != "ollama":
@@ -745,7 +986,16 @@ class SettingsDialog(QDialog):
             return
 
         # Emit signal with settings
-        self.settings_saved.emit(provider, openai_key, anthropic_key, gemini_key, ollama_endpoint, open_webui_api_key)
+        self.settings_saved.emit(
+            provider,
+            openai_key,
+            anthropic_key,
+            gemini_key,
+            ollama_endpoint,
+            open_webui_api_key,
+            background_color,
+            button_color,
+        )
 
         logger.info(f"Settings saved: provider={provider}")
 
@@ -787,16 +1037,6 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Gaming AI Assistant")
         self.setGeometry(100, 100, 900, 700)
 
-        # Apply dark theme styling
-        self.setStyleSheet("""
-            QMainWindow {
-                background-color: #121212;
-            }
-            QLabel {
-                color: #ffffff;
-            }
-        """)
-
         # Setup central widget
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -810,16 +1050,6 @@ class MainWindow(QMainWindow):
 
         # Game detection status panel
         self.game_info_label = QLabel("No game detected")
-        self.game_info_label.setStyleSheet("""
-            QLabel {
-                background-color: #1e1e1e;
-                color: #14b8a6;
-                padding: 15px;
-                border-radius: 5px;
-                font-size: 14pt;
-                font-weight: bold;
-            }
-        """)
         self.game_info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         main_layout.addWidget(self.game_info_label)
 
@@ -839,47 +1069,15 @@ class MainWindow(QMainWindow):
 
         # Apply styling to action buttons
         for button in [self.tips_button, self.overview_button]:
-            button.setStyleSheet("""
-                QPushButton {
-                    background-color: #6366f1;
-                    color: #ffffff;
-                    border: none;
-                    border-radius: 5px;
-                    padding: 10px 20px;
-                    font-size: 11pt;
-                    font-weight: bold;
-                }
-                QPushButton:hover {
-                    background-color: #818cf8;
-                }
-                QPushButton:disabled {
-                    background-color: #374151;
-                    color: #6b7280;
-                }
-            """)
             actions_layout.addWidget(button)
 
         # Settings button with distinct styling
-        self.settings_button.setStyleSheet("""
-            QPushButton {
-                background-color: #374151;
-                color: #ffffff;
-                border: none;
-                border-radius: 5px;
-                padding: 10px 20px;
-                font-size: 11pt;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #4b5563;
-            }
-        """)
         actions_layout.addWidget(self.settings_button)
 
         main_layout.addLayout(actions_layout)
 
         # AI chat interface
-        self.chat_widget = ChatWidget(self.ai_assistant)
+        self.chat_widget = ChatWidget(self.ai_assistant, self.config)
         main_layout.addWidget(self.chat_widget)
 
         central_widget.setLayout(main_layout)
@@ -890,42 +1088,142 @@ class MainWindow(QMainWindow):
         # Global keyboard shortcuts
         self.create_shortcuts()
 
+        # Apply theming after components are created
+        self.apply_theme(self.config.background_color, self.config.button_color)
+
         logger.info("Main window initialized")
 
     def create_header(self) -> QWidget:
         """Create and style the application header widget"""
         header = QFrame()
-        header.setStyleSheet("""
-            QFrame {
-                background-color: #1e1e1e;
-                border-radius: 5px;
-                padding: 10px;
-            }
-        """)
+        self.header_frame = header
 
         layout = QVBoxLayout()
+        layout.setContentsMargins(15, 10, 15, 10)
+        layout.setSpacing(4)
 
-        title = QLabel("🎮 Gaming AI Assistant")
-        title.setStyleSheet("""
-            QLabel {
-                color: #14b8a6;
-                font-size: 20pt;
-                font-weight: bold;
-            }
-        """)
-        layout.addWidget(title)
+        self.title_label = QLabel("🎮 Gaming AI Assistant")
+        layout.addWidget(self.title_label)
 
-        subtitle = QLabel("Your real-time gaming companion powered by AI")
-        subtitle.setStyleSheet("""
-            QLabel {
-                color: #9ca3af;
-                font-size: 11pt;
-            }
-        """)
-        layout.addWidget(subtitle)
+        self.subtitle_label = QLabel("Your real-time gaming companion powered by AI")
+        layout.addWidget(self.subtitle_label)
 
         header.setLayout(layout)
         return header
+
+    def style_primary_button(self, button: QPushButton, *, padding: str = "10px 20px"):
+        """Apply the configured primary color to the provided button."""
+        button.setStyleSheet(
+            build_button_stylesheet(
+                getattr(self.config, "button_color", "#6366f1"),
+                padding=padding,
+                font_size="11pt",
+                font_weight="bold",
+            )
+        )
+
+    def apply_theme(self, background_color: Optional[str] = None, button_color: Optional[str] = None):
+        """Apply theme colors across the main window."""
+        if background_color:
+            self.config.background_color = background_color
+        if button_color:
+            self.config.button_color = button_color
+
+        background = getattr(self.config, "background_color", "#121212")
+        primary_button_color = getattr(self.config, "button_color", "#6366f1")
+
+        text_color = get_contrasting_text_color(background)
+        panel_color = darken_color(background, 8)
+        border_color = darken_color(background, 25)
+        subtitle_color = "#9ca3af" if text_color == "#ffffff" else "#4b5563"
+
+        self.setStyleSheet(
+            """
+            QMainWindow {
+                background-color: %s;
+            }
+            QLabel {
+                color: %s;
+            }
+            """ % (background, text_color)
+        )
+
+        if hasattr(self, "header_frame"):
+            self.header_frame.setStyleSheet(
+                """
+                QFrame {
+                    background-color: %s;
+                    border-radius: 5px;
+                    padding: 10px;
+                    border: 1px solid %s;
+                }
+                """ % (panel_color, border_color)
+            )
+
+        if hasattr(self, "title_label"):
+            self.title_label.setStyleSheet(
+                """
+                QLabel {
+                    color: %s;
+                    font-size: 20pt;
+                    font-weight: bold;
+                }
+                """ % primary_button_color
+            )
+
+        if hasattr(self, "subtitle_label"):
+            self.subtitle_label.setStyleSheet(
+                """
+                QLabel {
+                    color: %s;
+                    font-size: 11pt;
+                }
+                """ % subtitle_color
+            )
+
+        if hasattr(self, "game_info_label"):
+            info_text_color = get_contrasting_text_color(panel_color)
+            self.game_info_label.setStyleSheet(
+                """
+                QLabel {
+                    background-color: %s;
+                    color: %s;
+                    padding: 15px;
+                    border-radius: 5px;
+                    font-size: 14pt;
+                    font-weight: bold;
+                    border: 1px solid %s;
+                }
+                """ % (panel_color, info_text_color, border_color)
+            )
+
+        for button in [getattr(self, "tips_button", None), getattr(self, "overview_button", None)]:
+            if isinstance(button, QPushButton):
+                self.style_primary_button(button)
+
+        if hasattr(self, "chat_widget"):
+            self.chat_widget.apply_theme(background, primary_button_color)
+
+        if hasattr(self, "settings_button"):
+            secondary_color = darken_color(background, 20)
+            secondary_hover = darken_color(background, 30)
+            secondary_text = get_contrasting_text_color(secondary_color)
+            self.settings_button.setStyleSheet(
+                """
+                QPushButton {
+                    background-color: %s;
+                    color: %s;
+                    border: none;
+                    border-radius: 5px;
+                    padding: 10px 20px;
+                    font-size: 11pt;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: %s;
+                }
+                """ % (secondary_color, secondary_text, secondary_hover)
+            )
 
     def create_system_tray(self):
         """Create system tray icon with context menu"""
@@ -1190,7 +1488,8 @@ class MainWindow(QMainWindow):
         dialog.settings_saved.connect(self.handle_settings_saved)
         dialog.exec()
 
-    def handle_settings_saved(self, provider, openai_key, anthropic_key, gemini_key, ollama_endpoint, open_webui_api_key):
+    def handle_settings_saved(self, provider, openai_key, anthropic_key, gemini_key, ollama_endpoint,
+                              open_webui_api_key, background_color, button_color):
         """Handle settings being saved"""
         logger.info("Handling settings save...")
 
@@ -1199,7 +1498,16 @@ class MainWindow(QMainWindow):
             from config import Config
 
             # Save settings to .env file
-            Config.save_to_env(provider, openai_key, anthropic_key, gemini_key, ollama_endpoint, open_webui_api_key)
+            Config.save_to_env(
+                provider,
+                openai_key,
+                anthropic_key,
+                gemini_key,
+                ollama_endpoint,
+                open_webui_api_key,
+                background_color=background_color,
+                button_color=button_color,
+            )
 
             # Reload configuration
             self.config = Config()
@@ -1221,6 +1529,10 @@ class MainWindow(QMainWindow):
 
             # Update chat widget's AI assistant reference
             self.chat_widget.ai_assistant = self.ai_assistant
+            self.chat_widget.apply_theme(self.config.background_color, self.config.button_color)
+
+            # Apply refreshed theme to the main window
+            self.apply_theme(self.config.background_color, self.config.button_color)
 
             # Show success message in chat
             self.chat_widget.add_message(

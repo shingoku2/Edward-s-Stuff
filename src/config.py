@@ -64,6 +64,8 @@ class Config:
         # Application Settings
         self.overlay_hotkey = os.getenv('OVERLAY_HOTKEY', 'ctrl+shift+g')
         self.check_interval = int(os.getenv('CHECK_INTERVAL', '5'))
+        self.background_color = os.getenv('APP_BACKGROUND_COLOR', '#121212')
+        self.button_color = os.getenv('APP_BUTTON_COLOR', '#6366f1')
 
         # Validate configuration (only if required)
         if require_keys:
@@ -136,7 +138,8 @@ class Config:
     def save_to_env(provider: str, openai_key: str, anthropic_key: str, gemini_key: str = '',
                     ollama_endpoint: str = 'http://localhost:11434',
                     open_webui_api_key: str = '',
-                    overlay_hotkey: str = 'ctrl+shift+g', check_interval: int = 5):
+                    overlay_hotkey: str = 'ctrl+shift+g', check_interval: int = 5,
+                    background_color: str = '#121212', button_color: str = '#6366f1'):
         """
         Save configuration to .env file
 
@@ -149,6 +152,8 @@ class Config:
             open_webui_api_key: Open WebUI API key for authentication (optional)
             overlay_hotkey: Hotkey for overlay (default: 'ctrl+shift+g')
             check_interval: Game check interval in seconds (default: 5)
+            background_color: Hex color for application background (default: '#121212')
+            button_color: Hex color for primary buttons (default: '#6366f1')
         """
         # Determine .env file location
         # Try multiple locations, prioritizing the most appropriate one
@@ -184,6 +189,8 @@ class Config:
         existing_content['OPEN_WEBUI_API_KEY'] = open_webui_api_key
         existing_content['OVERLAY_HOTKEY'] = overlay_hotkey
         existing_content['CHECK_INTERVAL'] = str(check_interval)
+        existing_content['APP_BACKGROUND_COLOR'] = background_color
+        existing_content['APP_BUTTON_COLOR'] = button_color
 
         # Debug logging
         import logging
@@ -209,6 +216,8 @@ class Config:
             f.write("# Application Settings\n")
             f.write(f"OVERLAY_HOTKEY={existing_content['OVERLAY_HOTKEY']}\n")
             f.write(f"CHECK_INTERVAL={existing_content['CHECK_INTERVAL']}\n")
+            f.write(f"APP_BACKGROUND_COLOR={existing_content['APP_BACKGROUND_COLOR']}\n")
+            f.write(f"APP_BUTTON_COLOR={existing_content['APP_BUTTON_COLOR']}\n")
 
         return env_path
 
