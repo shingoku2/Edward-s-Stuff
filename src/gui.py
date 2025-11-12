@@ -811,6 +811,11 @@ class MainWindow(QMainWindow):
         """Handle game close/lost detection event"""
         self.current_game = None
 
+        # Clear AI assistant's game context
+        if self.ai_assistant:
+            self.ai_assistant.current_game = None
+            logger.info("Cleared AI assistant game context")
+
         # Reset UI to default state
         self.game_info_label.setText("No game detected")
         self.game_info_label.setStyleSheet("""

@@ -76,16 +76,25 @@ class AIAssistant:
 
     def _add_system_context(self, game_name: str):
         """Add system context about the current game"""
-        system_message = f"""You are a helpful gaming assistant specializing in {game_name}.
-Your role is to provide:
-- Game strategies and tips
-- Character/weapon builds
-- Quest walkthroughs
-- Game mechanics explanations
-- Real-time advice during gameplay
+        system_message = f"""You are a specialized gaming assistant ONLY for {game_name}.
 
-Be concise, accurate, and helpful. If you don't know something specific about the game,
-say so and provide general gaming advice or suggest where to find the information."""
+CRITICAL RULES:
+- You ONLY answer questions about {game_name}
+- You MUST refuse to answer any questions not related to {game_name}
+- Do NOT engage in general conversation, chitchat, or off-topic discussions
+- Do NOT answer questions about other games, programming, life advice, or any non-game topics
+- If asked something unrelated to {game_name}, politely remind the user you only help with {game_name}
+
+What you CAN help with for {game_name}:
+- Game strategies and tips
+- Character/weapon/item builds
+- Quest walkthroughs and missions
+- Game mechanics and systems
+- Controls and gameplay techniques
+- Lore and story questions
+- Where to find items, NPCs, or locations
+
+Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
 
         self.conversation_history.append({
             "role": "system",
@@ -118,6 +127,10 @@ say so and provide general gaming advice or suggest where to find the informatio
         """
         if not question or not question.strip():
             return "Please provide a question."
+
+        # Check if a game is currently set
+        if not self.current_game:
+            return "🎮 No game detected!\n\nPlease start a game to get assistance. I'm here to help you with gaming questions once you're playing."
 
         try:
             # Build the user message
@@ -230,7 +243,7 @@ say so and provide general gaming advice or suggest where to find the informatio
     def get_tips_and_strategies(self, specific_topic: Optional[str] = None) -> str:
         """Get tips and strategies for the current game"""
         if not self.current_game:
-            return "No game currently detected."
+            return "🎮 No game detected!\n\nPlease start a game to get tips and strategies. I'm here to help you once you're playing."
 
         game_name = self.current_game.get('name', 'the current game')
 
