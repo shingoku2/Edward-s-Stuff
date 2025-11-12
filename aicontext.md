@@ -675,3 +675,23 @@ INFO - Native /api/chat endpoint returned 405, trying /api/generate
 *Last Updated: 2025-11-12*
 *Session: Headless Environment GUI Test*
 *Status: Blocked ❌*
+
+## Recent Session: Branch Comparison (2025-11-13)
+
+### Session Goals
+1. Compare `codex/create-adjustable-in-game-overlay` against `main` to determine which branch has the latest code.
+2. Align future work with the most up-to-date branch.
+
+### Actions Taken
+- Reconstructed the historical branch tips using commit `e8c3026` for `codex/create-adjustable-in-game-overlay` and `11119cc` for `main`.
+- Ran `git diff main..codex/create-adjustable-in-game-overlay --stat` to audit file-level differences.
+- Inspected `test_before_build.py` and `aicontext.md` in both branches to confirm that `main` contains the newest headless-environment safeguards and documentation updates.
+
+### Outcome
+- `main` is ahead of `codex/create-adjustable-in-game-overlay` (latter is ancestor commit `e8c3026`).
+- No merge required; continue development from `main` (currently mirrored by the `work` branch).
+- Documented findings here for continuity.
+
+*Last Updated: 2025-11-13*
+*Session: Branch Comparison*
+*Status: Complete ✅*
