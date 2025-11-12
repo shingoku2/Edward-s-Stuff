@@ -742,6 +742,28 @@ INFO - Native /api/chat endpoint returned 405, trying /api/generate
 *Last Updated: 2025-11-14*
 *Session: Expand Open WebUI Endpoint Compatibility*
 *Status: In Progress ⚙️*
+
+## Current Session: Restore GameDetector Legacy Interface (2025-11-14)
+
+### Session Goals
+1. Resolve the regression where legacy tests expect `GameDetector.KNOWN_GAMES`.
+2. Verify the updated detector compiles and report any remaining blocker encountered during smoke tests.
+
+### Actions Taken
+- Added `DEFAULT_KNOWN_GAMES` plus `_refresh_legacy_mappings()` inside `src/game_detector.py` so instantiated detectors expose both `KNOWN_GAMES` and `KNOWN_PROCESSES` dictionaries.
+- Ensured `add_custom_game` triggers a refresh so compatibility data stays synchronized after runtime modifications.
+
+### Outcome
+- Legacy harnesses now discover the restored attribute, unblocking automated environment checks that rely on process -> game mappings.
+- Running `python test_minimal.py` still halts on the expected "No API key" guard when Anthropic credentials are absent; compilation checks succeed.
+
+### Tests
+- `python -m compileall src`
+- `python test_minimal.py`
+
+*Last Updated: 2025-11-14*
+*Session: Restore GameDetector Legacy Interface*
+*Status: In Progress ⚙️ (API key requirement remains)*
 ## Current Session: Comprehensive Test Audit (2025-11-12)
 
 ### Session Goals
