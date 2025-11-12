@@ -742,3 +742,31 @@ INFO - Native /api/chat endpoint returned 405, trying /api/generate
 *Last Updated: 2025-11-14*
 *Session: Expand Open WebUI Endpoint Compatibility*
 *Status: In Progress ⚙️*
+## Current Session: Comprehensive Test Audit (2025-11-12)
+
+### Session Goals
+1. Execute all distributed test harnesses to validate functionality and identify blocking issues.
+2. Document environment-dependent failures for follow-up remediation.
+
+### Actions Taken
+- Ran `python -m compileall src` to ensure the source tree compiles cleanly (no errors reported).
+- Executed `python test_modules.py` to exercise module imports and component checks; GUI-related tests failed because the container lacks `libGL.so.1`, and Anthropic-specific checks were skipped without API keys.
+- Executed `python test.py`; run aborted when legacy expectations for `GameDetector.KNOWN_GAMES` triggered an `AttributeError` due to the current implementation exposing `KNOWN_PROCESSES` instead.
+- Executed `python test_edge_cases.py`; all edge-case suites passed, though network scraping gracefully degraded behind the sandbox proxy.
+- Executed `python test_minimal.py`; halted on the same `GameDetector.KNOWN_GAMES` attribute mismatch seen in `test.py`.
+- Executed `python test_before_build.py`; reported missing `KNOWN_GAMES` attribute and skipped GUI/PyQt6 checks because `libGL.so.1` is unavailable in this headless environment.
+
+### Outcomes
+- Source compilation succeeded.
+- Functional coverage scripts repeatedly surfaced an AttributeError: `'GameDetector' object has no attribute 'KNOWN_GAMES'`; this regression blocks several pre-build and smoke-test flows.
+- GUI validation remains blocked by the absence of the system OpenGL shim (`libGL.so.1`) in the container.
+- Web-scraping routines emitted proxy-related warnings but continued without hard failures.
+
+### Next Steps
+- Align the test harnesses with the current `GameDetector` API (or restore a compatibility shim exposing `KNOWN_GAMES`).
+- Install `libgl1` (or equivalent) and a virtual display (e.g., Xvfb) if GUI smoke tests must run headlessly.
+- Optionally mock outbound HTTP calls in scraper tests to avoid proxy-induced warnings.
+
+*Last Updated: 2025-11-12*
+*Session: Comprehensive Test Audit*
+*Status: Attention Required ⚠️*
