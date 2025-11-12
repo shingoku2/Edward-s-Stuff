@@ -251,23 +251,56 @@ Be concise, accurate, and helpful. Stay focused on {game_name}."""
             if self.open_webui_api_key:
                 headers["Authorization"] = f"Bearer {self.open_webui_api_key}"
 
-            response = requests.post(
-                f"{self.ollama_endpoint}/api/generate",
-                json={
-                    "model": self.default_ollama_model,
-                    "prompt": conversation_text,
-                    "stream": False
-                },
-                headers=headers,
-                timeout=30
-            )
+            # Try native Ollama endpoint first
+            url_native = f"{self.ollama_endpoint.rstrip('/')}/api/generate"
+            payload_native = {
+                "model": self.default_ollama_model,
+                "prompt": conversation_text,
+                "stream": False,
+            }
 
-            response.raise_for_status()
-            data = response.json()
-            
-            if "response" in data:
-                return data["response"]
-            return "No response received from Ollama"
+            try:
+                resp = requests.post(url_native, json=payload_native, headers=headers, timeout=30)
+                if resp.status_code == 404 or resp.status_code == 401:
+                    raise requests.HTTPError(f"Status {resp.status_code}")
+                resp.raise_for_status()
+                data = resp.json()
+                if isinstance(data, dict) and "response" in data:
+                    return data["response"]
+            except Exception:
+                # Fallback: OpenAI-compatible API (Open WebUI)
+                url_openai = f"{self.ollama_endpoint.rstrip('/')}/v1/chat/completions"
+                messages = []
+                system_msg = None
+                for m in self.conversation_history:
+                    if m["role"] == "system":
+                        system_msg = m["content"]
+                    else:
+                        messages.append({"role": m["role"], "content": m["content"]})
+                if system_msg:
+                    messages.insert(0, {"role": "system", "content": system_msg})
+
+                payload_openai = {
+                    "model": self.default_ollama_model,
+                    "messages": messages,
+                    "stream": False,
+                    "temperature": 0.7,
+                }
+                # Ensure Content-Type
+                headers_fallback = {**headers, "Content-Type": "application/json"}
+                resp2 = requests.post(url_openai, json=payload_openai, headers=headers_fallback, timeout=30)
+                resp2.raise_for_status()
+                data2 = resp2.json()
+                # Parse OpenAI-style
+                if isinstance(data2, dict):
+                    choices = data2.get("choices")
+                    if choices and isinstance(choices, list):
+                        msg = choices[0].get("message") if choices[0] else None
+                        if msg and isinstance(msg, dict):
+                            content = msg.get("content")
+                            if isinstance(content, str):
+                                return content
+                return "No response received from Ollama/Open WebUI"
 
         except requests.exceptions.ConnectionError as e:
             logger.error(f"Ollama connection error: {e}")

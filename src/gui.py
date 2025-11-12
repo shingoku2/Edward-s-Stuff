@@ -243,7 +243,7 @@ class ChatWidget(QWidget):
         """
         color = "#14b8a6" if is_user else "#f59e0b"
         # Escape HTML to prevent issues with special characters
-        message_escaped = message.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        message_escaped = message.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('\n', '<br>')
         self.chat_display.append(f'<p><span style="color: {color}; font-weight: bold;">{sender}:</span> {message_escaped}</p>')
         # Auto-scroll to bottom
         self.chat_display.verticalScrollBar().setValue(

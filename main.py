@@ -105,7 +105,7 @@ def main():
         game_detector = GameDetector()
 
         logger.info(f"Game detector initialized")
-        logger.info(f"  Known games: {len(game_detector.KNOWN_GAMES)}")
+        logger.info(f"  Known games: {len(game_detector.common_games)}")
 
         print("[OK] Game detector ready")
         print()

@@ -69,9 +69,12 @@ class GameDetector:
             True if process is running, False otherwise
         """
         try:
+            if not process_name:
+                return False
             for proc in psutil.process_iter(['pid', 'name']):
                 try:
-                    if proc.info['name'].lower() == process_name.lower():
+                    name = proc.info.get('name')
+                    if name and name.lower() == process_name.lower():
                         return True
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
                     continue
