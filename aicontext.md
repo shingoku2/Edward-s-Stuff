@@ -731,6 +731,14 @@ INFO - Native /api/chat endpoint returned 405, trying /api/generate
 - Users running behind locked-down reverse proxies gain broader header support, reducing false "authentication failed" alerts when valid API keys are supplied.
 - Verified source tree compiles successfully via `python -m compileall src`.
 
+### Update (2025-11-14 - Model Auto-Detection)
+- Added dynamic model discovery in `src/ai_assistant.py` that parses `/v1/models` and `/api/tags` responses to select an installed model instead of hard-coding `llama2`.
+- When Open WebUI responds with a 400 error indicating an unknown model, the assistant now refreshes the model list and retries with the detected default to avoid cascading 405 fallbacks.
+- Introduced helper utilities to refresh model metadata while preserving authentication headers and retry ordering.
+
+### Tests
+- `python -m compileall src`
+
 *Last Updated: 2025-11-14*
 *Session: Expand Open WebUI Endpoint Compatibility*
 *Status: In Progress ⚙️*

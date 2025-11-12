@@ -37,6 +37,7 @@ class AIAssistant:
         self.conversation_history = []
         self.current_game = None
         self.client = None
+        self.default_ollama_model = "llama2"
 
         self._initialize_client()
 
@@ -95,11 +96,13 @@ class AIAssistant:
                     response = requests.get(f"{self.ollama_endpoint}/v1/models", timeout=2)
                     if response.status_code == 200:
                         logger.info("Open WebUI connection test successful (OpenAI-compatible API)")
+                        self._update_default_model_from_openai_response(response.json())
                     else:
                         # Try native Ollama endpoint
                         response = requests.get(f"{self.ollama_endpoint}/api/tags", timeout=2)
                         if response.status_code == 200:
                             logger.info("Native Ollama connection test successful")
+                            self._update_default_model_from_native_response(response.json())
                         else:
                             logger.warning(f"Ollama endpoint returned status {response.status_code}")
                 except Exception as e:
@@ -324,6 +327,48 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
             logger.error(f"Gemini API error: {e}", exc_info=True)
             raise Exception(f"Gemini API error: {str(e)}")
 
+    def _update_default_model_from_openai_response(self, data: Dict) -> None:
+        """Extract default model from OpenAI-compatible /v1/models response."""
+        try:
+            models = data.get("data", [])
+            if models:
+                first_model = models[0]
+                model_id = first_model.get("id") or first_model.get("name")
+                if isinstance(model_id, str) and model_id.strip():
+                    self.default_ollama_model = model_id.strip()
+                    logger.info(f"Detected Open WebUI default model: {self.default_ollama_model}")
+        except Exception as exc:
+            logger.debug(f"Failed to parse Open WebUI models response: {exc}")
+
+    def _update_default_model_from_native_response(self, data: Dict) -> None:
+        """Extract default model from native Ollama /api/tags response."""
+        try:
+            models = data.get("models", [])
+            if models:
+                first_model = models[0]
+                model_name = first_model.get("name") or first_model.get("model")
+                if isinstance(model_name, str) and model_name.strip():
+                    self.default_ollama_model = model_name.strip()
+                    logger.info(f"Detected native Ollama model: {self.default_ollama_model}")
+        except Exception as exc:
+            logger.debug(f"Failed to parse Ollama tags response: {exc}")
+
+    def _refresh_default_model(self) -> None:
+        """Refresh the default Ollama/Open WebUI model list when a request fails."""
+        try:
+            import requests
+
+            response = requests.get(f"{self.ollama_endpoint}/v1/models", timeout=5)
+            if response.status_code == 200:
+                self._update_default_model_from_openai_response(response.json())
+                return
+
+            response = requests.get(f"{self.ollama_endpoint}/api/tags", timeout=5)
+            if response.status_code == 200:
+                self._update_default_model_from_native_response(response.json())
+        except Exception as exc:
+            logger.debug(f"Failed to refresh Ollama model list: {exc}")
+
     def _ask_ollama(self) -> str:
         """Get response from Ollama (local LLM) via REST API"""
         try:
@@ -363,8 +408,10 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
             else:
                 logger.warning("No Open WebUI API key provided - requests may fail if authentication is required")
 
+            model_name = self.default_ollama_model
+
             openai_payload = {
-                "model": "llama2",  # Default model, can be made configurable
+                "model": model_name,
                 "messages": messages,
                 "stream": False,
                 "temperature": 0.7,
@@ -388,7 +435,7 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
             ]
 
             native_payload = {
-                "model": "llama2",  # Default model, can be made configurable
+                "model": model_name,
                 "messages": messages,
                 "stream": False,
                 "options": {
@@ -414,7 +461,7 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
             ])
 
             # Last resort: /api/generate style endpoints (Ollama legacy / Open WebUI relay)
-            def _build_generate_payload(msgs):
+            def _build_generate_payload(msgs, detected_model):
                 prompt_parts = []
                 for item in msgs:
                     role = item.get("role", "user")
@@ -429,7 +476,7 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
                 prompt = "\n\n".join(prompt_parts) + "\n\nAssistant:"
 
                 return {
-                    "model": "llama2",
+                    "model": detected_model,
                     "prompt": prompt,
                     "stream": False,
                     "options": {
@@ -438,7 +485,7 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
                     }
                 }
 
-            generate_payload = _build_generate_payload(messages)
+            generate_payload = _build_generate_payload(messages, model_name)
 
             endpoint_attempts.extend([
                 {
@@ -474,6 +521,30 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
                         logger.info(
                             "Endpoint %s returned %s - continuing with fallbacks", url, response.status_code
                         )
+                        last_error = requests.exceptions.HTTPError(response=response)
+                        continue
+
+                    if response.status_code == 400:
+                        try:
+                            error_detail = response.json()
+                        except ValueError:
+                            error_detail = {"detail": response.text}
+
+                        message = str(error_detail)
+                        if "model" in message.lower() and "not" in message.lower():
+                            logger.warning(
+                                "Model '%s' rejected by %s (400). Refreshing model list and retrying.",
+                                model_name,
+                                url,
+                            )
+                            previous_model = self.default_ollama_model
+                            self._refresh_default_model()
+                            if self.default_ollama_model != previous_model:
+                                logger.info(
+                                    "Retrying with detected model '%s'", self.default_ollama_model
+                                )
+                                return self._ask_ollama()
+
                         last_error = requests.exceptions.HTTPError(response=response)
                         continue
 
