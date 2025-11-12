@@ -359,6 +359,8 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
             if self.open_webui_api_key:
                 headers["Authorization"] = f"Bearer {self.open_webui_api_key}"
                 logger.debug("Using Open WebUI API key for authentication")
+            else:
+                logger.warning("No Open WebUI API key provided - requests may fail if authentication is required")
 
             # Try Open WebUI's OpenAI-compatible API first (most common for Open WebUI)
             # This uses the /v1/chat/completions endpoint
@@ -472,6 +474,25 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
         except requests.exceptions.Timeout as e:
             logger.error(f"Ollama request timeout: {e}")
             raise Exception("Ollama request timed out. The model may be loading or the server is slow.")
+        except requests.exceptions.HTTPError as e:
+            # Check if it's a 405 error (likely authentication issue with Open WebUI)
+            if e.response.status_code == 405:
+                logger.error(f"405 Method Not Allowed - likely authentication required")
+                if not self.open_webui_api_key:
+                    raise Exception(
+                        "Open WebUI requires authentication!\n\n"
+                        "To fix this:\n"
+                        "1. Open your Open WebUI in browser (Settings > click 'Open Open WebUI')\n"
+                        "2. Log in to your account\n"
+                        "3. Go to Settings > Account\n"
+                        "4. Copy your API key\n"
+                        "5. Paste it into the 'Open WebUI API Key' field in Settings\n"
+                        "6. Save settings and try again"
+                    )
+                else:
+                    raise Exception(f"Authentication failed with Open WebUI (405 error). Your API key may be invalid or expired.")
+            else:
+                raise Exception(f"Ollama API error: {str(e)}")
         except Exception as e:
             logger.error(f"Ollama API error: {e}", exc_info=True)
             raise Exception(f"Ollama API error: {str(e)}")
