@@ -18,16 +18,18 @@ class AIAssistant:
     # Maximum conversation history to keep
     MAX_CONVERSATION_MESSAGES = 20
 
-    def __init__(self, provider: str = "anthropic", api_key: Optional[str] = None):
+    def __init__(self, provider: str = "anthropic", api_key: Optional[str] = None, ollama_endpoint: str = "http://localhost:11434"):
         """
         Initialize AI Assistant
 
         Args:
-            provider: 'openai' or 'anthropic'
-            api_key: API key for the chosen provider
+            provider: 'openai', 'anthropic', 'gemini', or 'ollama'
+            api_key: API key for the chosen provider (not needed for ollama)
+            ollama_endpoint: Ollama endpoint URL (default: http://localhost:11434)
         """
         self.provider = provider.lower()
         self.api_key = api_key or self._get_api_key()
+        self.ollama_endpoint = ollama_endpoint
         self.conversation_history = []
         self.current_game = None
         self.client = None
@@ -40,11 +42,16 @@ class AIAssistant:
             return os.getenv("OPENAI_API_KEY")
         elif self.provider == "anthropic":
             return os.getenv("ANTHROPIC_API_KEY")
+        elif self.provider == "gemini":
+            return os.getenv("GEMINI_API_KEY")
+        elif self.provider == "ollama":
+            return None  # Ollama doesn't need API key
         return None
 
     def _initialize_client(self):
         """Initialize the AI client"""
-        if not self.api_key:
+        # Ollama doesn't require API key
+        if not self.api_key and self.provider != "ollama":
             raise ValueError(f"No API key provided for {self.provider}")
 
         try:
@@ -56,6 +63,15 @@ class AIAssistant:
                 import anthropic
                 self.client = anthropic.Anthropic(api_key=self.api_key)
                 logger.info("Anthropic client initialized")
+            elif self.provider == "gemini":
+                import google.generativeai as genai
+                genai.configure(api_key=self.api_key)
+                self.client = genai.GenerativeModel('gemini-pro')
+                logger.info("Gemini client initialized")
+            elif self.provider == "ollama":
+                import ollama
+                self.client = ollama.Client(host=self.ollama_endpoint)
+                logger.info(f"Ollama client initialized (endpoint: {self.ollama_endpoint})")
             else:
                 raise ValueError(f"Unknown provider: {self.provider}")
         except ImportError as e:
@@ -153,6 +169,10 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
                 response = self._ask_openai()
             elif self.provider == "anthropic":
                 response = self._ask_anthropic()
+            elif self.provider == "gemini":
+                response = self._ask_gemini()
+            elif self.provider == "ollama":
+                response = self._ask_ollama()
             else:
                 response = "Error: Invalid AI provider"
 
@@ -234,6 +254,78 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
         except Exception as e:
             logger.error(f"Anthropic API error: {e}", exc_info=True)
             raise Exception(f"Anthropic API error: {str(e)}")
+
+    def _ask_gemini(self) -> str:
+        """Get response from Google Gemini"""
+        try:
+            # Build conversation context for Gemini
+            # Gemini uses a different format - we'll pass the full conversation
+            system_msg = ""
+            conversation_text = ""
+
+            for msg in self.conversation_history:
+                if msg["role"] == "system":
+                    system_msg = msg["content"]
+                elif msg["role"] == "user":
+                    conversation_text += f"User: {msg['content']}\n\n"
+                elif msg["role"] == "assistant":
+                    conversation_text += f"Assistant: {msg['content']}\n\n"
+
+            # Combine system message with conversation
+            full_prompt = f"{system_msg}\n\n{conversation_text}Assistant:"
+
+            response = self.client.generate_content(
+                full_prompt,
+                generation_config={
+                    'temperature': 0.7,
+                    'max_output_tokens': 1000,
+                }
+            )
+
+            return response.text
+
+        except Exception as e:
+            logger.error(f"Gemini API error: {e}", exc_info=True)
+            raise Exception(f"Gemini API error: {str(e)}")
+
+    def _ask_ollama(self) -> str:
+        """Get response from Ollama (local LLM)"""
+        try:
+            # Separate system message from conversation
+            system_msg = ""
+            messages = []
+
+            for msg in self.conversation_history:
+                if msg["role"] == "system":
+                    system_msg = msg["content"]
+                else:
+                    messages.append({
+                        "role": msg["role"],
+                        "content": msg["content"]
+                    })
+
+            # Ensure we have messages
+            if not messages:
+                messages = [{
+                    "role": "user",
+                    "content": "Hello! I just started playing. What can you help me with?"
+                }]
+                logger.warning("No user messages in history, using default greeting")
+
+            response = self.client.chat(
+                model='llama2',  # Default model, can be made configurable
+                messages=messages,
+                options={
+                    'temperature': 0.7,
+                    'num_predict': 1000,
+                }
+            )
+
+            return response['message']['content']
+
+        except Exception as e:
+            logger.error(f"Ollama API error: {e}", exc_info=True)
+            raise Exception(f"Ollama API error: {str(e)}")
 
     def get_game_overview(self, game_name: str) -> str:
         """Get a general overview of the game"""

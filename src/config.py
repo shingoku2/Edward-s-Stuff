@@ -48,6 +48,8 @@ class Config:
         self.ai_provider = os.getenv('AI_PROVIDER', 'anthropic').lower()
         self.openai_api_key = os.getenv('OPENAI_API_KEY')
         self.anthropic_api_key = os.getenv('ANTHROPIC_API_KEY')
+        self.gemini_api_key = os.getenv('GEMINI_API_KEY')
+        self.ollama_endpoint = os.getenv('OLLAMA_ENDPOINT', 'http://localhost:11434')
 
         # Application Settings
         self.overlay_hotkey = os.getenv('OVERLAY_HOTKEY', 'ctrl+shift+g')
@@ -59,36 +61,53 @@ class Config:
 
     def _validate(self):
         """Validate configuration - raises ValueError if invalid"""
-        # Check if we have at least one API key
+        # Check if we have the required API key for the provider
         if self.ai_provider == 'openai' and not self.openai_api_key:
             raise ValueError("OpenAI API key not found. Please set OPENAI_API_KEY in .env")
 
         if self.ai_provider == 'anthropic' and not self.anthropic_api_key:
             raise ValueError("Anthropic API key not found. Please set ANTHROPIC_API_KEY in .env")
 
-        if self.ai_provider not in ['openai', 'anthropic']:
-            raise ValueError(f"Invalid AI provider: {self.ai_provider}. Must be 'openai' or 'anthropic'")
+        if self.ai_provider == 'gemini' and not self.gemini_api_key:
+            raise ValueError("Gemini API key not found. Please set GEMINI_API_KEY in .env")
+
+        # Ollama doesn't require an API key, but validate endpoint format
+        if self.ai_provider == 'ollama':
+            if not self.ollama_endpoint.startswith('http'):
+                raise ValueError("Ollama endpoint must be a valid HTTP/HTTPS URL")
+
+        if self.ai_provider not in ['openai', 'anthropic', 'gemini', 'ollama']:
+            raise ValueError(f"Invalid AI provider: {self.ai_provider}. Must be 'openai', 'anthropic', 'gemini', or 'ollama'")
 
     def is_configured(self) -> bool:
         """
         Check if configuration has valid API keys
 
         Returns:
-            True if at least one API key is configured, False otherwise
+            True if at least one API key is configured or ollama is selected, False otherwise
         """
-        return bool(self.openai_api_key or self.anthropic_api_key)
+        return bool(
+            self.openai_api_key or
+            self.anthropic_api_key or
+            self.gemini_api_key or
+            self.ai_provider == 'ollama'  # Ollama doesn't need API key
+        )
 
     def has_provider_key(self) -> bool:
         """
         Check if the selected provider has a valid API key
 
         Returns:
-            True if current provider has an API key, False otherwise
+            True if current provider has an API key (or is ollama), False otherwise
         """
         if self.ai_provider == 'openai':
             return bool(self.openai_api_key)
         elif self.ai_provider == 'anthropic':
             return bool(self.anthropic_api_key)
+        elif self.ai_provider == 'gemini':
+            return bool(self.gemini_api_key)
+        elif self.ai_provider == 'ollama':
+            return True  # Ollama doesn't require API key
         return False
 
     def get_api_key(self) -> str:
@@ -97,17 +116,25 @@ class Config:
             return self.openai_api_key
         elif self.ai_provider == 'anthropic':
             return self.anthropic_api_key
+        elif self.ai_provider == 'gemini':
+            return self.gemini_api_key
+        elif self.ai_provider == 'ollama':
+            return None  # Ollama doesn't use API key
         return None
 
     @staticmethod
-    def save_to_env(provider: str, openai_key: str, anthropic_key: str, overlay_hotkey: str = 'ctrl+shift+g', check_interval: int = 5):
+    def save_to_env(provider: str, openai_key: str, anthropic_key: str, gemini_key: str = '',
+                    ollama_endpoint: str = 'http://localhost:11434',
+                    overlay_hotkey: str = 'ctrl+shift+g', check_interval: int = 5):
         """
         Save configuration to .env file
 
         Args:
-            provider: AI provider ('openai' or 'anthropic')
+            provider: AI provider ('openai', 'anthropic', 'gemini', or 'ollama')
             openai_key: OpenAI API key
             anthropic_key: Anthropic API key
+            gemini_key: Gemini API key (optional)
+            ollama_endpoint: Ollama endpoint URL (default: 'http://localhost:11434')
             overlay_hotkey: Hotkey for overlay (default: 'ctrl+shift+g')
             check_interval: Game check interval in seconds (default: 5)
         """
@@ -140,6 +167,8 @@ class Config:
         existing_content['AI_PROVIDER'] = provider
         existing_content['OPENAI_API_KEY'] = openai_key
         existing_content['ANTHROPIC_API_KEY'] = anthropic_key
+        existing_content['GEMINI_API_KEY'] = gemini_key
+        existing_content['OLLAMA_ENDPOINT'] = ollama_endpoint
         existing_content['OVERLAY_HOTKEY'] = overlay_hotkey
         existing_content['CHECK_INTERVAL'] = str(check_interval)
 
@@ -153,7 +182,11 @@ class Config:
 
             f.write("# API Keys\n")
             f.write(f"OPENAI_API_KEY={existing_content['OPENAI_API_KEY']}\n")
-            f.write(f"ANTHROPIC_API_KEY={existing_content['ANTHROPIC_API_KEY']}\n\n")
+            f.write(f"ANTHROPIC_API_KEY={existing_content['ANTHROPIC_API_KEY']}\n")
+            f.write(f"GEMINI_API_KEY={existing_content['GEMINI_API_KEY']}\n\n")
+
+            f.write("# Ollama Settings\n")
+            f.write(f"OLLAMA_ENDPOINT={existing_content['OLLAMA_ENDPOINT']}\n\n")
 
             f.write("# Application Settings\n")
             f.write(f"OVERLAY_HOTKEY={existing_content['OVERLAY_HOTKEY']}\n")

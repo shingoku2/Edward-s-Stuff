@@ -248,7 +248,7 @@ class ChatWidget(QWidget):
 class SettingsDialog(QDialog):
     """Settings dialog for managing API keys and AI provider selection"""
 
-    settings_saved = pyqtSignal(str, str, str)  # provider, openai_key, anthropic_key
+    settings_saved = pyqtSignal(str, str, str, str, str)  # provider, openai_key, anthropic_key, gemini_key, ollama_endpoint
 
     def __init__(self, parent, config):
         super().__init__(parent)
@@ -346,18 +346,30 @@ class SettingsDialog(QDialog):
 
         self.anthropic_radio = QRadioButton("Anthropic Claude")
         self.openai_radio = QRadioButton("OpenAI GPT")
+        self.gemini_radio = QRadioButton("Google Gemini")
+        self.ollama_radio = QRadioButton("Ollama (Local)")
 
         self.provider_button_group.addButton(self.anthropic_radio, 0)
         self.provider_button_group.addButton(self.openai_radio, 1)
+        self.provider_button_group.addButton(self.gemini_radio, 2)
+        self.provider_button_group.addButton(self.ollama_radio, 3)
 
         # Set current provider
         if self.config.ai_provider == "anthropic":
             self.anthropic_radio.setChecked(True)
+        elif self.config.ai_provider == "openai":
+            self.openai_radio.setChecked(True)
+        elif self.config.ai_provider == "gemini":
+            self.gemini_radio.setChecked(True)
+        elif self.config.ai_provider == "ollama":
+            self.ollama_radio.setChecked(True)
         else:
             self.openai_radio.setChecked(True)
 
         provider_layout.addWidget(self.anthropic_radio)
         provider_layout.addWidget(self.openai_radio)
+        provider_layout.addWidget(self.gemini_radio)
+        provider_layout.addWidget(self.ollama_radio)
         provider_group.setLayout(provider_layout)
         layout.addWidget(provider_group)
 
@@ -427,6 +439,45 @@ class SettingsDialog(QDialog):
         self.anthropic_show_button.clicked.connect(lambda: self.toggle_key_visibility(self.anthropic_key_input, self.anthropic_show_button))
         keys_layout.addWidget(self.anthropic_show_button)
 
+        # Gemini API Key
+        gemini_label = QLabel("Gemini API Key:")
+        keys_layout.addWidget(gemini_label)
+
+        self.gemini_key_input = QLineEdit()
+        self.gemini_key_input.setPlaceholderText("AIza...")
+        self.gemini_key_input.setEchoMode(QLineEdit.EchoMode.Password)
+        if self.config.gemini_api_key:
+            self.gemini_key_input.setText(self.config.gemini_api_key)
+        keys_layout.addWidget(self.gemini_key_input)
+
+        # Show/Hide Gemini key button
+        self.gemini_show_button = QPushButton("Show")
+        self.gemini_show_button.setFixedWidth(80)
+        self.gemini_show_button.setStyleSheet("""
+            QPushButton {
+                background-color: #374151;
+                color: #ffffff;
+                border: none;
+                border-radius: 3px;
+                padding: 5px;
+                font-size: 9pt;
+            }
+            QPushButton:hover {
+                background-color: #4b5563;
+            }
+        """)
+        self.gemini_show_button.clicked.connect(lambda: self.toggle_key_visibility(self.gemini_key_input, self.gemini_show_button))
+        keys_layout.addWidget(self.gemini_show_button)
+
+        # Ollama Endpoint
+        ollama_label = QLabel("Ollama Endpoint (for local models):")
+        keys_layout.addWidget(ollama_label)
+
+        self.ollama_endpoint_input = QLineEdit()
+        self.ollama_endpoint_input.setPlaceholderText("http://localhost:11434")
+        self.ollama_endpoint_input.setText(self.config.ollama_endpoint)
+        keys_layout.addWidget(self.ollama_endpoint_input)
+
         keys_group.setLayout(keys_layout)
         layout.addWidget(keys_group)
 
@@ -488,14 +539,25 @@ class SettingsDialog(QDialog):
     def save_settings(self):
         """Save settings and emit signal"""
         # Get selected provider
-        provider = "anthropic" if self.anthropic_radio.isChecked() else "openai"
+        if self.anthropic_radio.isChecked():
+            provider = "anthropic"
+        elif self.openai_radio.isChecked():
+            provider = "openai"
+        elif self.gemini_radio.isChecked():
+            provider = "gemini"
+        elif self.ollama_radio.isChecked():
+            provider = "ollama"
+        else:
+            provider = "openai"
 
-        # Get API keys
+        # Get API keys and settings
         openai_key = self.openai_key_input.text().strip()
         anthropic_key = self.anthropic_key_input.text().strip()
+        gemini_key = self.gemini_key_input.text().strip()
+        ollama_endpoint = self.ollama_endpoint_input.text().strip() or "http://localhost:11434"
 
-        # Validate that at least one key is provided
-        if not openai_key and not anthropic_key:
+        # Validate that at least one key is provided (or ollama is selected)
+        if not openai_key and not anthropic_key and not gemini_key and provider != "ollama":
             QMessageBox.warning(
                 self,
                 "Missing API Keys",
@@ -520,8 +582,16 @@ class SettingsDialog(QDialog):
             )
             return
 
+        if provider == "gemini" and not gemini_key:
+            QMessageBox.warning(
+                self,
+                "Missing Gemini Key",
+                "You selected Gemini but didn't provide an API key.\nPlease enter your Gemini API key."
+            )
+            return
+
         # Emit signal with settings
-        self.settings_saved.emit(provider, openai_key, anthropic_key)
+        self.settings_saved.emit(provider, openai_key, anthropic_key, gemini_key, ollama_endpoint)
 
         logger.info(f"Settings saved: provider={provider}")
 
@@ -966,7 +1036,7 @@ class MainWindow(QMainWindow):
         dialog.settings_saved.connect(self.handle_settings_saved)
         dialog.exec()
 
-    def handle_settings_saved(self, provider, openai_key, anthropic_key):
+    def handle_settings_saved(self, provider, openai_key, anthropic_key, gemini_key, ollama_endpoint):
         """Handle settings being saved"""
         logger.info("Handling settings save...")
 
@@ -975,7 +1045,7 @@ class MainWindow(QMainWindow):
             from config import Config
 
             # Save settings to .env file
-            Config.save_to_env(provider, openai_key, anthropic_key)
+            Config.save_to_env(provider, openai_key, anthropic_key, gemini_key, ollama_endpoint)
 
             # Reload configuration
             self.config = Config()
@@ -986,7 +1056,8 @@ class MainWindow(QMainWindow):
             old_ai_assistant = self.ai_assistant
             self.ai_assistant = AIAssistant(
                 provider=self.config.ai_provider,
-                api_key=self.config.get_api_key()
+                api_key=self.config.get_api_key(),
+                ollama_endpoint=self.config.ollama_endpoint
             )
 
             # Transfer current game context to new assistant

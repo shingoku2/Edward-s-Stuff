@@ -118,7 +118,8 @@ def main():
 
             ai_assistant = AIAssistant(
                 provider=config.ai_provider,
-                api_key=config.get_api_key()
+                api_key=config.get_api_key(),
+                ollama_endpoint=config.ollama_endpoint
             )
 
             logger.info(f"AI assistant initialized")
