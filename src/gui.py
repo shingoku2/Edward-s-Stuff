@@ -248,7 +248,7 @@ class ChatWidget(QWidget):
 class SettingsDialog(QDialog):
     """Settings dialog for managing API keys and AI provider selection"""
 
-    settings_saved = pyqtSignal(str, str, str, str, str)  # provider, openai_key, anthropic_key, gemini_key, ollama_endpoint
+    settings_saved = pyqtSignal(str, str, str, str, str, str)  # provider, openai_key, anthropic_key, gemini_key, ollama_endpoint, open_webui_api_key
 
     def __init__(self, parent, config):
         super().__init__(parent)
@@ -478,11 +478,26 @@ class SettingsDialog(QDialog):
         self.ollama_endpoint_input.setText(self.config.ollama_endpoint)
         keys_layout.addWidget(self.ollama_endpoint_input)
 
+        # Open WebUI API Key
+        open_webui_key_label = QLabel("Open WebUI API Key (optional, for authentication):")
+        keys_layout.addWidget(open_webui_key_label)
+
+        self.open_webui_key_input = QLineEdit()
+        self.open_webui_key_input.setPlaceholderText("Get from Settings > Account in Open WebUI")
+        self.open_webui_key_input.setEchoMode(QLineEdit.EchoMode.Password)
+        if self.config.open_webui_api_key:
+            self.open_webui_key_input.setText(self.config.open_webui_api_key)
+        keys_layout.addWidget(self.open_webui_key_input)
+
+        self.open_webui_show_button = QPushButton("Show")
+        self.open_webui_show_button.clicked.connect(lambda: self.toggle_key_visibility(self.open_webui_key_input, self.open_webui_show_button))
+        keys_layout.addWidget(self.open_webui_show_button)
+
         # Ollama help text
         ollama_help = QLabel(
             "💡 Ollama/Open WebUI Setup (No package needed - uses REST API!):\n"
-            "• Native Ollama: http://localhost:11434\n"
-            "• Open WebUI: http://localhost:8080 (or your custom port)\n"
+            "• Native Ollama: http://localhost:11434 (no API key needed)\n"
+            "• Open WebUI: http://localhost:8080 (requires API key from Settings > Account)\n"
             "• WSL: Use http://localhost:<port> (WSL2 auto-forwards)\n"
             "• Supports both native Ollama and OpenAI-compatible APIs\n"
             "• WSL: Ensure Ollama is running: ollama serve"
@@ -576,6 +591,7 @@ class SettingsDialog(QDialog):
         anthropic_key = self.anthropic_key_input.text().strip()
         gemini_key = self.gemini_key_input.text().strip()
         ollama_endpoint = self.ollama_endpoint_input.text().strip() or "http://localhost:11434"
+        open_webui_api_key = self.open_webui_key_input.text().strip()
 
         # Validate that at least one key is provided (or ollama is selected)
         if not openai_key and not anthropic_key and not gemini_key and provider != "ollama":
@@ -612,7 +628,7 @@ class SettingsDialog(QDialog):
             return
 
         # Emit signal with settings
-        self.settings_saved.emit(provider, openai_key, anthropic_key, gemini_key, ollama_endpoint)
+        self.settings_saved.emit(provider, openai_key, anthropic_key, gemini_key, ollama_endpoint, open_webui_api_key)
 
         logger.info(f"Settings saved: provider={provider}")
 
@@ -1057,7 +1073,7 @@ class MainWindow(QMainWindow):
         dialog.settings_saved.connect(self.handle_settings_saved)
         dialog.exec()
 
-    def handle_settings_saved(self, provider, openai_key, anthropic_key, gemini_key, ollama_endpoint):
+    def handle_settings_saved(self, provider, openai_key, anthropic_key, gemini_key, ollama_endpoint, open_webui_api_key):
         """Handle settings being saved"""
         logger.info("Handling settings save...")
 
@@ -1066,7 +1082,7 @@ class MainWindow(QMainWindow):
             from config import Config
 
             # Save settings to .env file
-            Config.save_to_env(provider, openai_key, anthropic_key, gemini_key, ollama_endpoint)
+            Config.save_to_env(provider, openai_key, anthropic_key, gemini_key, ollama_endpoint, open_webui_api_key)
 
             # Reload configuration
             self.config = Config()
@@ -1078,7 +1094,8 @@ class MainWindow(QMainWindow):
             self.ai_assistant = AIAssistant(
                 provider=self.config.ai_provider,
                 api_key=self.config.get_api_key(),
-                ollama_endpoint=self.config.ollama_endpoint
+                ollama_endpoint=self.config.ollama_endpoint,
+                open_webui_api_key=self.config.open_webui_api_key
             )
 
             # Transfer current game context to new assistant

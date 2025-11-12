@@ -50,6 +50,7 @@ class Config:
         self.anthropic_api_key = os.getenv('ANTHROPIC_API_KEY')
         self.gemini_api_key = os.getenv('GEMINI_API_KEY')
         self.ollama_endpoint = os.getenv('OLLAMA_ENDPOINT', 'http://localhost:11434')
+        self.open_webui_api_key = os.getenv('OPEN_WEBUI_API_KEY')  # API key for Open WebUI authentication
 
         # Application Settings
         self.overlay_hotkey = os.getenv('OVERLAY_HOTKEY', 'ctrl+shift+g')
@@ -125,6 +126,7 @@ class Config:
     @staticmethod
     def save_to_env(provider: str, openai_key: str, anthropic_key: str, gemini_key: str = '',
                     ollama_endpoint: str = 'http://localhost:11434',
+                    open_webui_api_key: str = '',
                     overlay_hotkey: str = 'ctrl+shift+g', check_interval: int = 5):
         """
         Save configuration to .env file
@@ -135,6 +137,7 @@ class Config:
             anthropic_key: Anthropic API key
             gemini_key: Gemini API key (optional)
             ollama_endpoint: Ollama endpoint URL (default: 'http://localhost:11434')
+            open_webui_api_key: Open WebUI API key for authentication (optional)
             overlay_hotkey: Hotkey for overlay (default: 'ctrl+shift+g')
             check_interval: Game check interval in seconds (default: 5)
         """
@@ -169,6 +172,7 @@ class Config:
         existing_content['ANTHROPIC_API_KEY'] = anthropic_key
         existing_content['GEMINI_API_KEY'] = gemini_key
         existing_content['OLLAMA_ENDPOINT'] = ollama_endpoint
+        existing_content['OPEN_WEBUI_API_KEY'] = open_webui_api_key
         existing_content['OVERLAY_HOTKEY'] = overlay_hotkey
         existing_content['CHECK_INTERVAL'] = str(check_interval)
 

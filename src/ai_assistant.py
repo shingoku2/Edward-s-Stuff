@@ -18,7 +18,9 @@ class AIAssistant:
     # Maximum conversation history to keep
     MAX_CONVERSATION_MESSAGES = 20
 
-    def __init__(self, provider: str = "anthropic", api_key: Optional[str] = None, ollama_endpoint: str = "http://localhost:11434"):
+    def __init__(self, provider: str = "anthropic", api_key: Optional[str] = None,
+                 ollama_endpoint: str = "http://localhost:11434",
+                 open_webui_api_key: Optional[str] = None):
         """
         Initialize AI Assistant
 
@@ -26,10 +28,12 @@ class AIAssistant:
             provider: 'openai', 'anthropic', 'gemini', or 'ollama'
             api_key: API key for the chosen provider (not needed for ollama)
             ollama_endpoint: Ollama endpoint URL (default: http://localhost:11434)
+            open_webui_api_key: API key for Open WebUI authentication (optional)
         """
         self.provider = provider.lower()
         self.api_key = api_key or self._get_api_key()
         self.ollama_endpoint = ollama_endpoint
+        self.open_webui_api_key = open_webui_api_key or os.getenv("OPEN_WEBUI_API_KEY")
         self.conversation_history = []
         self.current_game = None
         self.client = None
@@ -350,6 +354,12 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
             if system_msg:
                 messages = [{"role": "system", "content": system_msg}] + messages
 
+            # Prepare headers for authentication (if Open WebUI API key is provided)
+            headers = {"Content-Type": "application/json"}
+            if self.open_webui_api_key:
+                headers["Authorization"] = f"Bearer {self.open_webui_api_key}"
+                logger.debug("Using Open WebUI API key for authentication")
+
             # Try Open WebUI's OpenAI-compatible API first (most common for Open WebUI)
             # This uses the /v1/chat/completions endpoint
             openai_api_url = f"{self.ollama_endpoint}/v1/chat/completions"
@@ -364,7 +374,7 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
 
             logger.debug(f"Trying OpenAI-compatible API at {openai_api_url}")
             try:
-                response = requests.post(openai_api_url, json=openai_payload, timeout=30)
+                response = requests.post(openai_api_url, json=openai_payload, headers=headers, timeout=30)
 
                 if response.status_code == 200:
                     result = response.json()
@@ -398,7 +408,7 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
 
             logger.debug(f"Calling native Ollama API at {native_api_url}")
             try:
-                response = requests.post(native_api_url, json=native_payload, timeout=30)
+                response = requests.post(native_api_url, json=native_payload, headers=headers, timeout=30)
 
                 if response.status_code == 200:
                     result = response.json()
@@ -442,7 +452,7 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
             }
 
             logger.debug(f"Calling Ollama /api/generate at {generate_api_url}")
-            response = requests.post(generate_api_url, json=generate_payload, timeout=30)
+            response = requests.post(generate_api_url, json=generate_payload, headers=headers, timeout=30)
             response.raise_for_status()
 
             result = response.json()
