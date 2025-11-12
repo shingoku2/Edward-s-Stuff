@@ -695,3 +695,21 @@ INFO - Native /api/chat endpoint returned 405, trying /api/generate
 *Last Updated: 2025-11-13*
 *Session: Branch Comparison*
 *Status: Complete ✅*
+
+## Current Session: Persist Open WebUI API Key (2025-11-12)
+
+### Session Goals
+1. Ensure Open WebUI API keys saved via Settings dialog persist in the generated `.env` file.
+2. Run a lightweight syntax validation to confirm configuration changes compile.
+
+### Actions Taken
+- Updated `src/config.py` so `Config.save_to_env` writes the `OPEN_WEBUI_API_KEY` value into the `.env` output block under a new **Open WebUI Authentication** section.
+- Executed `python -m compileall src` to verify the source tree compiles without syntax errors inside the container.
+
+### Outcome
+- Open WebUI API keys are now persisted alongside other credentials, preventing loss of authentication between application restarts.
+- Syntax validation succeeded with no errors reported.
+
+*Last Updated: 2025-11-12*
+*Session: Persist Open WebUI API Key*
+*Status: Complete ✅*

@@ -237,6 +237,9 @@ class Config:
             f.write(f"ANTHROPIC_API_KEY={existing_content['ANTHROPIC_API_KEY']}\n")
             f.write(f"GEMINI_API_KEY={existing_content['GEMINI_API_KEY']}\n\n")
 
+            f.write("# Open WebUI Authentication\n")
+            f.write(f"OPEN_WEBUI_API_KEY={existing_content['OPEN_WEBUI_API_KEY']}\n\n")
+
             f.write("# Ollama Settings\n")
             f.write(f"OLLAMA_ENDPOINT={existing_content['OLLAMA_ENDPOINT']}\n\n")
 
