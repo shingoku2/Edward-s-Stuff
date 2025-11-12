@@ -369,14 +369,16 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
                 if response.status_code == 200:
                     result = response.json()
                     return result['choices'][0]['message']['content']
-                elif response.status_code == 404:
-                    # OpenAI-compatible endpoint not found, try native Ollama API
-                    logger.info("OpenAI-compatible endpoint not found, trying native Ollama API")
+                elif response.status_code in [404, 405]:
+                    # OpenAI-compatible endpoint not found or method not allowed
+                    # Try native Ollama API instead
+                    logger.info(f"OpenAI-compatible endpoint returned {response.status_code}, trying native Ollama API")
                 else:
                     response.raise_for_status()
             except requests.exceptions.HTTPError as e:
-                if e.response.status_code == 404:
-                    logger.info("OpenAI-compatible endpoint returned 404, trying native Ollama API")
+                if e.response.status_code in [404, 405]:
+                    # Endpoint structure doesn't match OpenAI format, try native Ollama
+                    logger.info(f"OpenAI-compatible endpoint returned {e.response.status_code}, trying native Ollama API")
                 else:
                     raise
 
