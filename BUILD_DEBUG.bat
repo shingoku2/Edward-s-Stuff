@@ -30,17 +30,36 @@ python -m PyInstaller ^
     --hidden-import=PyQt6.QtCore ^
     --hidden-import=PyQt6.QtGui ^
     --hidden-import=PyQt6.QtWidgets ^
+    --hidden-import=PyQt6.QtWebEngineCore ^
+    --hidden-import=PyQt6.QtWebEngineWidgets ^
     --hidden-import=config ^
     --hidden-import=game_detector ^
     --hidden-import=ai_assistant ^
     --hidden-import=info_scraper ^
     --hidden-import=gui ^
+    --hidden-import=credential_store ^
+    --hidden-import=provider_tester ^
+    --hidden-import=providers ^
+    --hidden-import=ai_router ^
+    --hidden-import=setup_wizard ^
+    --hidden-import=providers_tab ^
+    --hidden-import=settings_dialog ^
+    --hidden-import=settings_tabs ^
+    --hidden-import=appearance_tabs ^
+    --hidden-import=login_dialog ^
+    --hidden-import=keybind_manager ^
+    --hidden-import=macro_manager ^
+    --hidden-import=theme_manager ^
     --hidden-import=anthropic ^
     --hidden-import=openai ^
+    --hidden-import=google.generativeai ^
     --hidden-import=psutil ^
     --hidden-import=requests ^
     --hidden-import=bs4 ^
     --hidden-import=dotenv ^
+    --hidden-import=cryptography ^
+    --hidden-import=keyring ^
+    --hidden-import=pynput ^
     main.py
 
 if errorlevel 1 (

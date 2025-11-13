@@ -88,17 +88,36 @@ python -m PyInstaller --name=GamingAIAssistant ^
     --hidden-import=PyQt6.QtCore ^
     --hidden-import=PyQt6.QtGui ^
     --hidden-import=PyQt6.QtWidgets ^
+    --hidden-import=PyQt6.QtWebEngineCore ^
+    --hidden-import=PyQt6.QtWebEngineWidgets ^
     --hidden-import=config ^
     --hidden-import=game_detector ^
     --hidden-import=ai_assistant ^
     --hidden-import=info_scraper ^
     --hidden-import=gui ^
+    --hidden-import=credential_store ^
+    --hidden-import=provider_tester ^
+    --hidden-import=providers ^
+    --hidden-import=ai_router ^
+    --hidden-import=setup_wizard ^
+    --hidden-import=providers_tab ^
+    --hidden-import=settings_dialog ^
+    --hidden-import=settings_tabs ^
+    --hidden-import=appearance_tabs ^
+    --hidden-import=login_dialog ^
+    --hidden-import=keybind_manager ^
+    --hidden-import=macro_manager ^
+    --hidden-import=theme_manager ^
     --hidden-import=anthropic ^
     --hidden-import=openai ^
+    --hidden-import=google.generativeai ^
     --hidden-import=psutil ^
     --hidden-import=requests ^
     --hidden-import=bs4 ^
     --hidden-import=dotenv ^
+    --hidden-import=cryptography ^
+    --hidden-import=keyring ^
+    --hidden-import=pynput ^
     main.py
 
 if errorlevel 1 (
@@ -140,18 +159,19 @@ echo =====================================================
 echo GAMING AI ASSISTANT - QUICK START
 echo =====================================================
 echo.
-echo STEP 1: Setup API Key
-echo ---------------------
-echo 1. Copy ".env.example" to ".env"
-echo 2. Edit .env in Notepad
-echo 3. Get API key from: https://console.anthropic.com/
-echo 4. Replace "your_anthropic_api_key_here" with your actual key
+echo STEP 1: First Run - Setup Wizard
+echo --------------------------------
+echo 1. Double-click: GamingAIAssistant.exe
+echo 2. The Setup Wizard will appear automatically
+echo 3. Select your preferred AI provider (Anthropic, OpenAI, or Gemini)
+echo 4. Enter your API key securely (stored encrypted, NOT in .env)
 echo.
-echo STEP 2: Run the Application
-echo ---------------------------
-echo Double-click: GamingAIAssistant.exe
+echo You can get API keys from:
+echo - Anthropic: https://console.anthropic.com/
+echo - OpenAI: https://platform.openai.com/api-keys
+echo - Gemini: https://aistudio.google.com/app/apikey
 echo.
-echo STEP 3: Use While Gaming
+echo STEP 2: Use While Gaming
 echo ------------------------
 echo 1. Launch any supported game
 echo 2. Press Ctrl+Shift+G to open the AI assistant
@@ -183,18 +203,17 @@ echo File size: ~150-200 MB (includes all dependencies)
 echo.
 echo NEXT STEPS:
 echo -----------
-echo 1. Copy your .env file to dist folder:
-echo    copy .env dist\GamingAIAssistant\.env
+echo 1. Test the .exe by double-clicking it
+echo    - The Setup Wizard will launch automatically on first run
+echo    - Your API keys will be stored securely in encrypted CredentialStore
 echo.
-echo 2. Test the .exe by double-clicking it
-echo.
-echo 3. To distribute:
+echo 2. To distribute:
 echo    - Zip the entire "dist\GamingAIAssistant" folder
 echo    - Share with friends/users
 echo    - They extract and run GamingAIAssistant.exe
+echo    - Each user runs the Setup Wizard with their own API keys
 echo.
-echo IMPORTANT: Do NOT include your .env file with your API key!
-echo            Only include .env.example for distribution.
+echo SECURITY: API keys are stored encrypted in CredentialStore, NOT in .env files!
 echo.
 echo ======================================================================
 echo.

@@ -227,10 +227,7 @@ class TabbedSettingsDialog(QDialog):
             if default_provider:
                 from config import Config
                 Config.save_to_env(
-                    provider=default_provider,
-                    openai_key='',  # Keys are in credential store, not .env
-                    anthropic_key='',
-                    gemini_key=''
+                    provider=default_provider
                 )
 
             # Emit signals

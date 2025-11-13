@@ -87,17 +87,36 @@ python -m PyInstaller ^
     --hidden-import=PyQt6.QtCore ^
     --hidden-import=PyQt6.QtGui ^
     --hidden-import=PyQt6.QtWidgets ^
+    --hidden-import=PyQt6.QtWebEngineCore ^
+    --hidden-import=PyQt6.QtWebEngineWidgets ^
     --hidden-import=config ^
     --hidden-import=game_detector ^
     --hidden-import=ai_assistant ^
     --hidden-import=info_scraper ^
     --hidden-import=gui ^
+    --hidden-import=credential_store ^
+    --hidden-import=provider_tester ^
+    --hidden-import=providers ^
+    --hidden-import=ai_router ^
+    --hidden-import=setup_wizard ^
+    --hidden-import=providers_tab ^
+    --hidden-import=settings_dialog ^
+    --hidden-import=settings_tabs ^
+    --hidden-import=appearance_tabs ^
+    --hidden-import=login_dialog ^
+    --hidden-import=keybind_manager ^
+    --hidden-import=macro_manager ^
+    --hidden-import=theme_manager ^
     --hidden-import=anthropic ^
     --hidden-import=openai ^
+    --hidden-import=google.generativeai ^
     --hidden-import=psutil ^
     --hidden-import=requests ^
     --hidden-import=bs4 ^
     --hidden-import=dotenv ^
+    --hidden-import=cryptography ^
+    --hidden-import=keyring ^
+    --hidden-import=pynput ^
     main.py
 
 if errorlevel 1 (
@@ -115,13 +134,17 @@ echo ====================================
 echo.
 echo Your .exe is at: dist\GamingAIAssistant\GamingAIAssistant.exe
 echo.
-echo IMPORTANT - Next steps:
-echo 1. Copy your .env file to the dist folder:
-echo    copy .env dist\GamingAIAssistant\.env
+echo NEXT STEPS:
+echo 1. Run GamingAIAssistant.exe
+echo    - The Setup Wizard will launch automatically on first run
+echo    - Select your AI provider (Anthropic, OpenAI, or Gemini)
+echo    - Enter your API key securely (stored encrypted in CredentialStore)
 echo.
-echo 2. Make sure your .env has your Anthropic API key:
-echo    ANTHROPIC_API_KEY=sk-ant-api03-your-key-here
+echo 2. Your API keys are stored securely - NOT in .env files!
 echo.
-echo 3. Run GamingAIAssistant.exe
+echo Get your API key from:
+echo   - Anthropic: https://console.anthropic.com/
+echo   - OpenAI: https://platform.openai.com/api-keys
+echo   - Gemini: https://aistudio.google.com/app/apikey
 echo.
 pause

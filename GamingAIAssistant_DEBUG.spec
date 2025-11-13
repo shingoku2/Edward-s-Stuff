@@ -6,7 +6,22 @@ a = Analysis(
     pathex=['src'],
     binaries=[],
     datas=[],
-    hiddenimports=['PyQt6.QtCore', 'PyQt6.QtGui', 'PyQt6.QtWidgets', 'config', 'game_detector', 'ai_assistant', 'info_scraper', 'gui', 'anthropic', 'openai', 'google.generativeai', 'psutil', 'requests', 'bs4', 'dotenv'],
+    hiddenimports=[
+        # PyQt6
+        'PyQt6.QtCore', 'PyQt6.QtGui', 'PyQt6.QtWidgets', 'PyQt6.QtWebEngineCore', 'PyQt6.QtWebEngineWidgets',
+        # Core modules
+        'config', 'game_detector', 'ai_assistant', 'info_scraper', 'gui',
+        # New secure modules
+        'credential_store', 'provider_tester', 'providers', 'ai_router', 'setup_wizard',
+        # Settings and UI
+        'providers_tab', 'settings_dialog', 'settings_tabs', 'appearance_tabs', 'login_dialog',
+        # Managers
+        'keybind_manager', 'macro_manager', 'theme_manager',
+        # AI providers
+        'anthropic', 'openai', 'google.generativeai',
+        # Utilities
+        'psutil', 'requests', 'bs4', 'dotenv', 'cryptography', 'keyring', 'pynput'
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

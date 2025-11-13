@@ -38,44 +38,40 @@ sys.path.insert(0, str(src_path))
 errors = []
 warnings = []
 
-# Test 1: Check .env file
-print("[1/8] Checking .env file...")
-if not os.path.exists('.env'):
-    message = ".env file not found! Copy .env.example to .env and add your API key"
-    if HEADLESS_ENV:
-        warnings.append(message)
-        print("  ⚠️  .env file not found (skipping in headless environment)")
+# Test 1: Check if config can load API keys
+print("[1/8] Checking API key configuration...")
+try:
+    from config import Config
+    test_config = Config(require_keys=False)  # Don't require keys for this test
+
+    anthropic_key = test_config.get_api_key('anthropic')
+    openai_key = test_config.get_api_key('openai')
+    gemini_key = test_config.get_api_key('gemini')
+
+    has_any_key = bool(anthropic_key or openai_key or gemini_key)
+
+    if not has_any_key:
+        warnings.append("No API keys configured (use Setup Wizard on first run)")
+        print("  ⚠️  No API keys found (this is OK - run the app to use Setup Wizard)")
     else:
-        errors.append(message)
-        print("  ❌ .env file not found")
-else:
-    print("  ✓ .env file exists")
-
-    # Check if API key is set
-    from dotenv import load_dotenv
-    load_dotenv()
-
-    anthropic_key = os.getenv('ANTHROPIC_API_KEY')
-    openai_key = os.getenv('OPENAI_API_KEY')
-
-    if not anthropic_key or anthropic_key == 'your_anthropic_api_key_here':
-        warnings.append("Anthropic API key not set in .env")
-        print("  ⚠️  Anthropic API key not configured")
-    else:
-        print(f"  ✓ Anthropic API key found ({len(anthropic_key)} chars)")
-
-    if not openai_key or openai_key == 'your_openai_api_key_here':
-        print("  ℹ️  OpenAI API key not set (optional)")
-    else:
-        print(f"  ✓ OpenAI API key found ({len(openai_key)} chars)")
+        print("  ✓ API keys are configured in CredentialStore")
+        if anthropic_key:
+            print(f"    - Anthropic key found ({len(anthropic_key)} chars)")
+        if openai_key:
+            print(f"    - OpenAI key found ({len(openai_key)} chars)")
+        if gemini_key:
+            print(f"    - Gemini key found ({len(gemini_key)} chars)")
+except Exception as e:
+    message = f"Failed to check API keys: {e}"
+    warnings.append(message)
+    print(f"  ⚠️  Could not verify API key configuration: {e}")
 
 print()
 
-# Test 2: Import config
+# Test 2: Verify config module functionality
 print("[2/8] Testing config module...")
 try:
-    from config import Config
-    config = Config()
+    config = Config(require_keys=False)  # Allow loading without keys (will use Setup Wizard)
     print(f"  ✓ Config module works")
     print(f"    AI Provider: {config.ai_provider}")
 except Exception as e:
