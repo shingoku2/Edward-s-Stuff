@@ -193,41 +193,49 @@ def test_ai_assistant_edge_cases():
             print("⚠ Invalid provider did not raise error (may be expected)")
         except ValueError as e:
             print(f"✓ Invalid provider raises error: {str(e)[:50]}...")
-        
-        # Test with ollama provider (no API key needed)
-        try:
-            assistant = AIAssistant(provider="ollama")
-            print("✓ Ollama provider initialized (local LLM)")
-        except Exception as e:
-            print(f"⚠ Ollama provider error: {e}")
-        
+
+        # Get a test API key for edge case testing
+        test_provider = "anthropic"
+        test_api_key = os.getenv("ANTHROPIC_API_KEY")
+        if not test_api_key:
+            test_provider = "openai"
+            test_api_key = os.getenv("OPENAI_API_KEY")
+        if not test_api_key:
+            test_provider = "gemini"
+            test_api_key = os.getenv("GEMINI_API_KEY")
+
+        if not test_api_key:
+            print("⚠ Skipping edge case tests (no API keys available)")
+            print("✓ AIAssistant edge case tests skipped (no API keys)")
+            return True
+
         # Test clear_history on empty assistant
         try:
-            assistant = AIAssistant(provider="ollama")
+            assistant = AIAssistant(provider=test_provider, api_key=test_api_key)
             assistant.clear_history()
             print("✓ Clear history on empty conversation works")
         except Exception as e:
             print(f"⚠ Clear history error: {e}")
-        
+
         # Test set_current_game with empty dict
         try:
-            assistant = AIAssistant(provider="ollama")
+            assistant = AIAssistant(provider=test_provider, api_key=test_api_key)
             assistant.set_current_game({})
             print("✓ set_current_game with empty dict handled")
         except Exception as e:
             print(f"⚠ Empty game dict error: {e}")
-        
+
         # Test set_current_game with None values
         try:
-            assistant = AIAssistant(provider="ollama")
+            assistant = AIAssistant(provider=test_provider, api_key=test_api_key)
             assistant.set_current_game({"name": None, "id": None})
             print("✓ set_current_game with None values handled")
         except Exception as e:
             print(f"⚠ None values error: {e}")
-        
+
         # Test get_conversation_summary on empty history
         try:
-            assistant = AIAssistant(provider="ollama")
+            assistant = AIAssistant(provider=test_provider, api_key=test_api_key)
             summary = assistant.get_conversation_summary()
             assert isinstance(summary, list)
             print("✓ get_conversation_summary on empty history works")

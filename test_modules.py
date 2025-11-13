@@ -218,7 +218,7 @@ def test_ai_assistant():
         elif provider == "gemini":
             api_key = os.getenv("GEMINI_API_KEY")
         
-        if not api_key and provider != "ollama":
+        if not api_key:
             print(f"⚠ No API key found for {provider}, skipping AI tests")
             print("  Set AI_PROVIDER and corresponding API key environment variables")
             return True

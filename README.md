@@ -29,9 +29,10 @@ The assistant automatically:
 ### Prerequisites
 
 - Python 3.8 or higher
-- An API key from either:
+- An API key from one of:
   - [Anthropic (Claude)](https://www.anthropic.com/) (recommended)
   - [OpenAI (GPT)](https://platform.openai.com/)
+  - [Google (Gemini)](https://aistudio.google.com/app/apikey)
 
 ### Installation
 
@@ -52,13 +53,17 @@ The assistant automatically:
    cp .env.example .env
 
    # Edit .env and add your API key
-   # For Anthropic:
+   # For Anthropic (recommended):
    ANTHROPIC_API_KEY=your_api_key_here
    AI_PROVIDER=anthropic
 
    # OR for OpenAI:
    OPENAI_API_KEY=your_api_key_here
    AI_PROVIDER=openai
+
+   # OR for Google Gemini:
+   GEMINI_API_KEY=your_api_key_here
+   AI_PROVIDER=gemini
    ```
 
 4. **Run the application**
@@ -146,10 +151,11 @@ gaming-ai-assistant/
 Edit `.env` to customize the application:
 
 ```env
-# AI Provider (choose one)
-AI_PROVIDER=anthropic          # or 'openai'
+# AI Provider (choose one: anthropic, openai, or gemini)
+AI_PROVIDER=anthropic
 ANTHROPIC_API_KEY=your_key
 OPENAI_API_KEY=your_key
+GEMINI_API_KEY=your_key
 
 # Application Settings
 OVERLAY_HOTKEY=ctrl+shift+g    # Hotkey to toggle window
@@ -253,6 +259,20 @@ For issues, questions, or suggestions:
 - Open an issue on GitHub
 - Check existing issues for solutions
 - Contribute improvements via pull requests
+
+## 📝 Recent Updates
+
+### Version 1.1 (2025-11-13)
+- ✅ **Removed Ollama/Open WebUI support** - Streamlined to focus on mainstream cloud AI providers (OpenAI, Anthropic, Gemini)
+- ✅ **Fixed API key handling** - Resolved issue with pre-loaded test keys in executable builds
+- ✅ **Improved setup wizard** - Fixed provider switching and placeholder string consistency
+- ✅ **Added .env.example template** - Better configuration management for new users
+- ✅ **Cleaned up test suite** - Removed 1,000+ lines of deprecated Ollama-specific test code
+
+### Supported AI Providers
+- ✅ **Anthropic Claude** (recommended)
+- ✅ **OpenAI GPT**
+- ✅ **Google Gemini**
 
 ## 🗺️ Roadmap
 
