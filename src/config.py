@@ -15,6 +15,12 @@ from credential_store import CredentialDecryptionError, CredentialStore, Credent
 
 logger = logging.getLogger(__name__)
 
+# Configuration directory
+CONFIG_DIR = Path.home() / '.gaming_ai_assistant'
+KEYBINDS_FILE = CONFIG_DIR / 'keybinds.json'
+MACROS_FILE = CONFIG_DIR / 'macros.json'
+THEME_FILE = CONFIG_DIR / 'theme.json'
+
 
 class Config:
     """Application configuration"""
@@ -79,6 +85,16 @@ class Config:
         self.overlay_minimized = os.getenv('OVERLAY_MINIMIZED', 'false').lower() == 'true'
         self.overlay_opacity = float(os.getenv('OVERLAY_OPACITY', '0.95'))
 
+        # Extended Settings (stored in separate JSON files)
+        self.keybinds: Dict = {}
+        self.macros: Dict = {}
+        self.theme: Dict = {}
+
+        # Load extended settings
+        self._load_keybinds()
+        self._load_macros()
+        self._load_theme()
+
         # Validate configuration (only if required)
         if require_keys:
             self._validate()
@@ -120,6 +136,120 @@ class Config:
         except CredentialStoreError as exc:
             logger.warning("Unable to load credentials from secure store: %s", exc)
             return {}
+
+    def _load_keybinds(self):
+        """Load keybinds from JSON file"""
+        try:
+            if KEYBINDS_FILE.exists():
+                with open(KEYBINDS_FILE, 'r', encoding='utf-8') as f:
+                    self.keybinds = json.load(f)
+                    logger.info(f"Loaded {len(self.keybinds)} keybinds from {KEYBINDS_FILE}")
+            else:
+                logger.info("No keybinds file found, using defaults")
+                self.keybinds = {}
+        except Exception as e:
+            logger.error(f"Failed to load keybinds: {e}")
+            self.keybinds = {}
+
+    def _load_macros(self):
+        """Load macros from JSON file"""
+        try:
+            if MACROS_FILE.exists():
+                with open(MACROS_FILE, 'r', encoding='utf-8') as f:
+                    self.macros = json.load(f)
+                    logger.info(f"Loaded {len(self.macros)} macros from {MACROS_FILE}")
+            else:
+                logger.info("No macros file found, using defaults")
+                self.macros = {}
+        except Exception as e:
+            logger.error(f"Failed to load macros: {e}")
+            self.macros = {}
+
+    def _load_theme(self):
+        """Load theme from JSON file"""
+        try:
+            if THEME_FILE.exists():
+                with open(THEME_FILE, 'r', encoding='utf-8') as f:
+                    self.theme = json.load(f)
+                    logger.info(f"Loaded theme from {THEME_FILE}")
+            else:
+                logger.info("No theme file found, using defaults")
+                self.theme = {}
+        except Exception as e:
+            logger.error(f"Failed to load theme: {e}")
+            self.theme = {}
+
+    def save_keybinds(self, keybinds: Dict) -> bool:
+        """
+        Save keybinds to JSON file
+
+        Args:
+            keybinds: Dictionary of keybind data
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            # Ensure config directory exists
+            CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+
+            with open(KEYBINDS_FILE, 'w', encoding='utf-8') as f:
+                json.dump(keybinds, f, indent=2)
+
+            self.keybinds = keybinds
+            logger.info(f"Saved {len(keybinds)} keybinds to {KEYBINDS_FILE}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to save keybinds: {e}")
+            return False
+
+    def save_macros(self, macros: Dict) -> bool:
+        """
+        Save macros to JSON file
+
+        Args:
+            macros: Dictionary of macro data
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            # Ensure config directory exists
+            CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+
+            with open(MACROS_FILE, 'w', encoding='utf-8') as f:
+                json.dump(macros, f, indent=2)
+
+            self.macros = macros
+            logger.info(f"Saved {len(macros)} macros to {MACROS_FILE}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to save macros: {e}")
+            return False
+
+    def save_theme(self, theme: Dict) -> bool:
+        """
+        Save theme to JSON file
+
+        Args:
+            theme: Dictionary of theme data
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            # Ensure config directory exists
+            CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+
+            with open(THEME_FILE, 'w', encoding='utf-8') as f:
+                json.dump(theme, f, indent=2)
+
+            self.theme = theme
+            logger.info(f"Saved theme to {THEME_FILE}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to save theme: {e}")
+            return False
 
     def is_configured(self) -> bool:
         """

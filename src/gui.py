@@ -20,6 +20,10 @@ import webbrowser
 from credential_store import CredentialStore, CredentialStoreError
 from config import Config
 from login_dialog import LoginDialog
+from keybind_manager import KeybindManager, Keybind, DEFAULT_KEYBINDS
+from macro_manager import MacroManager, MacroActionType
+from theme_manager import ThemeManager, DEFAULT_DARK_THEME
+from settings_dialog import TabbedSettingsDialog
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -1263,6 +1267,9 @@ class MainWindow(QMainWindow):
         # Track if this is first show (for auto-opening settings)
         self.first_show = True
 
+        # Initialize managers for advanced features
+        self.init_managers()
+
         # Create overlay window (but don't show it yet)
         self.overlay_window = OverlayWindow(ai_assistant, config, parent=self)
 
@@ -1276,6 +1283,111 @@ class MainWindow(QMainWindow):
 
         self.init_ui()
         self.start_game_detection()
+
+        # Start global hotkey listener after UI is ready
+        self.start_hotkey_listener()
+
+    def init_managers(self):
+        """Initialize keybind, macro, and theme managers"""
+        logger.info("Initializing advanced feature managers...")
+
+        # Initialize KeybindManager
+        self.keybind_manager = KeybindManager()
+
+        # Load keybinds from config and register them (creates HotKey objects)
+        if self.config.keybinds:
+            for action, keybind_data in self.config.keybinds.items():
+                try:
+                    keybind = Keybind.from_dict(keybind_data)
+                    # Register with dummy callback - real callbacks set later in register_keybind_callbacks()
+                    self.keybind_manager.register_keybind(keybind, lambda: None, override=True)
+                except Exception as e:
+                    logger.error(f"Failed to load keybind {action}: {e}")
+        else:
+            # Load defaults
+            for default_keybind in DEFAULT_KEYBINDS:
+                self.keybind_manager.register_keybind(default_keybind, lambda: None)
+
+        # Initialize MacroManager
+        self.macro_manager = MacroManager()
+
+        # Load macros from config
+        if self.config.macros:
+            self.macro_manager.load_from_dict(self.config.macros)
+
+        # Initialize ThemeManager
+        self.theme_manager = ThemeManager()
+
+        # Load theme from config
+        if self.config.theme:
+            self.theme_manager.load_from_dict(self.config.theme)
+        else:
+            # Use default dark theme
+            self.theme_manager.set_theme(DEFAULT_DARK_THEME)
+
+        logger.info("Advanced feature managers initialized")
+
+    def start_hotkey_listener(self):
+        """Start listening for global hotkeys"""
+        try:
+            # Register keybind callbacks
+            self.register_keybind_callbacks()
+
+            # Start the global listener
+            self.keybind_manager.start_listening()
+            logger.info("Global hotkey listener started")
+        except Exception as e:
+            logger.warning(f"Could not start global hotkey listener: {e}")
+
+    def register_keybind_callbacks(self):
+        """Register callbacks for all keybind actions"""
+        # Overlay toggle
+        toggle_keybind = self.keybind_manager.get_keybind("toggle_overlay")
+        if toggle_keybind:
+            self.keybind_manager.callbacks["toggle_overlay"] = self.toggle_overlay_visibility
+
+        # Open settings
+        settings_keybind = self.keybind_manager.get_keybind("open_settings")
+        if settings_keybind:
+            self.keybind_manager.callbacks["open_settings"] = self.open_advanced_settings
+
+        # Clear chat
+        clear_keybind = self.keybind_manager.get_keybind("clear_chat")
+        if clear_keybind:
+            self.keybind_manager.callbacks["clear_chat"] = lambda: self.chat_widget.clear_chat() if hasattr(self, 'chat_widget') else None
+
+        # Show tips
+        tips_keybind = self.keybind_manager.get_keybind("show_tips")
+        if tips_keybind:
+            self.keybind_manager.callbacks["show_tips"] = self.get_tips
+
+        # Show overview
+        overview_keybind = self.keybind_manager.get_keybind("show_overview")
+        if overview_keybind:
+            self.keybind_manager.callbacks["show_overview"] = self.get_overview
+
+        # Register macro action handlers
+        self.macro_manager.register_action_handler(MacroActionType.SHOW_TIPS.value, self.get_tips)
+        self.macro_manager.register_action_handler(MacroActionType.SHOW_OVERVIEW.value, self.get_overview)
+        self.macro_manager.register_action_handler(MacroActionType.CLEAR_CHAT.value,
+            lambda: self.chat_widget.clear_chat() if hasattr(self, 'chat_widget') else None)
+        self.macro_manager.register_action_handler(MacroActionType.TOGGLE_OVERLAY.value, self.toggle_overlay_visibility)
+        self.macro_manager.register_action_handler(MacroActionType.CLOSE_OVERLAY.value,
+            lambda: self.overlay_window.hide() if hasattr(self, 'overlay_window') else None)
+        self.macro_manager.register_action_handler(MacroActionType.OPEN_SETTINGS.value, self.open_advanced_settings)
+
+        logger.info("Keybind callbacks registered")
+
+    def toggle_overlay_visibility(self):
+        """Toggle overlay visibility"""
+        if hasattr(self, 'overlay_window'):
+            if self.overlay_window.isVisible():
+                self.overlay_window.hide()
+                logger.info("Overlay hidden via keybind")
+            else:
+                self.overlay_window.show()
+                self.overlay_window.activateWindow()
+                logger.info("Overlay shown via keybind")
 
     def on_session_event(self, provider: str, action: str, payload: Dict[str, str]):
         """Handle authentication session events from the AI assistant."""
@@ -1355,6 +1467,9 @@ class MainWindow(QMainWindow):
         self.settings_button = QPushButton("⚙️ Settings")
         self.settings_button.clicked.connect(self.open_settings)
 
+        self.advanced_settings_button = QPushButton("🎛️ Advanced Settings")
+        self.advanced_settings_button.clicked.connect(self.open_advanced_settings)
+
         # Apply styling to action buttons
         for button in [self.tips_button, self.overview_button]:
             button.setStyleSheet("""
@@ -1378,21 +1493,24 @@ class MainWindow(QMainWindow):
             actions_layout.addWidget(button)
 
         # Settings button with distinct styling
-        self.settings_button.setStyleSheet("""
-            QPushButton {
-                background-color: #374151;
-                color: #ffffff;
-                border: none;
-                border-radius: 5px;
-                padding: 10px 20px;
-                font-size: 11pt;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #4b5563;
-            }
-        """)
+        for button in [self.settings_button, self.advanced_settings_button]:
+            button.setStyleSheet("""
+                QPushButton {
+                    background-color: #374151;
+                    color: #ffffff;
+                    border: none;
+                    border-radius: 5px;
+                    padding: 10px 20px;
+                    font-size: 11pt;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #4b5563;
+                }
+            """)
+
         actions_layout.addWidget(self.settings_button)
+        actions_layout.addWidget(self.advanced_settings_button)
 
         main_layout.addLayout(actions_layout)
 
@@ -1717,6 +1835,98 @@ class MainWindow(QMainWindow):
         dialog = SettingsDialog(self, self.config)
         dialog.settings_saved.connect(self.handle_settings_saved)
         dialog.exec()
+
+    def open_advanced_settings(self):
+        """Open the advanced settings dialog with keybinds, macros, and themes"""
+        logger.info("Opening advanced settings dialog")
+
+        dialog = TabbedSettingsDialog(
+            parent=self,
+            config=self.config,
+            keybind_manager=self.keybind_manager,
+            macro_manager=self.macro_manager,
+            theme_manager=self.theme_manager
+        )
+
+        # Connect signals
+        dialog.keybinds_changed.connect(self.on_keybinds_updated)
+        dialog.macros_changed.connect(self.on_macros_updated)
+        dialog.theme_changed.connect(self.on_theme_updated)
+        dialog.overlay_appearance_changed.connect(self.on_overlay_appearance_updated)
+
+        dialog.exec()
+
+    def on_keybinds_updated(self, keybinds_dict: dict):
+        """Handle keybinds being updated"""
+        logger.info("Keybinds updated, re-registering all keybinds and callbacks")
+
+        # Clear existing keybinds and hotkeys
+        for action in list(self.keybind_manager.keybinds.keys()):
+            self.keybind_manager.unregister_keybind(action)
+
+        # Re-register all keybinds (creates HotKey objects)
+        for action, keybind_data in keybinds_dict.items():
+            try:
+                keybind = Keybind.from_dict(keybind_data)
+                self.keybind_manager.register_keybind(keybind, lambda: None, override=True)
+            except Exception as e:
+                logger.error(f"Failed to reload keybind {action}: {e}")
+
+        # Re-register callbacks with actual functions
+        self.register_keybind_callbacks()
+
+    def on_macros_updated(self, macros_dict: dict):
+        """Handle macros being updated"""
+        logger.info("Macros updated")
+        # Reload macros
+        self.macro_manager.load_from_dict(macros_dict)
+
+    def on_theme_updated(self, theme_dict: dict):
+        """Handle theme being updated"""
+        logger.info("Theme updated, applying to UI")
+        # Reload theme
+        self.theme_manager.load_from_dict(theme_dict)
+        # Apply theme
+        self.apply_theme()
+
+    def on_overlay_appearance_updated(self, appearance_dict: dict):
+        """Handle overlay appearance being updated"""
+        logger.info("Overlay appearance updated")
+        # Reload overlay appearance
+        self.theme_manager.load_from_dict(appearance_dict)
+        # Apply to overlay
+        if hasattr(self, 'overlay_window'):
+            self.apply_overlay_appearance()
+
+    def apply_theme(self):
+        """Apply current theme to the main window"""
+        try:
+            stylesheet = self.theme_manager.generate_stylesheet(for_overlay=False)
+            self.setStyleSheet(stylesheet)
+            logger.info("Theme applied to main window")
+        except Exception as e:
+            logger.error(f"Error applying theme: {e}")
+
+    def apply_overlay_appearance(self):
+        """Apply current appearance settings to the overlay window"""
+        try:
+            if hasattr(self, 'overlay_window'):
+                # Apply theme stylesheet
+                stylesheet = self.theme_manager.generate_stylesheet(for_overlay=True)
+                self.overlay_window.setStyleSheet(stylesheet)
+
+                # Apply position and size
+                overlay_app = self.theme_manager.overlay_appearance
+                screen = QApplication.primaryScreen().geometry()
+
+                x, y = overlay_app.get_position_preset_coords(screen.width(), screen.height())
+                self.overlay_window.move(x, y)
+                self.overlay_window.resize(overlay_app.width, overlay_app.height)
+                self.overlay_window.setWindowOpacity(overlay_app.opacity)
+
+                logger.info("Overlay appearance applied")
+        except Exception as e:
+            logger.error(f"Error applying overlay appearance: {e}")
 
     def handle_settings_saved(self, provider, openai_key, anthropic_key, gemini_key, overlay_opacity, session_tokens=None):
         """Handle settings being saved"""
