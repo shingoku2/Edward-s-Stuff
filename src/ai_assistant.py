@@ -18,22 +18,16 @@ class AIAssistant:
     # Maximum conversation history to keep
     MAX_CONVERSATION_MESSAGES = 20
 
-    def __init__(self, provider: str = "anthropic", api_key: Optional[str] = None,
-                 ollama_endpoint: str = "http://localhost:11434",
-                 open_webui_api_key: Optional[str] = None):
+    def __init__(self, provider: str = "anthropic", api_key: Optional[str] = None):
         """
         Initialize AI Assistant
 
         Args:
-            provider: 'openai', 'anthropic', 'gemini', or 'ollama'
-            api_key: API key for the chosen provider (not needed for ollama)
-            ollama_endpoint: Ollama endpoint URL (default: http://localhost:11434)
-            open_webui_api_key: API key for Open WebUI authentication (optional)
+            provider: 'openai', 'anthropic', or 'gemini'
+            api_key: API key for the chosen provider
         """
         self.provider = provider.lower()
         self.api_key = api_key or self._get_api_key()
-        self.ollama_endpoint = ollama_endpoint
-        self.open_webui_api_key = open_webui_api_key or os.getenv("OPEN_WEBUI_API_KEY")
         self.conversation_history = []
         self.current_game = None
         self.client = None
@@ -48,14 +42,11 @@ class AIAssistant:
             return os.getenv("ANTHROPIC_API_KEY")
         elif self.provider == "gemini":
             return os.getenv("GEMINI_API_KEY")
-        elif self.provider == "ollama":
-            return None  # Ollama doesn't need API key
         return None
 
     def _initialize_client(self):
         """Initialize the AI client"""
-        # Ollama doesn't require API key
-        if not self.api_key and self.provider != "ollama":
+        if not self.api_key:
             raise ValueError(f"No API key provided for {self.provider}")
 
         try:
@@ -72,44 +63,8 @@ class AIAssistant:
                 genai.configure(api_key=self.api_key)
                 self.client = genai.GenerativeModel('gemini-pro')
                 logger.info("Gemini client initialized")
-            elif self.provider == "ollama":
-                # Ollama uses REST API - no package needed!
-                # We'll use requests library which is commonly available
-                try:
-                    import requests
-                except ImportError:
-                    raise ImportError(
-                        "requests package not installed. Install it with:\n"
-                        "pip install requests\n\n"
-                        "Note: Ollama support uses REST API, no ollama package needed!"
-                    )
-
-                # Store endpoint for API calls
-                self.ollama_endpoint = self.ollama_endpoint.rstrip('/')
-                logger.info(f"Ollama configured for REST API (endpoint: {self.ollama_endpoint})")
-
-                # Test connection (optional, but helpful)
-                # Try both Open WebUI and native Ollama endpoints
-                try:
-                    # Try OpenAI-compatible endpoint first (Open WebUI)
-                    response = requests.get(f"{self.ollama_endpoint}/v1/models", timeout=2)
-                    if response.status_code == 200:
-                        logger.info("Open WebUI connection test successful (OpenAI-compatible API)")
-                    else:
-                        # Try native Ollama endpoint
-                        response = requests.get(f"{self.ollama_endpoint}/api/tags", timeout=2)
-                        if response.status_code == 200:
-                            logger.info("Native Ollama connection test successful")
-                        else:
-                            logger.warning(f"Ollama endpoint returned status {response.status_code}")
-                except Exception as e:
-                    logger.warning(f"Could not connect to Ollama endpoint: {e}")
-                    logger.info("Will attempt to use anyway - ensure Ollama/Open WebUI is running")
-
-                # Don't set self.client for ollama, we'll use requests directly
-                self.client = None
             else:
-                raise ValueError(f"Unknown provider: {self.provider}")
+                raise ValueError(f"Unknown provider: {self.provider}. Must be 'openai', 'anthropic', or 'gemini'")
         except ImportError as e:
             raise ImportError(f"Required library not installed: {e}")
         except Exception as e:
@@ -207,8 +162,6 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
                 response = self._ask_anthropic()
             elif self.provider == "gemini":
                 response = self._ask_gemini()
-            elif self.provider == "ollama":
-                response = self._ask_ollama()
             else:
                 response = "Error: Invalid AI provider"
 
@@ -323,179 +276,6 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
         except Exception as e:
             logger.error(f"Gemini API error: {e}", exc_info=True)
             raise Exception(f"Gemini API error: {str(e)}")
-
-    def _ask_ollama(self) -> str:
-        """Get response from Ollama (local LLM) via REST API"""
-        try:
-            import requests
-
-            # Separate system message from conversation
-            system_msg = ""
-            messages = []
-
-            for msg in self.conversation_history:
-                if msg["role"] == "system":
-                    system_msg = msg["content"]
-                else:
-                    messages.append({
-                        "role": msg["role"],
-                        "content": msg["content"]
-                    })
-
-            # Ensure we have messages
-            if not messages:
-                messages = [{
-                    "role": "user",
-                    "content": "Hello! I just started playing. What can you help me with?"
-                }]
-                logger.warning("No user messages in history, using default greeting")
-
-            # Add system message as first message if present
-            if system_msg:
-                messages = [{"role": "system", "content": system_msg}] + messages
-
-            # Prepare headers for authentication (if Open WebUI API key is provided)
-            headers = {"Content-Type": "application/json"}
-            if self.open_webui_api_key:
-                headers["Authorization"] = f"Bearer {self.open_webui_api_key}"
-                logger.debug("Using Open WebUI API key for authentication")
-            else:
-                logger.warning("No Open WebUI API key provided - requests may fail if authentication is required")
-
-            # Try Open WebUI's OpenAI-compatible API first (most common for Open WebUI)
-            # This uses the /v1/chat/completions endpoint
-            openai_api_url = f"{self.ollama_endpoint}/v1/chat/completions"
-
-            openai_payload = {
-                "model": "llama2",  # Default model, can be made configurable
-                "messages": messages,
-                "stream": False,
-                "temperature": 0.7,
-                "max_tokens": 1000,
-            }
-
-            logger.debug(f"Trying OpenAI-compatible API at {openai_api_url}")
-            try:
-                response = requests.post(openai_api_url, json=openai_payload, headers=headers, timeout=30)
-
-                if response.status_code == 200:
-                    result = response.json()
-                    return result['choices'][0]['message']['content']
-                elif response.status_code in [404, 405]:
-                    # OpenAI-compatible endpoint not found or method not allowed
-                    # Try native Ollama API instead
-                    logger.info(f"OpenAI-compatible endpoint returned {response.status_code}, trying native Ollama API")
-                else:
-                    response.raise_for_status()
-            except requests.exceptions.HTTPError as e:
-                if e.response.status_code in [404, 405]:
-                    # Endpoint structure doesn't match OpenAI format, try native Ollama
-                    logger.info(f"OpenAI-compatible endpoint returned {e.response.status_code}, trying native Ollama API")
-                else:
-                    raise
-
-            # Fall back to native Ollama API
-            # This uses the /api/chat endpoint
-            native_api_url = f"{self.ollama_endpoint}/api/chat"
-
-            native_payload = {
-                "model": "llama2",  # Default model, can be made configurable
-                "messages": messages,
-                "stream": False,
-                "options": {
-                    "temperature": 0.7,
-                    "num_predict": 1000,
-                }
-            }
-
-            logger.debug(f"Calling native Ollama API at {native_api_url}")
-            try:
-                response = requests.post(native_api_url, json=native_payload, headers=headers, timeout=30)
-
-                if response.status_code == 200:
-                    result = response.json()
-                    return result['message']['content']
-                elif response.status_code in [404, 405]:
-                    # /api/chat not found or method not allowed, try older /api/generate endpoint
-                    logger.info(f"Native /api/chat endpoint returned {response.status_code}, trying /api/generate")
-                else:
-                    response.raise_for_status()
-            except requests.exceptions.HTTPError as e:
-                if e.response.status_code in [404, 405]:
-                    logger.info(f"Native /api/chat endpoint returned {e.response.status_code}, trying /api/generate")
-                else:
-                    raise
-
-            # Last resort: try /api/generate (older Ollama endpoint)
-            generate_api_url = f"{self.ollama_endpoint}/api/generate"
-
-            # Convert messages to a single prompt for /api/generate
-            prompt_parts = []
-            for msg in messages:
-                role = msg.get("role", "user")
-                content = msg.get("content", "")
-                if role == "system":
-                    prompt_parts.append(f"System: {content}")
-                elif role == "user":
-                    prompt_parts.append(f"User: {content}")
-                elif role == "assistant":
-                    prompt_parts.append(f"Assistant: {content}")
-
-            prompt = "\n\n".join(prompt_parts) + "\n\nAssistant:"
-
-            generate_payload = {
-                "model": "llama2",
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "temperature": 0.7,
-                    "num_predict": 1000,
-                }
-            }
-
-            logger.debug(f"Calling Ollama /api/generate at {generate_api_url}")
-            response = requests.post(generate_api_url, json=generate_payload, headers=headers, timeout=30)
-            response.raise_for_status()
-
-            result = response.json()
-            return result['response']
-
-        except requests.exceptions.ConnectionError as e:
-            logger.error(f"Cannot connect to Ollama: {e}")
-            raise Exception(
-                f"Cannot connect to Ollama at {self.ollama_endpoint}\n\n"
-                "Troubleshooting:\n"
-                "• WSL: Run 'ollama serve' in WSL terminal\n"
-                "• Open WebUI: Ensure it's running (default: http://localhost:8080)\n"
-                "• Native Ollama: Check endpoint in settings (default: http://localhost:11434)\n"
-                "• WSL2 users: Should auto-forward to localhost\n"
-                "• Update endpoint in Settings to match your setup"
-            )
-        except requests.exceptions.Timeout as e:
-            logger.error(f"Ollama request timeout: {e}")
-            raise Exception("Ollama request timed out. The model may be loading or the server is slow.")
-        except requests.exceptions.HTTPError as e:
-            # Check if it's a 405 error (likely authentication issue with Open WebUI)
-            if e.response.status_code == 405:
-                logger.error(f"405 Method Not Allowed - likely authentication required")
-                if not self.open_webui_api_key:
-                    raise Exception(
-                        "Open WebUI requires authentication!\n\n"
-                        "To fix this:\n"
-                        "1. Open your Open WebUI in browser (Settings > click 'Open Open WebUI')\n"
-                        "2. Log in to your account\n"
-                        "3. Go to Settings > Account\n"
-                        "4. Copy your API key\n"
-                        "5. Paste it into the 'Open WebUI API Key' field in Settings\n"
-                        "6. Save settings and try again"
-                    )
-                else:
-                    raise Exception(f"Authentication failed with Open WebUI (405 error). Your API key may be invalid or expired.")
-            else:
-                raise Exception(f"Ollama API error: {str(e)}")
-        except Exception as e:
-            logger.error(f"Ollama API error: {e}", exc_info=True)
-            raise Exception(f"Ollama API error: {str(e)}")
 
     def get_game_overview(self, game_name: str) -> str:
         """Get a general overview of the game"""

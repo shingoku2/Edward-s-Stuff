@@ -53,13 +53,6 @@ class Config:
         self.openai_api_key = os.getenv('OPENAI_API_KEY')
         self.anthropic_api_key = os.getenv('ANTHROPIC_API_KEY')
         self.gemini_api_key = os.getenv('GEMINI_API_KEY')
-        self.ollama_endpoint = os.getenv('OLLAMA_ENDPOINT', 'http://localhost:11434')
-        self.open_webui_api_key = os.getenv('OPEN_WEBUI_API_KEY')  # API key for Open WebUI authentication
-
-        # Debug logging for Open WebUI API key
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.info(f"Config loaded - Open WebUI API key present: {bool(self.open_webui_api_key)}, length: {len(self.open_webui_api_key) if self.open_webui_api_key else 0}")
 
         # Application Settings
         self.overlay_hotkey = os.getenv('OVERLAY_HOTKEY', 'ctrl+shift+g')
@@ -81,26 +74,20 @@ class Config:
         if self.ai_provider == 'gemini' and not self.gemini_api_key:
             raise ValueError("Gemini API key not found. Please set GEMINI_API_KEY in .env")
 
-        # Ollama doesn't require an API key, but validate endpoint format
-        if self.ai_provider == 'ollama':
-            if not self.ollama_endpoint.startswith('http'):
-                raise ValueError("Ollama endpoint must be a valid HTTP/HTTPS URL")
-
-        if self.ai_provider not in ['openai', 'anthropic', 'gemini', 'ollama']:
-            raise ValueError(f"Invalid AI provider: {self.ai_provider}. Must be 'openai', 'anthropic', 'gemini', or 'ollama'")
+        if self.ai_provider not in ['openai', 'anthropic', 'gemini']:
+            raise ValueError(f"Invalid AI provider: {self.ai_provider}. Must be 'openai', 'anthropic', or 'gemini'")
 
     def is_configured(self) -> bool:
         """
         Check if configuration has valid API keys
 
         Returns:
-            True if at least one API key is configured or ollama is selected, False otherwise
+            True if at least one API key is configured, False otherwise
         """
         return bool(
             self.openai_api_key or
             self.anthropic_api_key or
-            self.gemini_api_key or
-            self.ai_provider == 'ollama'  # Ollama doesn't need API key
+            self.gemini_api_key
         )
 
     def has_provider_key(self) -> bool:
@@ -108,7 +95,7 @@ class Config:
         Check if the selected provider has a valid API key
 
         Returns:
-            True if current provider has an API key (or is ollama), False otherwise
+            True if current provider has an API key, False otherwise
         """
         if self.ai_provider == 'openai':
             return bool(self.openai_api_key)
@@ -116,8 +103,6 @@ class Config:
             return bool(self.anthropic_api_key)
         elif self.ai_provider == 'gemini':
             return bool(self.gemini_api_key)
-        elif self.ai_provider == 'ollama':
-            return True  # Ollama doesn't require API key
         return False
 
     def get_api_key(self) -> str:
@@ -128,25 +113,19 @@ class Config:
             return self.anthropic_api_key
         elif self.ai_provider == 'gemini':
             return self.gemini_api_key
-        elif self.ai_provider == 'ollama':
-            return None  # Ollama doesn't use API key
         return None
 
     @staticmethod
     def save_to_env(provider: str, openai_key: str, anthropic_key: str, gemini_key: str = '',
-                    ollama_endpoint: str = 'http://localhost:11434',
-                    open_webui_api_key: str = '',
                     overlay_hotkey: str = 'ctrl+shift+g', check_interval: int = 5):
         """
         Save configuration to .env file
 
         Args:
-            provider: AI provider ('openai', 'anthropic', 'gemini', or 'ollama')
+            provider: AI provider ('openai', 'anthropic', or 'gemini')
             openai_key: OpenAI API key
             anthropic_key: Anthropic API key
             gemini_key: Gemini API key (optional)
-            ollama_endpoint: Ollama endpoint URL (default: 'http://localhost:11434')
-            open_webui_api_key: Open WebUI API key for authentication (optional)
             overlay_hotkey: Hotkey for overlay (default: 'ctrl+shift+g')
             check_interval: Game check interval in seconds (default: 5)
         """
@@ -180,15 +159,8 @@ class Config:
         existing_content['OPENAI_API_KEY'] = openai_key
         existing_content['ANTHROPIC_API_KEY'] = anthropic_key
         existing_content['GEMINI_API_KEY'] = gemini_key
-        existing_content['OLLAMA_ENDPOINT'] = ollama_endpoint
-        existing_content['OPEN_WEBUI_API_KEY'] = open_webui_api_key
         existing_content['OVERLAY_HOTKEY'] = overlay_hotkey
         existing_content['CHECK_INTERVAL'] = str(check_interval)
-
-        # Debug logging
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.info(f"Config.save_to_env - Open WebUI API key present: {bool(open_webui_api_key)}, length: {len(open_webui_api_key) if open_webui_api_key else 0}")
 
         # Write to .env file
         with open(env_path, 'w', encoding='utf-8') as f:
@@ -202,10 +174,6 @@ class Config:
             f.write(f"OPENAI_API_KEY={existing_content['OPENAI_API_KEY']}\n")
             f.write(f"ANTHROPIC_API_KEY={existing_content['ANTHROPIC_API_KEY']}\n")
             f.write(f"GEMINI_API_KEY={existing_content['GEMINI_API_KEY']}\n\n")
-
-            f.write("# Ollama Settings\n")
-            f.write(f"OLLAMA_ENDPOINT={existing_content['OLLAMA_ENDPOINT']}\n")
-            f.write(f"OPEN_WEBUI_API_KEY={existing_content['OPEN_WEBUI_API_KEY']}\n\n")
 
             f.write("# Application Settings\n")
             f.write(f"OVERLAY_HOTKEY={existing_content['OVERLAY_HOTKEY']}\n")
