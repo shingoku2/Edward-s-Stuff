@@ -73,7 +73,19 @@ class GameDetectionThread(QThread):
             while self.running:
                 game = self.game_detector.detect_running_game()
 
-                if game and game != self.current_game:
+                # Check if this is a new game by comparing name and process (ignore timestamp)
+                is_new_game = False
+                if game and self.current_game:
+                    # Compare only name and process, not the entire dict (which includes timestamp)
+                    is_new_game = (
+                        game.get('name') != self.current_game.get('name') or
+                        game.get('process') != self.current_game.get('process')
+                    )
+                elif game and not self.current_game:
+                    # First game detection
+                    is_new_game = True
+
+                if is_new_game:
                     self.current_game = game
                     self.game_detected.emit(game)
                     logger.info(f"Game detected: {game.get('name')}")
