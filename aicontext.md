@@ -702,6 +702,16 @@ INFO - Native /api/chat endpoint returned 405, trying /api/generate
 
 ---
 
+## Session: Secure Credential Storage Integration
+- Implemented `src/credential_store.py` with encrypted Fernet-backed storage leveraging the system keyring and secure file permissions for fallback storage.
+- Updated `src/config.py` to load API keys from the credential store, blank sensitive values when persisting `.env`, and refreshed validation messaging.
+- Modified `src/gui.py` to persist credentials via the secure store, reuse the saved provider configuration, and handle credential errors gracefully in the Settings workflow.
+- Added new dependencies (`cryptography`, `keyring`) to `requirements.txt`.
+- Test: `python -m py_compile src/*.py` (pass).
+- Issues Encountered: None beyond ensuring duplicate module docstrings were removed during implementation.
+
+---
+
 ## Session: Persist Open WebUI API Key (2025-11-12) [DEPRECATED]
 
 **Note: This feature was later removed - see "Complete Ollama/Open WebUI Removal" session below**

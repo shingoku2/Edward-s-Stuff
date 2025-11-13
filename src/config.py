@@ -3,11 +3,17 @@ Configuration Module
 Handles application configuration and settings
 """
 
+import logging
 import os
 import sys
 from pathlib import Path
 from typing import Optional
+
 from dotenv import load_dotenv
+
+from credential_store import CredentialDecryptionError, CredentialStore, CredentialStoreError
+
+logger = logging.getLogger(__name__)
 
 
 class Config:
@@ -42,17 +48,18 @@ class Config:
             for env_path in possible_paths:
                 if env_path.exists():
                     load_dotenv(env_path, override=True)  # Override existing env vars
-                    # Log which file was loaded
-                    import logging
-                    logger = logging.getLogger(__name__)
-                    logger.info(f"Loaded .env from: {env_path}")
+                    logger.info("Loaded .env from: %s", env_path)
                     break
+
+        # Secure credential storage
+        self.credential_store = CredentialStore()
+        credentials = self._load_secure_credentials()
 
         # AI Configuration
         self.ai_provider = os.getenv('AI_PROVIDER', 'anthropic').lower()
-        self.openai_api_key = os.getenv('OPENAI_API_KEY')
-        self.anthropic_api_key = os.getenv('ANTHROPIC_API_KEY')
-        self.gemini_api_key = os.getenv('GEMINI_API_KEY')
+        self.openai_api_key = credentials.get('OPENAI_API_KEY') or os.getenv('OPENAI_API_KEY')
+        self.anthropic_api_key = credentials.get('ANTHROPIC_API_KEY') or os.getenv('ANTHROPIC_API_KEY')
+        self.gemini_api_key = credentials.get('GEMINI_API_KEY') or os.getenv('GEMINI_API_KEY')
 
         # Application Settings
         self.overlay_hotkey = os.getenv('OVERLAY_HOTKEY', 'ctrl+shift+g')
@@ -73,16 +80,27 @@ class Config:
         """Validate configuration - raises ValueError if invalid"""
         # Check if we have the required API key for the provider
         if self.ai_provider == 'openai' and not self.openai_api_key:
-            raise ValueError("OpenAI API key not found. Please set OPENAI_API_KEY in .env")
+            raise ValueError("OpenAI API key not found. Please add it via the Settings dialog.")
 
         if self.ai_provider == 'anthropic' and not self.anthropic_api_key:
-            raise ValueError("Anthropic API key not found. Please set ANTHROPIC_API_KEY in .env")
+            raise ValueError("Anthropic API key not found. Please add it via the Settings dialog.")
 
         if self.ai_provider == 'gemini' and not self.gemini_api_key:
-            raise ValueError("Gemini API key not found. Please set GEMINI_API_KEY in .env")
+            raise ValueError("Gemini API key not found. Please add it via the Settings dialog.")
 
         if self.ai_provider not in ['openai', 'anthropic', 'gemini']:
             raise ValueError(f"Invalid AI provider: {self.ai_provider}. Must be 'openai', 'anthropic', or 'gemini'")
+
+    def _load_secure_credentials(self) -> dict:
+        """Load credentials from the encrypted store with graceful fallbacks."""
+        try:
+            return self.credential_store.load_credentials()
+        except CredentialDecryptionError as exc:
+            logger.error("Failed to decrypt stored credentials: %s", exc)
+            return {}
+        except CredentialStoreError as exc:
+            logger.warning("Unable to load credentials from secure store: %s", exc)
+            return {}
 
     def is_configured(self) -> bool:
         """
@@ -123,7 +141,7 @@ class Config:
         return None
 
     @staticmethod
-    def save_to_env(provider: str, openai_key: str, anthropic_key: str, gemini_key: str = '',
+    def save_to_env(provider: str,
                     overlay_hotkey: str = 'ctrl+shift+g', check_interval: int = 5,
                     overlay_x: int = None, overlay_y: int = None,
                     overlay_width: int = None, overlay_height: int = None,
@@ -133,9 +151,6 @@ class Config:
 
         Args:
             provider: AI provider ('openai', 'anthropic', or 'gemini')
-            openai_key: OpenAI API key
-            anthropic_key: Anthropic API key
-            gemini_key: Gemini API key (optional)
             overlay_hotkey: Hotkey for overlay (default: 'ctrl+shift+g')
             check_interval: Game check interval in seconds (default: 5)
             overlay_x: Overlay window X position (optional)
@@ -171,9 +186,9 @@ class Config:
 
         # Update with new values
         existing_content['AI_PROVIDER'] = provider
-        existing_content['OPENAI_API_KEY'] = openai_key
-        existing_content['ANTHROPIC_API_KEY'] = anthropic_key
-        existing_content['GEMINI_API_KEY'] = gemini_key
+        existing_content['OPENAI_API_KEY'] = ''
+        existing_content['ANTHROPIC_API_KEY'] = ''
+        existing_content['GEMINI_API_KEY'] = ''
         existing_content['OVERLAY_HOTKEY'] = overlay_hotkey
         existing_content['CHECK_INTERVAL'] = str(check_interval)
 
@@ -197,10 +212,10 @@ class Config:
             f.write("# AI Provider Selection\n")
             f.write(f"AI_PROVIDER={existing_content['AI_PROVIDER']}\n\n")
 
-            f.write("# API Keys\n")
-            f.write(f"OPENAI_API_KEY={existing_content['OPENAI_API_KEY']}\n")
-            f.write(f"ANTHROPIC_API_KEY={existing_content['ANTHROPIC_API_KEY']}\n")
-            f.write(f"GEMINI_API_KEY={existing_content['GEMINI_API_KEY']}\n\n")
+            f.write("# API Keys are stored securely using the encrypted credential store\n")
+            f.write("OPENAI_API_KEY=\n")
+            f.write("ANTHROPIC_API_KEY=\n")
+            f.write("GEMINI_API_KEY=\n\n")
 
             f.write("# Application Settings\n")
             f.write(f"OVERLAY_HOTKEY={existing_content['OVERLAY_HOTKEY']}\n")
@@ -232,6 +247,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Configuration error: {e}")
         print("\nPlease:")
-        print("1. Copy .env.example to .env")
-        print("2. Add your API key to .env")
-        print("3. Set AI_PROVIDER to 'openai' or 'anthropic'")
+        print("1. Launch the Gaming AI Assistant application.")
+        print("2. Open the ⚙️ Settings dialog and enter your API key(s).")
+        print("3. Choose your preferred AI provider from the Settings dialog.")

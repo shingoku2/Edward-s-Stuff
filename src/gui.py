@@ -17,6 +17,9 @@ from typing import Optional, Dict
 import os
 import webbrowser
 
+from credential_store import CredentialStore, CredentialStoreError
+from config import Config
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -1155,11 +1158,15 @@ class MainWindow(QMainWindow):
         logger.info("Handling settings save...")
 
         try:
-            # Import config module to call save function
-            from config import Config
+            store = getattr(self.config, 'credential_store', None) or CredentialStore()
+            store.save_credentials({
+                'OPENAI_API_KEY': openai_key,
+                'ANTHROPIC_API_KEY': anthropic_key,
+                'GEMINI_API_KEY': gemini_key,
+            })
 
             # Save settings to .env file
-            Config.save_to_env(provider, openai_key, anthropic_key, gemini_key)
+            Config.save_to_env(provider)
 
             # Reload configuration
             self.config = Config()
@@ -1189,6 +1196,9 @@ class MainWindow(QMainWindow):
 
             logger.info(f"Settings applied successfully: provider={provider}")
 
+        except CredentialStoreError as e:
+            logger.error("Credential store error: %s", e, exc_info=True)
+            QMessageBox.critical(self, "Credential Error", f"Failed to store credentials securely: {str(e)}")
         except Exception as e:
             logger.error(f"Error applying settings: {e}", exc_info=True)
             self.chat_widget.add_message(
@@ -1373,9 +1383,6 @@ class MainWindow(QMainWindow):
         geometry = self.geometry()
         Config.save_to_env(
             provider=self.config.ai_provider,
-            openai_key=self.config.openai_api_key or '',
-            anthropic_key=self.config.anthropic_api_key or '',
-            gemini_key=self.config.gemini_api_key or '',
             overlay_hotkey=self.config.overlay_hotkey,
             check_interval=self.config.check_interval,
             overlay_x=geometry.x(),
