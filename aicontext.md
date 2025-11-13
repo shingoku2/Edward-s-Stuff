@@ -655,3 +655,14 @@ INFO - Native /api/chat endpoint returned 405, trying /api/generate
 *Last Updated: 2025-11-11*
 *Session: Open WebUI Integration & Authentication*
 *Status: All tests passing ✅*
+
+---
+
+## Session Log (2025-??-??)
+
+- Resolved merge of branch `nomain` into `main`, keeping the removal of Ollama and Open WebUI features while ensuring OpenAI, Anthropic, and Gemini providers remain functional across `main.py`, `src/ai_assistant.py`, `src/config.py`, `src/gui.py`, and `.env.example`.
+- Removed obsolete Open WebUI/Ollama-focused test suites (`test_ai_assistant.py`, `test_config_module.py`, `test_gui_components.py`) to match the streamlined provider support.
+- Tests run:
+  - `python -m compileall src main.py` ✅
+
+*Status: Merge conflicts resolved, compile check passing ✅*
