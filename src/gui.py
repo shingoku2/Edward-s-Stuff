@@ -800,6 +800,32 @@ class SettingsDialog(QDialog):
         self.provider_sessions[provider] = payload
         self._update_session_status(provider)
 
+        # Show informational message about next steps
+        api_key_urls = {
+            'openai': 'https://platform.openai.com/api-keys',
+            'anthropic': 'https://console.anthropic.com/settings/keys',
+            'gemini': 'https://aistudio.google.com/app/apikey'
+        }
+
+        QMessageBox.information(
+            self,
+            "Login Successful!",
+            f"✓ Successfully logged into {provider.title()}!\n\n"
+            f"Next step: Get your API key\n"
+            f"The API key page will open in your browser now.\n\n"
+            f"Please:\n"
+            f"1. Copy your API key from the page that opens\n"
+            f"2. Paste it in the '{provider.title()} API Key' field below\n"
+            f"3. Click 'Save Settings'\n\n"
+            f"Note: The AI SDKs require API keys for authentication.\n"
+            f"Your login session helps you access your API keys easily!"
+        )
+
+        # Open API keys page in browser
+        if provider in api_key_urls:
+            import webbrowser
+            webbrowser.open(api_key_urls[provider])
+
     def save_settings(self):
         """Save settings and emit signal"""
         # Get selected provider
@@ -835,38 +861,78 @@ class SettingsDialog(QDialog):
             return
 
         # Validate that the selected provider has credentials
-        if provider == "anthropic" and not has_anthropic_creds:
-            QMessageBox.warning(
-                self,
-                "Missing Anthropic Credentials",
-                "You selected Anthropic but didn't provide an API key or log in.\n\n"
-                "Please either:\n"
-                "• Enter your Anthropic API key, or\n"
-                "• Click 'Login to Anthropic' to authenticate via your browser"
-            )
-            return
+        # Prefer API keys, but allow session-only with a warning
+        if provider == "anthropic":
+            if not anthropic_key and not self.provider_sessions.get('anthropic'):
+                QMessageBox.warning(
+                    self,
+                    "Missing Anthropic Credentials",
+                    "You selected Anthropic but didn't provide an API key.\n\n"
+                    "Please enter your Anthropic API key.\n\n"
+                    "Tip: Click 'Login to Anthropic' to access your API keys page."
+                )
+                return
+            elif not anthropic_key:
+                # Has session but no API key - allow but warn
+                reply = QMessageBox.question(
+                    self,
+                    "API Key Recommended",
+                    "You're logged into Anthropic but haven't entered an API key.\n\n"
+                    "The AI SDK requires an API key to function.\n\n"
+                    "Do you want to continue anyway?\n"
+                    "(You can add the API key later)",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+                )
+                if reply == QMessageBox.StandardButton.No:
+                    return
 
-        if provider == "openai" and not has_openai_creds:
-            QMessageBox.warning(
-                self,
-                "Missing OpenAI Credentials",
-                "You selected OpenAI but didn't provide an API key or log in.\n\n"
-                "Please either:\n"
-                "• Enter your OpenAI API key, or\n"
-                "• Click 'Login to OpenAI' to authenticate via your browser"
-            )
-            return
+        if provider == "openai":
+            if not openai_key and not self.provider_sessions.get('openai'):
+                QMessageBox.warning(
+                    self,
+                    "Missing OpenAI Credentials",
+                    "You selected OpenAI but didn't provide an API key.\n\n"
+                    "Please enter your OpenAI API key.\n\n"
+                    "Tip: Click 'Login to OpenAI' to access your API keys page."
+                )
+                return
+            elif not openai_key:
+                # Has session but no API key - allow but warn
+                reply = QMessageBox.question(
+                    self,
+                    "API Key Recommended",
+                    "You're logged into OpenAI but haven't entered an API key.\n\n"
+                    "The AI SDK requires an API key to function.\n\n"
+                    "Do you want to continue anyway?\n"
+                    "(You can add the API key later)",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+                )
+                if reply == QMessageBox.StandardButton.No:
+                    return
 
-        if provider == "gemini" and not has_gemini_creds:
-            QMessageBox.warning(
-                self,
-                "Missing Gemini Credentials",
-                "You selected Gemini but didn't provide an API key or log in.\n\n"
-                "Please either:\n"
-                "• Enter your Gemini API key, or\n"
-                "• Click 'Login to Gemini' to authenticate via your browser"
-            )
-            return
+        if provider == "gemini":
+            if not gemini_key and not self.provider_sessions.get('gemini'):
+                QMessageBox.warning(
+                    self,
+                    "Missing Gemini Credentials",
+                    "You selected Gemini but didn't provide an API key.\n\n"
+                    "Please enter your Gemini API key.\n\n"
+                    "Tip: Click 'Login to Gemini' to access your API keys page."
+                )
+                return
+            elif not gemini_key:
+                # Has session but no API key - allow but warn
+                reply = QMessageBox.question(
+                    self,
+                    "API Key Recommended",
+                    "You're logged into Gemini but haven't entered an API key.\n\n"
+                    "The AI SDK requires an API key to function.\n\n"
+                    "Do you want to continue anyway?\n"
+                    "(You can add the API key later)",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+                )
+                if reply == QMessageBox.StandardButton.No:
+                    return
 
         # Emit signal with settings (including session tokens)
         self.settings_saved.emit(provider, openai_key, anthropic_key, gemini_key, overlay_opacity, self.provider_sessions)

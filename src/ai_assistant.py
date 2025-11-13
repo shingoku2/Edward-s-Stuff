@@ -65,6 +65,20 @@ class AIAssistant:
                 if value:
                     return value, "session"
 
+            # Handle cookie list from LoginDialog
+            cookies_list = self.session_tokens.get("cookies")
+            if cookies_list and isinstance(cookies_list, list):
+                # Convert list of cookie dicts to Cookie header string
+                cookie_pairs = []
+                for cookie_dict in cookies_list:
+                    if isinstance(cookie_dict, dict) and "name" in cookie_dict and "value" in cookie_dict:
+                        cookie_pairs.append(f"{cookie_dict['name']}={cookie_dict['value']}")
+                if cookie_pairs:
+                    cookie_header = "; ".join(cookie_pairs)
+                    logger.debug("Converted %d cookies to header string", len(cookie_pairs))
+                    return cookie_header, "session"
+
+            # Handle single cookie string (legacy format)
             cookie = self.session_tokens.get("cookie")
             if cookie:
                 return cookie, "session"
