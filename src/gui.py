@@ -676,13 +676,35 @@ class MainWindow(QMainWindow):
         # Track if this is first show (for auto-opening settings)
         self.first_show = True
 
+        # Track dragging state
+        self.dragging = False
+        self.drag_position = None
+
+        # Track resize state
+        self.resizing = False
+        self.resize_direction = None
+
+        # Track minimized state
+        self.is_minimized = config.overlay_minimized
+        self.normal_height = config.overlay_height
+
         self.init_ui()
         self.start_game_detection()
 
     def init_ui(self):
         """Initialize the main window UI components and styling"""
         self.setWindowTitle("Gaming AI Assistant")
-        self.setGeometry(100, 100, 900, 700)
+
+        # Set window position and size from config
+        self.setGeometry(
+            self.config.overlay_x,
+            self.config.overlay_y,
+            self.config.overlay_width,
+            self.config.overlay_height
+        )
+
+        # Enable mouse tracking for resize grips
+        self.setMouseTracking(True)
 
         # Apply dark theme styling
         self.setStyleSheet("""
@@ -800,8 +822,13 @@ class MainWindow(QMainWindow):
             }
         """)
 
-        layout = QVBoxLayout()
+        main_layout = QVBoxLayout()
 
+        # Top row with title and window controls
+        top_row = QHBoxLayout()
+
+        # Title section
+        title_layout = QVBoxLayout()
         title = QLabel("🎮 Gaming AI Assistant")
         title.setStyleSheet("""
             QLabel {
@@ -810,7 +837,7 @@ class MainWindow(QMainWindow):
                 font-weight: bold;
             }
         """)
-        layout.addWidget(title)
+        title_layout.addWidget(title)
 
         subtitle = QLabel("Your real-time gaming companion powered by AI")
         subtitle.setStyleSheet("""
@@ -819,9 +846,45 @@ class MainWindow(QMainWindow):
                 font-size: 11pt;
             }
         """)
-        layout.addWidget(subtitle)
+        title_layout.addWidget(subtitle)
 
-        header.setLayout(layout)
+        top_row.addLayout(title_layout)
+        top_row.addStretch()
+
+        # Window control buttons
+        controls_layout = QHBoxLayout()
+
+        self.minimize_button = QPushButton("−")
+        self.minimize_button.setToolTip("Minimize/Restore")
+        self.minimize_button.clicked.connect(self.toggle_minimize)
+        self.minimize_button.setStyleSheet("""
+            QPushButton {
+                background-color: #374151;
+                color: #ffffff;
+                border: none;
+                border-radius: 3px;
+                padding: 5px 10px;
+                font-size: 16pt;
+                font-weight: bold;
+                min-width: 30px;
+                max-width: 30px;
+                min-height: 30px;
+                max-height: 30px;
+            }
+            QPushButton:hover {
+                background-color: #4b5563;
+            }
+            QPushButton:pressed {
+                background-color: #1f2937;
+            }
+        """)
+        controls_layout.addWidget(self.minimize_button)
+
+        top_row.addLayout(controls_layout)
+
+        main_layout.addLayout(top_row)
+
+        header.setLayout(main_layout)
         return header
 
     def create_system_tray(self):
@@ -1210,6 +1273,133 @@ class MainWindow(QMainWindow):
                 from PyQt6.QtCore import QTimer
                 QTimer.singleShot(500, self.open_settings)
 
+    def mousePressEvent(self, event):
+        """Handle mouse press for dragging and resizing"""
+        if event.button() == Qt.MouseButton.LeftButton:
+            # Check if clicking near edges for resize
+            pos = event.pos()
+            rect = self.rect()
+            edge_margin = 10
+
+            # Determine resize direction
+            on_left = pos.x() < edge_margin
+            on_right = pos.x() > rect.width() - edge_margin
+            on_top = pos.y() < edge_margin
+            on_bottom = pos.y() > rect.height() - edge_margin
+
+            if on_left or on_right or on_top or on_bottom:
+                self.resizing = True
+                self.resize_direction = {
+                    'left': on_left,
+                    'right': on_right,
+                    'top': on_top,
+                    'bottom': on_bottom
+                }
+                self.drag_position = event.globalPosition().toPoint()
+            else:
+                # Start dragging
+                self.dragging = True
+                self.drag_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        """Handle mouse move for dragging and resizing"""
+        if event.buttons() == Qt.MouseButton.LeftButton:
+            if self.dragging and self.drag_position is not None:
+                # Move window
+                self.move(event.globalPosition().toPoint() - self.drag_position)
+
+            elif self.resizing and self.resize_direction is not None:
+                # Resize window
+                delta = event.globalPosition().toPoint() - self.drag_position
+                self.drag_position = event.globalPosition().toPoint()
+
+                geometry = self.geometry()
+
+                if self.resize_direction['left']:
+                    geometry.setLeft(geometry.left() + delta.x())
+                if self.resize_direction['right']:
+                    geometry.setRight(geometry.right() + delta.x())
+                if self.resize_direction['top']:
+                    geometry.setTop(geometry.top() + delta.y())
+                if self.resize_direction['bottom']:
+                    geometry.setBottom(geometry.bottom() + delta.y())
+
+                # Enforce minimum size
+                if geometry.width() >= 400 and geometry.height() >= 300:
+                    self.setGeometry(geometry)
+
+        else:
+            # Update cursor based on position
+            pos = event.pos()
+            rect = self.rect()
+            edge_margin = 10
+
+            on_left = pos.x() < edge_margin
+            on_right = pos.x() > rect.width() - edge_margin
+            on_top = pos.y() < edge_margin
+            on_bottom = pos.y() > rect.height() - edge_margin
+
+            if (on_left and on_top) or (on_right and on_bottom):
+                self.setCursor(Qt.CursorShape.SizeFDiagCursor)
+            elif (on_right and on_top) or (on_left and on_bottom):
+                self.setCursor(Qt.CursorShape.SizeBDiagCursor)
+            elif on_left or on_right:
+                self.setCursor(Qt.CursorShape.SizeHorCursor)
+            elif on_top or on_bottom:
+                self.setCursor(Qt.CursorShape.SizeVerCursor)
+            else:
+                self.setCursor(Qt.CursorShape.ArrowCursor)
+
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        """Handle mouse release and save window position/size"""
+        if event.button() == Qt.MouseButton.LeftButton:
+            if self.dragging or self.resizing:
+                # Save window position and size to config
+                self.save_window_state()
+
+            self.dragging = False
+            self.resizing = False
+            self.resize_direction = None
+            self.drag_position = None
+
+        super().mouseReleaseEvent(event)
+
+    def save_window_state(self):
+        """Save current window position and size to .env file"""
+        geometry = self.geometry()
+        Config.save_to_env(
+            provider=self.config.ai_provider,
+            openai_key=self.config.openai_api_key or '',
+            anthropic_key=self.config.anthropic_api_key or '',
+            gemini_key=self.config.gemini_api_key or '',
+            overlay_hotkey=self.config.overlay_hotkey,
+            check_interval=self.config.check_interval,
+            overlay_x=geometry.x(),
+            overlay_y=geometry.y(),
+            overlay_width=geometry.width(),
+            overlay_height=geometry.height(),
+            overlay_minimized=self.is_minimized
+        )
+        logger.info(f"Saved window state: pos=({geometry.x()}, {geometry.y()}), size=({geometry.width()}x{geometry.height()})")
+
+    def toggle_minimize(self):
+        """Toggle window minimized state"""
+        if self.is_minimized:
+            # Restore
+            self.resize(self.width(), self.normal_height)
+            self.is_minimized = False
+        else:
+            # Minimize
+            self.normal_height = self.height()
+            self.resize(self.width(), 50)  # Minimize to title bar height
+            self.is_minimized = True
+
+        self.save_window_state()
+
     def closeEvent(self, event):
         """
         Handle window close event by minimizing to system tray instead of quitting
@@ -1217,6 +1407,9 @@ class MainWindow(QMainWindow):
         Args:
             event: QCloseEvent to be handled
         """
+        # Save window state before closing
+        self.save_window_state()
+
         event.ignore()
         self.hide()
         self.tray_icon.showMessage(

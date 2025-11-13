@@ -8,11 +8,14 @@ An intelligent, real-time gaming companion that automatically detects what game 
 ## ✨ Features
 
 - **🎯 Automatic Game Detection** - Detects running games by monitoring processes
-- **🤖 AI-Powered Assistant** - Uses Claude or GPT to answer gaming questions in real-time
+- **🤖 AI-Powered Assistant** - Uses Claude, GPT, or Gemini to answer gaming questions in real-time
 - **🔍 Web Information Retrieval** - Scrapes gaming wikis, forums, and guides automatically
 - **💬 Real-Time Q&A** - Ask questions about the game and get instant answers
 - **🎨 Modern GUI** - Clean, dark-themed interface with system tray support
 - **⌨️ Hotkey Support** - Quick access with Ctrl+Shift+G
+- **📐 Movable & Resizable Overlay** - Drag to move, resize from edges, remembers position
+- **🪟 Minimize/Restore** - Collapse overlay to title bar, one-click restore
+- **💾 Auto-Save Layout** - Window position and size saved automatically
 - **📚 Game Knowledge Base** - Supports 50+ popular games out of the box
 - **🌐 Multi-Source Intelligence** - Combines AI with wiki data and community resources
 
@@ -95,6 +98,13 @@ The assistant automatically:
 - **Enter** - Send message
 - **Escape** - Clear input field
 
+### Overlay Controls
+
+- **Drag Title Bar** - Move the window anywhere on screen
+- **Drag Edges** - Resize window from any edge or corner
+- **Minimize Button (−)** - Collapse window to title bar only
+- **Auto-Save** - Window position and size automatically saved to config
+
 ## 🎮 Supported Games
 
 The assistant has built-in support for 50+ popular games including:
@@ -160,6 +170,13 @@ GEMINI_API_KEY=your_key
 # Application Settings
 OVERLAY_HOTKEY=ctrl+shift+g    # Hotkey to toggle window
 CHECK_INTERVAL=5               # Game detection interval (seconds)
+
+# Overlay Window Settings (auto-saved when you move/resize)
+OVERLAY_X=100                  # Window X position
+OVERLAY_Y=100                  # Window Y position
+OVERLAY_WIDTH=900              # Window width
+OVERLAY_HEIGHT=700             # Window height
+OVERLAY_MINIMIZED=false        # Minimized state
 ```
 
 ## 🔧 Advanced Features
@@ -261,6 +278,12 @@ For issues, questions, or suggestions:
 - Contribute improvements via pull requests
 
 ## 📝 Recent Updates
+
+### Version 1.2 (2025-11-13)
+- ✅ **Movable & Resizable Overlay** - Drag window to any position, resize from edges/corners
+- ✅ **Minimize/Restore Button** - Collapse overlay to title bar for minimal screen space usage
+- ✅ **Auto-Save Window Layout** - Position and size automatically saved to .env configuration
+- ✅ **Smart Cursor Feedback** - Cursor changes to indicate resize directions
 
 ### Version 1.1 (2025-11-13)
 - ✅ **Removed Ollama/Open WebUI support** - Streamlined to focus on mainstream cloud AI providers (OpenAI, Anthropic, Gemini)

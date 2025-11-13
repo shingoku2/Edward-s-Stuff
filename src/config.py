@@ -58,6 +58,13 @@ class Config:
         self.overlay_hotkey = os.getenv('OVERLAY_HOTKEY', 'ctrl+shift+g')
         self.check_interval = int(os.getenv('CHECK_INTERVAL', '5'))
 
+        # Overlay Window Settings
+        self.overlay_x = int(os.getenv('OVERLAY_X', '100'))
+        self.overlay_y = int(os.getenv('OVERLAY_Y', '100'))
+        self.overlay_width = int(os.getenv('OVERLAY_WIDTH', '900'))
+        self.overlay_height = int(os.getenv('OVERLAY_HEIGHT', '700'))
+        self.overlay_minimized = os.getenv('OVERLAY_MINIMIZED', 'false').lower() == 'true'
+
         # Validate configuration (only if required)
         if require_keys:
             self._validate()
@@ -117,7 +124,10 @@ class Config:
 
     @staticmethod
     def save_to_env(provider: str, openai_key: str, anthropic_key: str, gemini_key: str = '',
-                    overlay_hotkey: str = 'ctrl+shift+g', check_interval: int = 5):
+                    overlay_hotkey: str = 'ctrl+shift+g', check_interval: int = 5,
+                    overlay_x: int = None, overlay_y: int = None,
+                    overlay_width: int = None, overlay_height: int = None,
+                    overlay_minimized: bool = None):
         """
         Save configuration to .env file
 
@@ -128,6 +138,11 @@ class Config:
             gemini_key: Gemini API key (optional)
             overlay_hotkey: Hotkey for overlay (default: 'ctrl+shift+g')
             check_interval: Game check interval in seconds (default: 5)
+            overlay_x: Overlay window X position (optional)
+            overlay_y: Overlay window Y position (optional)
+            overlay_width: Overlay window width (optional)
+            overlay_height: Overlay window height (optional)
+            overlay_minimized: Overlay minimized state (optional)
         """
         # Determine .env file location
         # Try multiple locations, prioritizing the most appropriate one
@@ -162,6 +177,18 @@ class Config:
         existing_content['OVERLAY_HOTKEY'] = overlay_hotkey
         existing_content['CHECK_INTERVAL'] = str(check_interval)
 
+        # Update overlay settings if provided
+        if overlay_x is not None:
+            existing_content['OVERLAY_X'] = str(overlay_x)
+        if overlay_y is not None:
+            existing_content['OVERLAY_Y'] = str(overlay_y)
+        if overlay_width is not None:
+            existing_content['OVERLAY_WIDTH'] = str(overlay_width)
+        if overlay_height is not None:
+            existing_content['OVERLAY_HEIGHT'] = str(overlay_height)
+        if overlay_minimized is not None:
+            existing_content['OVERLAY_MINIMIZED'] = str(overlay_minimized).lower()
+
         # Write to .env file
         with open(env_path, 'w', encoding='utf-8') as f:
             f.write("# Gaming AI Assistant Configuration\n")
@@ -177,7 +204,16 @@ class Config:
 
             f.write("# Application Settings\n")
             f.write(f"OVERLAY_HOTKEY={existing_content['OVERLAY_HOTKEY']}\n")
-            f.write(f"CHECK_INTERVAL={existing_content['CHECK_INTERVAL']}\n")
+            f.write(f"CHECK_INTERVAL={existing_content['CHECK_INTERVAL']}\n\n")
+
+            # Write overlay settings if they exist
+            if 'OVERLAY_X' in existing_content:
+                f.write("# Overlay Window Settings\n")
+                f.write(f"OVERLAY_X={existing_content.get('OVERLAY_X', '100')}\n")
+                f.write(f"OVERLAY_Y={existing_content.get('OVERLAY_Y', '100')}\n")
+                f.write(f"OVERLAY_WIDTH={existing_content.get('OVERLAY_WIDTH', '900')}\n")
+                f.write(f"OVERLAY_HEIGHT={existing_content.get('OVERLAY_HEIGHT', '700')}\n")
+                f.write(f"OVERLAY_MINIMIZED={existing_content.get('OVERLAY_MINIMIZED', 'false')}\n")
 
         return env_path
 
