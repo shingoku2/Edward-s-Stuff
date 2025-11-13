@@ -24,6 +24,8 @@ from keybind_manager import KeybindManager, Keybind, DEFAULT_KEYBINDS
 from macro_manager import MacroManager, MacroActionType
 from theme_manager import ThemeManager, DEFAULT_DARK_THEME
 from settings_dialog import TabbedSettingsDialog
+from game_watcher import get_game_watcher
+from game_profile import get_profile_store
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -1273,6 +1275,10 @@ class MainWindow(QMainWindow):
         # Create overlay window (but don't show it yet)
         self.overlay_window = OverlayWindow(ai_assistant, config, parent=self)
 
+        # Initialize game watcher for game detection and profile switching
+        self.game_watcher = get_game_watcher(check_interval=config.check_interval)
+        self.profile_store = get_profile_store()
+
         self.session_event_bridge = SessionEventBridge()
         self.session_event_bridge.session_event.connect(self.on_session_event)
 
@@ -1283,6 +1289,7 @@ class MainWindow(QMainWindow):
 
         self.init_ui()
         self.start_game_detection()
+        self.start_game_watcher()
 
         # Start global hotkey listener after UI is ready
         self.start_hotkey_listener()
@@ -1705,6 +1712,62 @@ class MainWindow(QMainWindow):
 
         logger.info("Game lost event handled")
 
+    def start_game_watcher(self):
+        """Start the game watcher background thread for profile switching"""
+        try:
+            # Connect game change signals to profile switching
+            self.game_watcher.game_changed.connect(self.on_game_watcher_changed)
+            self.game_watcher.game_closed.connect(self.on_game_watcher_closed)
+
+            # Start the watcher
+            self.game_watcher.start_watching()
+            logger.info(f"Game watcher started with {self.game_watcher.check_interval}s interval")
+        except Exception as e:
+            logger.error(f"Failed to start game watcher: {e}")
+
+    def on_game_watcher_changed(self, game_name: str, profile):
+        """
+        Handle game change from GameWatcher.
+        Switches AI profile to match the detected game.
+
+        Args:
+            game_name: Display name of the detected game
+            profile: GameProfile for this game
+        """
+        try:
+            logger.info(f"GameWatcher detected game change: {game_name} (profile: {profile.id})")
+
+            # Update overlay title with current game
+            if self.overlay_window:
+                self.overlay_window.setWindowTitle(f"Gaming Copilot - {game_name}")
+
+            # Switch AI assistant to this game's profile
+            if self.ai_assistant:
+                self.ai_assistant.set_game_profile(profile)
+                logger.info(f"AI Assistant switched to profile: {profile.id}")
+            else:
+                logger.warning("AI assistant not available for profile switching")
+
+        except Exception as e:
+            logger.error(f"Error handling game change: {e}", exc_info=True)
+
+    def on_game_watcher_closed(self):
+        """Handle game close/loss from GameWatcher"""
+        try:
+            logger.info("GameWatcher: game closed")
+
+            # Update overlay title
+            if self.overlay_window:
+                self.overlay_window.setWindowTitle("Gaming Copilot")
+
+            # Clear AI assistant profile
+            if self.ai_assistant:
+                self.ai_assistant.clear_game_profile()
+                logger.info("AI Assistant profile cleared")
+
+        except Exception as e:
+            logger.error(f"Error handling game close: {e}")
+
     def get_tips(self):
         """Request and display tips for the currently detected game"""
         if not self.current_game:
@@ -2086,6 +2149,14 @@ class MainWindow(QMainWindow):
         Args:
             event: QCloseEvent to be handled
         """
+        # Stop game watcher when minimizing to tray
+        try:
+            if hasattr(self, 'game_watcher') and self.game_watcher:
+                self.game_watcher.stop_watching()
+                logger.info("Game watcher stopped")
+        except Exception as e:
+            logger.error(f"Error stopping game watcher: {e}")
+
         event.ignore()
         self.hide()
         self.tray_icon.showMessage(

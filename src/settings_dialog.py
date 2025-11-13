@@ -14,6 +14,7 @@ from PyQt6.QtCore import pyqtSignal, Qt
 from settings_tabs import KeybindingsTab, MacrosTab
 from appearance_tabs import AppAppearanceTab, OverlayAppearanceTab
 from providers_tab import ProvidersTab
+from game_profiles_tab import GameProfilesTab
 from keybind_manager import KeybindManager
 from macro_manager import MacroManager
 from theme_manager import ThemeManager
@@ -38,6 +39,7 @@ class TabbedSettingsDialog(QDialog):
     theme_changed = pyqtSignal(dict)
     overlay_appearance_changed = pyqtSignal(dict)
     provider_config_changed = pyqtSignal(str, dict)  # default_provider, credentials
+    game_profiles_changed = pyqtSignal()  # Emitted when game profiles are modified
 
     def __init__(
         self,
@@ -143,10 +145,15 @@ class TabbedSettingsDialog(QDialog):
         self.providers_tab.provider_config_changed.connect(self.on_provider_config_changed)
         self.tab_widget.addTab(self.providers_tab, "🔑 AI Providers")
 
+        # Game Profiles tab
+        self.game_profiles_tab = GameProfilesTab()
+        self.game_profiles_tab.profile_changed.connect(self.on_game_profiles_changed)
+        self.tab_widget.addTab(self.game_profiles_tab, "🎮 Game Profiles")
+
         # Keybindings tab
         self.keybindings_tab = KeybindingsTab(self.keybind_manager)
         self.keybindings_tab.keybinds_changed.connect(self.on_keybinds_changed)
-        self.tab_widget.addTab(self.keybindings_tab, "🎮 Keybindings")
+        self.tab_widget.addTab(self.keybindings_tab, "⌨️ Keybindings")
 
         # Macros tab
         self.macros_tab = MacrosTab(self.macro_manager)
@@ -187,6 +194,11 @@ class TabbedSettingsDialog(QDialog):
         """Handle provider configuration changed"""
         logger.info(f"Provider config changed: {default_provider}, {len(credentials)} credentials")
         self.provider_config_changed.emit(default_provider, credentials)
+
+    def on_game_profiles_changed(self):
+        """Handle game profiles changed"""
+        logger.info("Game profiles changed")
+        self.game_profiles_changed.emit()
 
     def save_all_settings(self):
         """Save all settings from all tabs"""
