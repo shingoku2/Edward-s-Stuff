@@ -911,3 +911,117 @@ INFO - Native /api/chat endpoint returned 405, trying /api/generate
 *Last Updated: 2025-11-13*
 *Session: Final Ollama Cleanup and README Documentation*
 *Status: Complete ✅*
+
+---
+
+## Current Session: Implement Movable/Resizable Overlay Window (2025-11-13)
+
+### Session Goals
+1. Make the in-game overlay movable by dragging
+2. Add resize functionality from edges and corners
+3. Implement minimize/restore functionality
+4. Auto-save window position and size to configuration
+5. Update README with new overlay features
+
+### Actions Taken
+
+#### Configuration System Updates (src/config.py)
+- **Added overlay window fields** to Config class:
+  - `overlay_x`, `overlay_y` - Window position (default: 100, 100)
+  - `overlay_width`, `overlay_height` - Window size (default: 900x700)
+  - `overlay_minimized` - Minimized state (default: false)
+- **Updated `save_to_env()` method** with optional overlay parameters
+- **Enhanced .env writing** to persist overlay settings in dedicated section
+- Settings automatically loaded on startup, saved on changes
+
+#### GUI Overlay Implementation (src/gui.py)
+- **Drag-to-move functionality**:
+  - `mousePressEvent()` - Detects drag vs. resize based on cursor position
+  - `mouseMoveEvent()` - Handles window repositioning during drag
+  - `mouseReleaseEvent()` - Saves window state after drag completes
+  - Can drag from anywhere on window (not just title bar)
+
+- **Edge/corner resize**:
+  - 10-pixel edge margin detection for resize activation
+  - Supports 8 resize directions (4 edges + 4 corners)
+  - Smart cursor feedback (horizontal, vertical, diagonal arrows)
+  - Minimum size enforcement (400x300) to prevent unusable windows
+  - Smooth resize with geometry updates during mouse movement
+
+- **Minimize/Restore button**:
+  - Added minimize button (−) to header with hover/pressed states
+  - `toggle_minimize()` - Collapses window to 50px title bar height
+  - Stores original height for restoration
+  - Button styled to match dark theme
+
+- **Auto-save system**:
+  - `save_window_state()` - Persists position/size to .env file
+  - Called on mouse release after drag/resize
+  - Called on minimize/restore toggle
+  - Called on window close event
+  - Prevents data loss by saving frequently
+
+- **Window initialization**:
+  - Loads saved position and size from config on startup
+  - Enables mouse tracking for resize grip detection
+  - Initializes drag/resize state variables
+
+#### Configuration Files
+- **.env.example**: Added overlay settings section with documentation
+  - Comments explain auto-save behavior
+  - Default values match Config class defaults
+
+#### Documentation (README.md)
+- **Features section**: Added 3 new bullet points for overlay capabilities
+- **Overlay Controls section**: New section explaining drag/resize/minimize usage
+- **Configuration section**: Added overlay settings with inline comments
+- **Version 1.2 changelog**: Documented all new overlay features
+- Updated AI provider mention from "Claude or GPT" to "Claude, GPT, or Gemini"
+
+### Technical Implementation Details
+
+**Mouse Event Handling:**
+- Edge detection uses 10-pixel margins for comfortable grip zones
+- Resize direction stored as dict with boolean flags for each edge
+- Drag position stored in global coordinates for accurate tracking
+- All mouse events call `super()` to preserve Qt's default behavior
+
+**State Management:**
+- `dragging` boolean tracks if currently dragging window
+- `resizing` boolean tracks if currently resizing
+- `resize_direction` dict stores which edges are being resized
+- `is_minimized` boolean tracks minimized state
+- `normal_height` stores pre-minimized height for restoration
+
+**Cursor Feedback:**
+- `SizeFDiagCursor` for top-left/bottom-right corners
+- `SizeBDiagCursor` for top-right/bottom-left corners
+- `SizeHorCursor` for left/right edges
+- `SizeVerCursor` for top/bottom edges
+- `ArrowCursor` for normal areas
+
+### Outcome
+- ✅ Window can be dragged to any screen position
+- ✅ Window can be resized from all 8 directions (4 edges + 4 corners)
+- ✅ Minimize button collapses window to title bar (50px height)
+- ✅ All window state automatically saved to .env
+- ✅ Position and size restored on app restart
+- ✅ Smart cursor feedback guides user on resize capabilities
+- ✅ Minimum size protection prevents unusable tiny windows
+- ✅ README fully documents new overlay features
+
+### Commits
+- `9d91054` - "Add movable, resizable overlay with auto-save layout (Version 1.2)"
+
+### Tests
+- `python -m compileall src/gui.py src/config.py` ✅
+
+### Files Modified
+- `src/config.py` - Added overlay config fields and save logic
+- `src/gui.py` - Implemented drag/resize/minimize functionality
+- `.env.example` - Added overlay settings documentation
+- `README.md` - Added Version 1.2 changelog and overlay controls documentation
+
+*Last Updated: 2025-11-13*
+*Session: Implement Movable/Resizable Overlay Window*
+*Status: Complete ✅*
