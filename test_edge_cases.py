@@ -108,8 +108,13 @@ def test_game_detector_edge_cases():
         # Test duplicate detection
         result1 = detector.add_custom_game("Duplicate", ["dup.exe"])
         result2 = detector.add_custom_game("Duplicate", ["dup2.exe"])
-        assert result1 == True and result2 == False
-        print("✓ Duplicate game detection works")
+        result3 = detector.add_custom_game("duplicate", ["dup3.exe"])
+        result4 = detector.add_custom_game("Duplicate Process", ["dup.exe"])
+        assert result1 is True
+        assert result2 is False
+        assert result3 is False
+        assert result4 is False
+        print("✓ Duplicate game detection works (name & process level)")
         
         # Test getting multiple running games
         games = detector.get_running_games()

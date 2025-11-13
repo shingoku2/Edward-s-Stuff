@@ -62,6 +62,20 @@ class GameDetector:
         }
         self._refresh_legacy_mappings()
 
+    @staticmethod
+    def _normalize_game_key(game_name: Optional[str]) -> str:
+        """Normalize game identifiers for duplicate checks."""
+        if game_name is None:
+            return ""
+        return str(game_name).casefold()
+
+    @staticmethod
+    def _normalize_process_name(process_name: str) -> str:
+        """Normalize process names for duplicate detection."""
+        if not process_name:
+            return ""
+        return str(process_name).casefold()
+
     def _refresh_legacy_mappings(self) -> None:
         """Synchronize legacy mapping attributes used by historic tooling."""
         known_games = dict(self.DEFAULT_KNOWN_GAMES)
@@ -72,6 +86,20 @@ class GameDetector:
         # ``KNOWN_PROCESSES`` is kept as an alias for scripts introduced during the
         # refactor where this attribute name briefly replaced ``KNOWN_GAMES``.
         self.KNOWN_PROCESSES = self.KNOWN_GAMES
+        self._rebuild_process_index()
+
+    def _rebuild_process_index(self) -> None:
+        """Build a fast lookup of tracked processes to prevent duplicates."""
+        process_index = {}
+        for game_name, process_names in self.common_games.items():
+            if not process_names:
+                continue
+            for process_name in process_names:
+                normalized = self._normalize_process_name(process_name)
+                if not normalized:
+                    continue
+                process_index.setdefault(normalized, game_name)
+        self._process_index = process_index
 
     def detect_running_game(self) -> Optional[Dict[str, str]]:
         """
@@ -162,14 +190,51 @@ class GameDetector:
             True if added successfully
         """
         try:
-            if game_name not in self.common_games:
-                self.common_games[game_name] = process_names
-                self._refresh_legacy_mappings()
-                logger.info(f"Added custom game: {game_name}")
-                return True
-            else:
+            normalized_new_name = self._normalize_game_key(game_name)
+            existing_names = {
+                self._normalize_game_key(existing_name)
+                for existing_name in self.common_games.keys()
+            }
+
+            if normalized_new_name in existing_names:
                 logger.warning(f"Game {game_name} already exists")
                 return False
+
+            process_names = list(process_names or [])
+            unique_processes = []
+            seen_processes = set()
+            duplicate_incoming = False
+
+            for process_name in process_names:
+                normalized_process = self._normalize_process_name(process_name)
+                if not normalized_process:
+                    continue
+                if normalized_process in seen_processes:
+                    duplicate_incoming = True
+                    continue
+                seen_processes.add(normalized_process)
+                if hasattr(self, "_process_index") and normalized_process in self._process_index:
+                    duplicate_incoming = True
+                    continue
+                unique_processes.append(process_name)
+
+            if not unique_processes and process_names:
+                logger.warning(
+                    "No unique process names provided; duplicate tracking prevented for %s",
+                    game_name,
+                )
+                return False
+
+            self.common_games[game_name] = unique_processes
+            self._refresh_legacy_mappings()
+            if duplicate_incoming:
+                logger.info(
+                    "Added custom game %s with filtered process list to avoid duplicates",
+                    game_name,
+                )
+            else:
+                logger.info(f"Added custom game: {game_name}")
+            return True
 
         except Exception as e:
             logger.error(f"Error adding custom game: {e}", exc_info=True)

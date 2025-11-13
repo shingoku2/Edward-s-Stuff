@@ -1224,3 +1224,22 @@ Alternatively, you can switch to a different AI provider in Settings.
 
 ### Commit
 - Recorded commit `Add embedded provider login workflow` capturing the new embedded sign-in dialog, Settings dialog updates, and configuration persistence changes.
+
+---
+
+## Session: Fix duplicate game detection collisions (2025-11-18)
+
+### Summary
+- Hardened `GameDetector.add_custom_game` duplicate detection by normalizing game names and preventing reuse of tracked process executables. (`src/game_detector.py`)
+- Added helper normalization utilities and a reusable process index to guard against future collisions. (`src/game_detector.py`)
+- Expanded edge-case coverage to verify case-insensitive game name duplicates and duplicate process handling are rejected. (`test_edge_cases.py`)
+
+### Errors & Troubleshooting
+- Encountered the need to filter user-supplied process lists where every entry was already tracked; now we abort the add and emit a warning so duplicates do not pollute detection results.
+
+### Tests Executed
+- `pytest test_edge_cases.py::test_game_detector_edge_cases`
+- `pytest`
+
+### Status
+- All targeted fixes validated; duplicate detection now blocks both name and process collisions.
