@@ -58,31 +58,11 @@ class AIAssistant:
     def _get_auth_token(self) -> Tuple[Optional[str], str]:
         """Select the preferred credential for the current provider."""
 
-        if self.session_tokens:
-            # Prefer explicit bearer/access tokens
-            for key in ("access_token", "bearer", "bearer_token", "token"):
-                value = self.session_tokens.get(key)
-                if value:
-                    return value, "session"
+        # Note: Session tokens (cookies) are stored but NOT used for SDK authentication
+        # The AI provider SDKs (OpenAI, Anthropic, Gemini) require actual API keys,
+        # not browser cookies. Session login is only to help users access their API keys page.
 
-            # Handle cookie list from LoginDialog
-            cookies_list = self.session_tokens.get("cookies")
-            if cookies_list and isinstance(cookies_list, list):
-                # Convert list of cookie dicts to Cookie header string
-                cookie_pairs = []
-                for cookie_dict in cookies_list:
-                    if isinstance(cookie_dict, dict) and "name" in cookie_dict and "value" in cookie_dict:
-                        cookie_pairs.append(f"{cookie_dict['name']}={cookie_dict['value']}")
-                if cookie_pairs:
-                    cookie_header = "; ".join(cookie_pairs)
-                    logger.debug("Converted %d cookies to header string", len(cookie_pairs))
-                    return cookie_header, "session"
-
-            # Handle single cookie string (legacy format)
-            cookie = self.session_tokens.get("cookie")
-            if cookie:
-                return cookie, "session"
-
+        # Only use API keys - cookies don't work with the official SDKs
         if self.api_key:
             return self.api_key, "api_key"
 
@@ -167,36 +147,20 @@ class AIAssistant:
         if not any(indicator in error_str for indicator in auth_indicators):
             return False, None
 
-        if self._active_auth_mode == "session":
-            if self.api_key and self.api_key != self._active_auth_token:
-                logger.warning(
-                    "Session credentials for %s appear invalid. Falling back to API key.",
-                    self.provider,
-                )
-                self.session_tokens = {}
-                self._notify_session_event(
-                    "fallback",
-                    (
-                        f"⚠️ {self.provider.title()} session expired. "
-                        "Reverting to API key mode."
-                    ),
-                    {"reason": "auth_failure"},
-                )
-                self._initialize_client(force=True)
-                return True, None
-
-            message = (
-                f"⚠️ {self.provider.title()} session expired.\n\n"
-                "Please sign in again from Settings to continue using session-based access."
-            )
-            self._notify_session_event(
-                "reauth_required",
-                message,
-                {"reason": "auth_failure"},
-            )
-            return False, message
-
-        return False, None
+        # API key authentication failed
+        message = (
+            f"⚠️ {self.provider.title()} API key is invalid or expired.\n\n"
+            "Please check your API key in Settings:\n"
+            "1. Click the ⚙️ Settings button\n"
+            "2. Verify your API key is correct\n"
+            "3. If needed, generate a new API key from your provider's website"
+        )
+        self._notify_session_event(
+            "reauth_required",
+            message,
+            {"reason": "auth_failure"},
+        )
+        return False, message
 
     def _execute_with_auth_retry(self, call_fn, error_formatter):
         try:
@@ -370,8 +334,8 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
 
             if 'authentication' in error_str or 'api key' in error_str or '401' in error_str:
                 return ("⚠️ OpenAI Authentication Error\n\n"
-                       "Your API credentials appear to be invalid or missing.\n\n"
-                       "Please check your Settings and ensure you've entered a valid OpenAI secret or refreshed the session.")
+                       "Your API key appears to be invalid or missing.\n\n"
+                       "Please check your Settings and ensure you've entered a valid OpenAI API key (starts with 'sk-').")
 
             return f"❌ OpenAI API Error\n\nAn error occurred while contacting OpenAI:\n{str(e)}\n\nPlease try again or check your internet connection."
 
@@ -414,8 +378,8 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
 
             if 'authentication' in error_str or 'api key' in error_str or '401' in error_str:
                 return ("⚠️ Anthropic Authentication Error\n\n"
-                       "Your API credentials appear to be invalid or missing.\n\n"
-                       "Please check your Settings and ensure you've entered a valid Anthropic API key or refreshed the session.")
+                       "Your API key appears to be invalid or missing.\n\n"
+                       "Please check your Settings and ensure you've entered a valid Anthropic API key (starts with 'sk-ant-').")
 
             if 'rate' in error_str and ('limit' in error_str or '429' in error_str):
                 return ("⚠️ Anthropic Rate Limit Reached\n\n"
@@ -458,8 +422,8 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
 
             if 'authentication' in error_str or 'api key' in error_str or '401' in error_str:
                 return ("⚠️ Gemini Authentication Error\n\n"
-                       "Your API credentials appear to be invalid or missing.\n\n"
-                       "Please check your Settings and ensure you've entered a valid Gemini API key or refreshed the session.")
+                       "Your API key appears to be invalid or missing.\n\n"
+                       "Please check your Settings and ensure you've entered a valid Gemini API key (starts with 'AIza').")
 
             if 'rate' in error_str and ('limit' in error_str or '429' in error_str):
                 return ("⚠️ Gemini Rate Limit Reached\n\n"

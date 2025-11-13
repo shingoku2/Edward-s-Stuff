@@ -73,7 +73,19 @@ class GameDetectionThread(QThread):
             while self.running:
                 game = self.game_detector.detect_running_game()
 
-                if game and game != self.current_game:
+                # Check if this is a new game by comparing name and process (ignore timestamp)
+                is_new_game = False
+                if game and self.current_game:
+                    # Compare only name and process, not the entire dict (which includes timestamp)
+                    is_new_game = (
+                        game.get('name') != self.current_game.get('name') or
+                        game.get('process') != self.current_game.get('process')
+                    )
+                elif game and not self.current_game:
+                    # First game detection
+                    is_new_game = True
+
+                if is_new_game:
                     self.current_game = game
                     self.game_detected.emit(game)
                     logger.info(f"Game detected: {game.get('name')}")
@@ -740,29 +752,25 @@ class SettingsDialog(QDialog):
 
     def _session_status_text(self, provider: str) -> str:
         """Get authentication status text for a provider"""
-        # Check for session tokens
+        # Check for API key (this is what actually matters for SDK authentication)
+        has_api_key = False
+
+        if provider == 'openai':
+            has_api_key = bool(self.openai_key_input.text().strip() or self.config.openai_api_key)
+        elif provider == 'anthropic':
+            has_api_key = bool(self.anthropic_key_input.text().strip() or self.config.anthropic_api_key)
+        elif provider == 'gemini':
+            has_api_key = bool(self.gemini_key_input.text().strip() or self.config.gemini_api_key)
+
+        if has_api_key:
+            return "✓ API Key Configured"
+
+        # Check if logged in (helps access API keys, but doesn't authenticate API calls)
         session = self.provider_sessions.get(provider)
         if session and session.get('cookies'):
-            cookie_count = len(session.get('cookies', []))
-            return f"✓ Authenticated via Session ({cookie_count} cookies)"
+            return "ℹ️ Logged in (API key still required)"
 
-        # Check for API key
-        if provider == 'openai' and self.openai_key_input.text().strip():
-            return "✓ Authenticated via API Key"
-        elif provider == 'anthropic' and self.anthropic_key_input.text().strip():
-            return "✓ Authenticated via API Key"
-        elif provider == 'gemini' and self.gemini_key_input.text().strip():
-            return "✓ Authenticated via API Key"
-
-        # Check for existing API key from config
-        if provider == 'openai' and self.config.openai_api_key:
-            return "✓ Authenticated via API Key"
-        elif provider == 'anthropic' and self.config.anthropic_api_key:
-            return "✓ Authenticated via API Key"
-        elif provider == 'gemini' and self.config.gemini_api_key:
-            return "✓ Authenticated via API Key"
-
-        return "Not authenticated"
+        return "❌ API key required"
 
     def _update_session_status(self, provider: str) -> None:
         label = self.session_status_labels.get(provider)
@@ -811,14 +819,15 @@ class SettingsDialog(QDialog):
             self,
             "Login Successful!",
             f"✓ Successfully logged into {provider.title()}!\n\n"
-            f"Next step: Get your API key\n"
-            f"The API key page will open in your browser now.\n\n"
-            f"Please:\n"
+            f"IMPORTANT: You must still provide an API key\n"
+            f"The API key page will now open in your browser.\n\n"
+            f"Next steps:\n"
             f"1. Copy your API key from the page that opens\n"
             f"2. Paste it in the '{provider.title()} API Key' field below\n"
             f"3. Click 'Save Settings'\n\n"
-            f"Note: The AI SDKs require API keys for authentication.\n"
-            f"Your login session helps you access your API keys easily!"
+            f"Note: Login only helps you access your API keys page.\n"
+            f"The AI assistant requires API keys to function - browser\n"
+            f"sessions cannot be used for API authentication."
         )
 
         # Open API keys page in browser
@@ -860,79 +869,43 @@ class SettingsDialog(QDialog):
             )
             return
 
-        # Validate that the selected provider has credentials
-        # Prefer API keys, but allow session-only with a warning
+        # Validate that the selected provider has an API key
+        # Session tokens are stored but don't work for SDK authentication
         if provider == "anthropic":
-            if not anthropic_key and not self.provider_sessions.get('anthropic'):
+            if not anthropic_key:
                 QMessageBox.warning(
                     self,
-                    "Missing Anthropic Credentials",
+                    "Missing Anthropic API Key",
                     "You selected Anthropic but didn't provide an API key.\n\n"
+                    "An API key is required for the AI assistant to function.\n\n"
                     "Please enter your Anthropic API key.\n\n"
-                    "Tip: Click 'Login to Anthropic' to access your API keys page."
+                    "Tip: Click 'Sign In' to access your API keys page."
                 )
                 return
-            elif not anthropic_key:
-                # Has session but no API key - allow but warn
-                reply = QMessageBox.question(
-                    self,
-                    "API Key Recommended",
-                    "You're logged into Anthropic but haven't entered an API key.\n\n"
-                    "The AI SDK requires an API key to function.\n\n"
-                    "Do you want to continue anyway?\n"
-                    "(You can add the API key later)",
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-                )
-                if reply == QMessageBox.StandardButton.No:
-                    return
 
         if provider == "openai":
-            if not openai_key and not self.provider_sessions.get('openai'):
+            if not openai_key:
                 QMessageBox.warning(
                     self,
-                    "Missing OpenAI Credentials",
+                    "Missing OpenAI API Key",
                     "You selected OpenAI but didn't provide an API key.\n\n"
+                    "An API key is required for the AI assistant to function.\n\n"
                     "Please enter your OpenAI API key.\n\n"
-                    "Tip: Click 'Login to OpenAI' to access your API keys page."
+                    "Tip: Click 'Sign In' to access your API keys page."
                 )
                 return
-            elif not openai_key:
-                # Has session but no API key - allow but warn
-                reply = QMessageBox.question(
-                    self,
-                    "API Key Recommended",
-                    "You're logged into OpenAI but haven't entered an API key.\n\n"
-                    "The AI SDK requires an API key to function.\n\n"
-                    "Do you want to continue anyway?\n"
-                    "(You can add the API key later)",
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-                )
-                if reply == QMessageBox.StandardButton.No:
-                    return
 
         if provider == "gemini":
-            if not gemini_key and not self.provider_sessions.get('gemini'):
+            if not gemini_key:
                 QMessageBox.warning(
                     self,
-                    "Missing Gemini Credentials",
+                    "Missing Gemini API Key",
                     "You selected Gemini but didn't provide an API key.\n\n"
+                    "An API key is required for the AI assistant to function.\n\n"
                     "Please enter your Gemini API key.\n\n"
-                    "Tip: Click 'Login to Gemini' to access your API keys page."
+                    "Tip: Click 'Sign In' to access your API keys page."
                 )
                 return
-            elif not gemini_key:
-                # Has session but no API key - allow but warn
-                reply = QMessageBox.question(
-                    self,
-                    "API Key Recommended",
-                    "You're logged into Gemini but haven't entered an API key.\n\n"
-                    "The AI SDK requires an API key to function.\n\n"
-                    "Do you want to continue anyway?\n"
-                    "(You can add the API key later)",
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-                )
-                if reply == QMessageBox.StandardButton.No:
-                    return
 
         # Emit signal with settings (including session tokens)
         self.settings_saved.emit(provider, openai_key, anthropic_key, gemini_key, overlay_opacity, self.provider_sessions)
