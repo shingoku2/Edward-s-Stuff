@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
     QMenu, QFrame, QDialog, QRadioButton, QButtonGroup, QMessageBox,
     QGroupBox
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QThread
+from PyQt6.QtCore import Qt, pyqtSignal, QThread, QObject, QTimer
 from PyQt6.QtGui import QAction, QKeySequence, QShortcut, QIcon, QPixmap, QPainter, QColor
 from typing import Optional, Dict
 import os
@@ -43,6 +43,15 @@ class AIWorkerThread(QThread):
         except Exception as e:
             logger.error(f"AI worker thread error: {e}", exc_info=True)
             self.error_occurred.emit(str(e))
+
+
+class SessionEventBridge(QObject):
+    """Bridge authentication events from background threads to the GUI."""
+
+    session_event = pyqtSignal(str, str, dict)
+
+    def emit_event(self, provider: str, action: str, payload: Dict[str, str]):
+        self.session_event.emit(provider, action, payload)
 
 
 class GameDetectionThread(QThread):
@@ -1152,12 +1161,20 @@ class OverlayWindow(QWidget):
 class MainWindow(QMainWindow):
     """Main application window with game detection and AI chat interface"""
 
-    def __init__(self, game_detector, ai_assistant, info_scraper, config):
+    def __init__(
+        self,
+        game_detector,
+        ai_assistant,
+        info_scraper,
+        config,
+        credential_store,
+    ):
         super().__init__()
         self.game_detector = game_detector
         self.ai_assistant = ai_assistant  # Can be None if no API keys configured
         self.info_scraper = info_scraper
         self.config = config
+        self.credential_store = credential_store
 
         self.current_game = None
         self.detection_thread = None
@@ -1172,8 +1189,37 @@ class MainWindow(QMainWindow):
         # Create overlay window (but don't show it yet)
         self.overlay_window = OverlayWindow(ai_assistant, config, parent=self)
 
+        self.session_event_bridge = SessionEventBridge()
+        self.session_event_bridge.session_event.connect(self.on_session_event)
+
+        if self.ai_assistant:
+            self.ai_assistant.register_session_refresh_handler(
+                self.session_event_bridge.emit_event
+            )
+
         self.init_ui()
         self.start_game_detection()
+
+    def on_session_event(self, provider: str, action: str, payload: Dict[str, str]):
+        """Handle authentication session events from the AI assistant."""
+
+        message = payload.get("message", "")
+
+        if self.credential_store:
+            self.credential_store.cache_tokens(provider, {})
+
+        chat_widget = getattr(self, "chat_widget", None)
+
+        if action == "fallback":
+            if message and chat_widget:
+                chat_widget.add_message("System", message, is_user=False)
+        elif action == "reauth_required":
+            QTimer.singleShot(0, lambda: QMessageBox.information(
+                self,
+                "Session Expired",
+                message or "Session expired. Please sign in again.",
+            ))
+            QTimer.singleShot(250, self.open_settings)
 
     def init_ui(self):
         """Initialize the main window UI components and styling"""
@@ -1737,7 +1783,6 @@ class MainWindow(QMainWindow):
                 )
 
                 # Schedule settings dialog to open after a short delay (so window is fully shown)
-                from PyQt6.QtCore import QTimer
                 QTimer.singleShot(500, self.open_settings)
 
     def closeEvent(self, event):
@@ -1758,7 +1803,7 @@ class MainWindow(QMainWindow):
         logger.info("Window close event - minimized to tray")
 
 
-def run_gui(game_detector, ai_assistant, info_scraper, config):
+def run_gui(game_detector, ai_assistant, info_scraper, config, credential_store):
     """
     Initialize and run the GUI application
 
@@ -1772,7 +1817,13 @@ def run_gui(game_detector, ai_assistant, info_scraper, config):
         app = QApplication(sys.argv)
         app.setApplicationName("Gaming AI Assistant")
 
-        window = MainWindow(game_detector, ai_assistant, info_scraper, config)
+        window = MainWindow(
+            game_detector,
+            ai_assistant,
+            info_scraper,
+            config,
+            credential_store,
+        )
         window.show()
 
         # Handle application quit
