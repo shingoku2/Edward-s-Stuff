@@ -8,8 +8,8 @@ from typing import Dict, List, Optional
 
 from PyQt6.QtCore import QUrl, pyqtSignal
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel
-from PyQt6.QtWebEngineCore import QWebEngineProfile
-from PyQt6.QtWebEngineWidgets import QWebEnginePage, QWebEngineView
+from PyQt6.QtWebEngineCore import QWebEngineProfile, QWebEnginePage
+from PyQt6.QtWebEngineWidgets import QWebEngineView
 
 logger = logging.getLogger(__name__)
 
