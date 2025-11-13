@@ -76,7 +76,7 @@ class AppAppearanceTab(QWidget):
         colors_layout = QVBoxLayout()
 
         # Primary color
-        primary_layout = QHBox Layout()
+        primary_layout = QHBoxLayout()
         primary_label = QLabel("Primary Color:")
         primary_layout.addWidget(primary_label)
 
