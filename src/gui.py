@@ -1321,9 +1321,15 @@ class MainWindow(QMainWindow):
         # Initialize KeybindManager
         self.keybind_manager = KeybindManager()
 
-        # Load keybinds from config
+        # Load keybinds from config and register them (creates HotKey objects)
         if self.config.keybinds:
-            self.keybind_manager.load_from_dict(self.config.keybinds)
+            for action, keybind_data in self.config.keybinds.items():
+                try:
+                    keybind = Keybind.from_dict(keybind_data)
+                    # Register with dummy callback - real callbacks set later in register_keybind_callbacks()
+                    self.keybind_manager.register_keybind(keybind, lambda: None, override=True)
+                except Exception as e:
+                    logger.error(f"Failed to load keybind {action}: {e}")
         else:
             # Load defaults
             for default_keybind in DEFAULT_KEYBINDS:
@@ -1879,10 +1885,21 @@ class MainWindow(QMainWindow):
 
     def on_keybinds_updated(self, keybinds_dict: dict):
         """Handle keybinds being updated"""
-        logger.info("Keybinds updated, re-registering callbacks")
-        # Reload keybinds
-        self.keybind_manager.load_from_dict(keybinds_dict)
-        # Re-register callbacks
+        logger.info("Keybinds updated, re-registering all keybinds and callbacks")
+
+        # Clear existing keybinds and hotkeys
+        for action in list(self.keybind_manager.keybinds.keys()):
+            self.keybind_manager.unregister_keybind(action)
+
+        # Re-register all keybinds (creates HotKey objects)
+        for action, keybind_data in keybinds_dict.items():
+            try:
+                keybind = Keybind.from_dict(keybind_data)
+                self.keybind_manager.register_keybind(keybind, lambda: None, override=True)
+            except Exception as e:
+                logger.error(f"Failed to reload keybind {action}: {e}")
+
+        # Re-register callbacks with actual functions
         self.register_keybind_callbacks()
 
     def on_macros_updated(self, macros_dict: dict):
