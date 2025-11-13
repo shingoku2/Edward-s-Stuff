@@ -18,6 +18,7 @@ a = Analysis(
         'PyQt6.QtWidgets',
         'anthropic',
         'openai',
+        'google.generativeai',
         'psutil',
         'requests',
         'bs4',
