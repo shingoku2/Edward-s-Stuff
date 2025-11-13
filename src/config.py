@@ -399,7 +399,7 @@ class Config:
         return has_api_key or has_session
 
     @staticmethod
-    def save_to_env(provider: str, openai_key: str = '', anthropic_key: str = '', gemini_key: str = '',
+    def save_to_env(provider: str,
                     session_tokens: Optional[Dict[str, dict]] = None,
                     overlay_hotkey: str = 'ctrl+shift+g', check_interval: int = 5,
                     overlay_x: int = None, overlay_y: int = None,
