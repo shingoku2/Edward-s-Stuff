@@ -272,34 +272,131 @@ class Config:
 
         return has_api_key or has_session
 
-    def has_provider_key(self) -> bool:
+
+    def get_api_key(self, provider: Optional[str] = None) -> Optional[str]:
         """
-        Check if the selected provider has valid credentials (API key or session token)
+        Get the API key for a specific provider or the currently selected provider.
+
+        Args:
+            provider: Provider name ('openai', 'anthropic', 'gemini').
+                     If None, uses the current AI_PROVIDER setting.
 
         Returns:
-            True if current provider has an API key or session token, False otherwise
+            API key if found, None otherwise
         """
-        has_api_key = False
-        has_session = bool(self.session_tokens.get(self.ai_provider))
+        target_provider = (provider or self.ai_provider).lower()
 
-        if self.ai_provider == 'openai':
+        if target_provider == 'openai':
+            return self.openai_api_key
+        elif target_provider == 'anthropic':
+            return self.anthropic_api_key
+        elif target_provider == 'gemini':
+            return self.gemini_api_key
+        return None
+
+    def set_api_key(self, provider: str, api_key: Optional[str]) -> None:
+        """
+        Set an API key for a provider and persist it to secure storage.
+
+        Args:
+            provider: Provider name ('openai', 'anthropic', 'gemini')
+            api_key: The API key to store (None to clear)
+        """
+        provider = provider.lower()
+
+        if api_key:
+            # Save to both in-memory and secure storage
+            if provider == 'openai':
+                self.openai_api_key = api_key
+            elif provider == 'anthropic':
+                self.anthropic_api_key = api_key
+            elif provider == 'gemini':
+                self.gemini_api_key = api_key
+            else:
+                logger.warning(f"Unknown provider: {provider}")
+                return
+
+            # Persist to secure credential store
+            try:
+                self.credential_store.save_credentials({f'{provider.upper()}_API_KEY': api_key})
+                logger.info(f"Saved API key for provider: {provider}")
+            except Exception as e:
+                logger.error(f"Failed to save API key for {provider}: {e}")
+        else:
+            # Clear the key
+            self.clear_api_key(provider)
+
+    def clear_api_key(self, provider: str) -> None:
+        """
+        Clear an API key for a provider.
+
+        Args:
+            provider: Provider name ('openai', 'anthropic', 'gemini')
+        """
+        provider = provider.lower()
+
+        # Clear from memory
+        if provider == 'openai':
+            self.openai_api_key = None
+        elif provider == 'anthropic':
+            self.anthropic_api_key = None
+        elif provider == 'gemini':
+            self.gemini_api_key = None
+        else:
+            logger.warning(f"Unknown provider: {provider}")
+            return
+
+        # Remove from secure storage
+        try:
+            self.credential_store.delete(f'{provider.upper()}_API_KEY')
+            logger.info(f"Cleared API key for provider: {provider}")
+        except Exception as e:
+            logger.error(f"Failed to clear API key for {provider}: {e}")
+
+    def get_effective_provider(self) -> str:
+        """
+        Get the effective provider to use.
+
+        Returns the currently selected provider if it has an API key configured,
+        otherwise returns the first available provider with a key.
+
+        Returns:
+            Provider name ('openai', 'anthropic', 'gemini')
+        """
+        # First check if current provider has a key
+        if self.has_provider_key(self.ai_provider):
+            return self.ai_provider
+
+        # Try other providers in order
+        for provider in ['anthropic', 'openai', 'gemini']:
+            if self.has_provider_key(provider):
+                return provider
+
+        # Fallback to configured provider even if no key
+        return self.ai_provider
+
+    def has_provider_key(self, provider: Optional[str] = None) -> bool:
+        """
+        Check if a provider has valid credentials (API key or session token).
+
+        Args:
+            provider: Provider name. If None, checks the current AI_PROVIDER.
+
+        Returns:
+            True if the provider has an API key or session token, False otherwise
+        """
+        target_provider = (provider or self.ai_provider).lower()
+        has_api_key = False
+        has_session = bool(self.session_tokens.get(target_provider))
+
+        if target_provider == 'openai':
             has_api_key = bool(self.openai_api_key)
-        elif self.ai_provider == 'anthropic':
+        elif target_provider == 'anthropic':
             has_api_key = bool(self.anthropic_api_key)
-        elif self.ai_provider == 'gemini':
+        elif target_provider == 'gemini':
             has_api_key = bool(self.gemini_api_key)
 
         return has_api_key or has_session
-
-    def get_api_key(self) -> str:
-        """Get the API key for the selected provider"""
-        if self.ai_provider == 'openai':
-            return self.openai_api_key
-        elif self.ai_provider == 'anthropic':
-            return self.anthropic_api_key
-        elif self.ai_provider == 'gemini':
-            return self.gemini_api_key
-        return None
 
     @staticmethod
     def save_to_env(provider: str, openai_key: str = '', anthropic_key: str = '', gemini_key: str = '',
