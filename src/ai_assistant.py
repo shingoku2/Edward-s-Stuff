@@ -5,7 +5,7 @@ Handles AI queries using OpenAI or Anthropic APIs
 
 import os
 import logging
-from typing import Optional, Dict, List
+from typing import Callable, Dict, List, Optional, Tuple
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -18,7 +18,12 @@ class AIAssistant:
     # Maximum conversation history to keep
     MAX_CONVERSATION_MESSAGES = 20
 
-    def __init__(self, provider: str = "anthropic", api_key: Optional[str] = None):
+    def __init__(
+        self,
+        provider: str = "anthropic",
+        api_key: Optional[str] = None,
+        session_tokens: Optional[Dict[str, str]] = None,
+    ):
         """
         Initialize AI Assistant
 
@@ -28,9 +33,15 @@ class AIAssistant:
         """
         self.provider = provider.lower()
         self.api_key = api_key or self._get_api_key()
+        self.session_tokens = session_tokens or {}
         self.conversation_history = []
         self.current_game = None
         self.client = None
+        self._active_auth_mode = "api_key"
+        self._active_auth_token: Optional[str] = None
+        self._session_refresh_handler: Optional[
+            Callable[[str, str, Dict[str, str]], None]
+        ] = None
 
         self._initialize_client()
 
@@ -44,23 +55,76 @@ class AIAssistant:
             return os.getenv("GEMINI_API_KEY")
         return None
 
-    def _initialize_client(self):
+    def _get_auth_token(self) -> Tuple[Optional[str], str]:
+        """Select the preferred credential for the current provider."""
+
+        if self.session_tokens:
+            # Prefer explicit bearer/access tokens
+            for key in ("access_token", "bearer", "bearer_token", "token"):
+                value = self.session_tokens.get(key)
+                if value:
+                    return value, "session"
+
+            cookie = self.session_tokens.get("cookie")
+            if cookie:
+                return cookie, "session"
+
+        if self.api_key:
+            return self.api_key, "api_key"
+
+        return None, ""
+
+    def register_session_refresh_handler(
+        self, handler: Callable[[str, str, Dict[str, str]], None]
+    ) -> None:
+        """Register callback for session refresh events."""
+
+        self._session_refresh_handler = handler
+
+    def update_session_tokens(self, tokens: Optional[Dict[str, str]]) -> None:
+        """Update session tokens and reinitialize client."""
+
+        self.session_tokens = tokens or {}
+        self._initialize_client(force=True)
+
+    def _notify_session_event(
+        self, action: str, message: str, extra: Optional[Dict[str, str]] = None
+    ) -> None:
+        if self._session_refresh_handler:
+            payload = {"message": message}
+            if extra:
+                payload.update(extra)
+            try:
+                self._session_refresh_handler(self.provider, action, payload)
+            except Exception as e:  # noqa: BLE001
+                logger.error("Session refresh handler failed: %s", e, exc_info=True)
+
+    def _initialize_client(self, force: bool = False):
         """Initialize the AI client"""
-        if not self.api_key:
-            raise ValueError(f"No API key provided for {self.provider}")
+        if self.client is not None and not force:
+            return
+
+        auth_token, auth_mode = self._get_auth_token()
+        if not auth_token:
+            raise ValueError(
+                f"No credentials provided for {self.provider}."
+            )
+
+        self._active_auth_mode = auth_mode
+        self._active_auth_token = auth_token
 
         try:
             if self.provider == "openai":
                 import openai
-                self.client = openai.OpenAI(api_key=self.api_key)
+                self.client = openai.OpenAI(api_key=auth_token)
                 logger.info("OpenAI client initialized")
             elif self.provider == "anthropic":
                 import anthropic
-                self.client = anthropic.Anthropic(api_key=self.api_key)
+                self.client = anthropic.Anthropic(api_key=auth_token)
                 logger.info("Anthropic client initialized")
             elif self.provider == "gemini":
                 import google.generativeai as genai
-                genai.configure(api_key=self.api_key)
+                genai.configure(api_key=auth_token)
                 self.client = genai.GenerativeModel('gemini-pro')
                 logger.info("Gemini client initialized")
             else:
@@ -70,6 +134,74 @@ class AIAssistant:
         except Exception as e:
             logger.error(f"Error initializing AI client: {e}", exc_info=True)
             raise
+
+    def _handle_auth_failure(self, error: Exception) -> (bool, Optional[str]):
+        """Handle authentication errors and decide on retry strategy."""
+
+        error_str = str(error).lower()
+        auth_indicators = [
+            "401",
+            "unauthorized",
+            "forbidden",
+            "token",
+            "expired",
+            "authentication",
+            "invalid key",
+            "invalid api key",
+        ]
+
+        if not any(indicator in error_str for indicator in auth_indicators):
+            return False, None
+
+        if self._active_auth_mode == "session":
+            if self.api_key and self.api_key != self._active_auth_token:
+                logger.warning(
+                    "Session credentials for %s appear invalid. Falling back to API key.",
+                    self.provider,
+                )
+                self.session_tokens = {}
+                self._notify_session_event(
+                    "fallback",
+                    (
+                        f"⚠️ {self.provider.title()} session expired. "
+                        "Reverting to API key mode."
+                    ),
+                    {"reason": "auth_failure"},
+                )
+                self._initialize_client(force=True)
+                return True, None
+
+            message = (
+                f"⚠️ {self.provider.title()} session expired.\n\n"
+                "Please sign in again from Settings to continue using session-based access."
+            )
+            self._notify_session_event(
+                "reauth_required",
+                message,
+                {"reason": "auth_failure"},
+            )
+            return False, message
+
+        return False, None
+
+    def _execute_with_auth_retry(self, call_fn, error_formatter):
+        try:
+            return call_fn()
+        except Exception as error:  # noqa: BLE001
+            retry, message = self._handle_auth_failure(error)
+            if retry:
+                try:
+                    return call_fn()
+                except Exception as retry_error:  # noqa: BLE001
+                    logger.error(
+                        "Retry after auth fallback failed: %s", retry_error, exc_info=True
+                    )
+                    return error_formatter(retry_error)
+
+            if message:
+                return message
+
+            return error_formatter(error)
 
     def set_current_game(self, game_info: Dict[str, str]):
         """Set the current game context"""
@@ -183,8 +315,7 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
 
     def _ask_openai(self) -> str:
         """Get response from OpenAI"""
-        try:
-            # Convert history to OpenAI format
+        def call():
             messages = []
             for msg in self.conversation_history:
                 messages.append({
@@ -192,12 +323,11 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
                     "content": msg["content"]
                 })
 
-            # Ensure we have messages
             if not messages:
                 raise ValueError("No messages in conversation history")
 
             response = self.client.chat.completions.create(
-                model="gpt-4-turbo",  # Updated model name
+                model="gpt-4-turbo",
                 messages=messages,
                 max_tokens=1000,
                 temperature=0.7
@@ -205,13 +335,10 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
 
             return response.choices[0].message.content
 
-        except Exception as e:
+        def format_error(e: Exception) -> str:
             logger.error(f"OpenAI API error: {e}", exc_info=True)
-
-            # Handle OpenAI-specific errors with user-friendly messages
             error_str = str(e).lower()
 
-            # Check for quota/billing issues
             if 'insufficient_quota' in error_str or 'quota' in error_str:
                 return ("⚠️ OpenAI API Quota Exceeded\n\n"
                        "Your OpenAI account has run out of credits or exceeded its quota.\n\n"
@@ -221,27 +348,24 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
                        "3. Check your usage limits and billing details\n\n"
                        "Alternatively, you can switch to a different AI provider in Settings.")
 
-            # Check for rate limit issues (too many requests)
-            elif 'rate' in error_str and ('limit' in error_str or '429' in error_str):
+            if 'rate' in error_str and ('limit' in error_str or '429' in error_str):
                 return ("⚠️ OpenAI Rate Limit Reached\n\n"
                        "You've sent too many requests in a short time.\n\n"
                        "Please wait a moment and try again. Rate limits typically reset within 1-2 minutes.\n\n"
                        "If this persists, consider upgrading your OpenAI plan for higher rate limits.")
 
-            # Check for authentication errors
-            elif 'authentication' in error_str or 'api key' in error_str or '401' in error_str:
+            if 'authentication' in error_str or 'api key' in error_str or '401' in error_str:
                 return ("⚠️ OpenAI Authentication Error\n\n"
-                       "Your API key appears to be invalid or missing.\n\n"
-                       "Please check your Settings and ensure you've entered a valid OpenAI API key.")
+                       "Your API credentials appear to be invalid or missing.\n\n"
+                       "Please check your Settings and ensure you've entered a valid OpenAI secret or refreshed the session.")
 
-            # Generic error
-            else:
-                return f"❌ OpenAI API Error\n\nAn error occurred while contacting OpenAI:\n{str(e)}\n\nPlease try again or check your internet connection."
+            return f"❌ OpenAI API Error\n\nAn error occurred while contacting OpenAI:\n{str(e)}\n\nPlease try again or check your internet connection."
+
+        return self._execute_with_auth_retry(call, format_error)
 
     def _ask_anthropic(self) -> str:
         """Get response from Anthropic (Claude)"""
-        try:
-            # Separate system message from conversation
+        def call():
             system_msg = ""
             messages = []
 
@@ -254,9 +378,7 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
                         "content": msg["content"]
                     })
 
-            # Ensure we have messages
             if not messages:
-                # If no messages yet, create a default one
                 messages = [{
                     "role": "user",
                     "content": "Hello! I just started playing. What can you help me with?"
@@ -272,33 +394,27 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
 
             return response.content[0].text
 
-        except Exception as e:
+        def format_error(e: Exception) -> str:
             logger.error(f"Anthropic API error: {e}", exc_info=True)
-
-            # Handle Anthropic-specific errors with user-friendly messages
             error_str = str(e).lower()
 
-            # Check for authentication errors
             if 'authentication' in error_str or 'api key' in error_str or '401' in error_str:
                 return ("⚠️ Anthropic Authentication Error\n\n"
-                       "Your API key appears to be invalid or missing.\n\n"
-                       "Please check your Settings and ensure you've entered a valid Anthropic API key.")
+                       "Your API credentials appear to be invalid or missing.\n\n"
+                       "Please check your Settings and ensure you've entered a valid Anthropic API key or refreshed the session.")
 
-            # Check for rate limit issues
-            elif 'rate' in error_str and ('limit' in error_str or '429' in error_str):
+            if 'rate' in error_str and ('limit' in error_str or '429' in error_str):
                 return ("⚠️ Anthropic Rate Limit Reached\n\n"
                        "You've sent too many requests in a short time.\n\n"
                        "Please wait a moment and try again.")
 
-            # Generic error
-            else:
-                return f"❌ Anthropic API Error\n\nAn error occurred while contacting Anthropic:\n{str(e)}\n\nPlease try again or check your internet connection."
+            return f"❌ Anthropic API Error\n\nAn error occurred while contacting Anthropic:\n{str(e)}\n\nPlease try again or check your internet connection."
+
+        return self._execute_with_auth_retry(call, format_error)
 
     def _ask_gemini(self) -> str:
         """Get response from Google Gemini"""
-        try:
-            # Build conversation context for Gemini
-            # Gemini uses a different format - we'll pass the full conversation
+        def call():
             system_msg = ""
             conversation_text = ""
 
@@ -310,7 +426,6 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
                 elif msg["role"] == "assistant":
                     conversation_text += f"Assistant: {msg['content']}\n\n"
 
-            # Combine system message with conversation
             full_prompt = f"{system_msg}\n\n{conversation_text}Assistant:"
 
             response = self.client.generate_content(
@@ -323,33 +438,28 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
 
             return response.text
 
-        except Exception as e:
+        def format_error(e: Exception) -> str:
             logger.error(f"Gemini API error: {e}", exc_info=True)
-
-            # Handle Gemini-specific errors with user-friendly messages
             error_str = str(e).lower()
 
-            # Check for authentication errors
             if 'authentication' in error_str or 'api key' in error_str or '401' in error_str:
                 return ("⚠️ Gemini Authentication Error\n\n"
-                       "Your API key appears to be invalid or missing.\n\n"
-                       "Please check your Settings and ensure you've entered a valid Gemini API key.")
+                       "Your API credentials appear to be invalid or missing.\n\n"
+                       "Please check your Settings and ensure you've entered a valid Gemini API key or refreshed the session.")
 
-            # Check for rate limit issues
-            elif 'rate' in error_str and ('limit' in error_str or '429' in error_str):
+            if 'rate' in error_str and ('limit' in error_str or '429' in error_str):
                 return ("⚠️ Gemini Rate Limit Reached\n\n"
                        "You've sent too many requests in a short time.\n\n"
                        "Please wait a moment and try again.")
 
-            # Check for quota issues
-            elif 'quota' in error_str or 'resource_exhausted' in error_str:
+            if 'quota' in error_str or 'resource_exhausted' in error_str:
                 return ("⚠️ Gemini API Quota Exceeded\n\n"
                        "Your Gemini API quota has been exceeded.\n\n"
                        "Please check your Google Cloud Console for quota limits and usage.")
 
-            # Generic error
-            else:
-                return f"❌ Gemini API Error\n\nAn error occurred while contacting Gemini:\n{str(e)}\n\nPlease try again or check your internet connection."
+            return f"❌ Gemini API Error\n\nAn error occurred while contacting Gemini:\n{str(e)}\n\nPlease try again or check your internet connection."
+
+        return self._execute_with_auth_retry(call, format_error)
 
     def get_game_overview(self, game_name: str) -> str:
         """Get a general overview of the game"""

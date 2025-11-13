@@ -51,6 +51,9 @@ try:
     from config import Config
     logger.info("  [OK] config imported")
 
+    from credential_store import CredentialStore
+    logger.info("  [OK] credential_store imported")
+
     from game_detector import GameDetector
     logger.info("  [OK] game_detector imported")
 
@@ -105,6 +108,18 @@ def main():
             print(f"  ⚠️  No API keys configured - Settings dialog will open")
         print()
 
+        credential_store = CredentialStore()
+        session_tokens = credential_store.get_provider_tokens(config.ai_provider)
+
+        if session_tokens:
+            logger.info(
+                "Loaded session tokens for provider %s: %s",
+                config.ai_provider,
+                list(session_tokens.keys()),
+            )
+        else:
+            logger.info("No session tokens found for provider %s", config.ai_provider)
+
         # Initialize game detector
         logger.info("Step 2: Initializing game detector...")
         print("Initializing game detector...")
@@ -119,13 +134,14 @@ def main():
 
         # Initialize AI assistant (only if API keys are configured)
         ai_assistant = None
-        if config.has_provider_key():
+        if config.has_provider_key() or session_tokens:
             logger.info("Step 3: Initializing AI assistant...")
             print("Initializing AI assistant...")
 
             ai_assistant = AIAssistant(
                 provider=config.ai_provider,
-                api_key=config.get_api_key()
+                api_key=config.get_api_key(),
+                session_tokens=session_tokens,
             )
 
             logger.info(f"AI assistant initialized")
@@ -134,8 +150,8 @@ def main():
             print("[OK] AI assistant ready")
             print()
         else:
-            logger.info("Step 3: Skipping AI assistant initialization (no API keys)")
-            print("[INFO] AI assistant will be initialized after you configure API keys")
+            logger.info("Step 3: Skipping AI assistant initialization (no credentials)")
+            print("[INFO] AI assistant will be initialized after you configure credentials")
             print()
 
         # Initialize info scraper
@@ -180,7 +196,7 @@ def main():
 
         # Run the GUI
         logger.info("Calling run_gui()...")
-        run_gui(game_detector, ai_assistant, info_scraper, config)
+        run_gui(game_detector, ai_assistant, info_scraper, config, credential_store)
 
         logger.info("GUI exited normally")
 

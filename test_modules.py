@@ -54,6 +54,13 @@ def test_imports():
         return False
 
     try:
+        from src.credential_store import CredentialStore  # noqa: F401
+        print("✓ CredentialStore module imported successfully")
+    except Exception as e:
+        print(f"✗ CredentialStore import failed: {e}")
+        return False
+
+    try:
         from src.gui import ChatWidget, MainWindow, run_gui
         print("✓ GUI module imported successfully")
     except Exception as e:

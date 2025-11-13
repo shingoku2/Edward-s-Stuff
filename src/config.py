@@ -3,12 +3,12 @@ Configuration Module
 Handles application configuration and settings
 """
 
+import json
 import logging
 import os
 import sys
 from pathlib import Path
-from typing import Optional
-
+from typing import Dict, Optional
 from dotenv import load_dotenv
 
 from credential_store import CredentialDecryptionError, CredentialStore, CredentialStoreError
@@ -61,6 +61,12 @@ class Config:
         self.anthropic_api_key = credentials.get('ANTHROPIC_API_KEY') or os.getenv('ANTHROPIC_API_KEY')
         self.gemini_api_key = credentials.get('GEMINI_API_KEY') or os.getenv('GEMINI_API_KEY')
 
+        # Session data captured via embedded login
+        self.session_tokens: Dict[str, dict] = {}
+        self._load_session_token('openai', os.getenv('OPENAI_SESSION_DATA'))
+        self._load_session_token('anthropic', os.getenv('ANTHROPIC_SESSION_DATA'))
+        self._load_session_token('gemini', os.getenv('GEMINI_SESSION_DATA'))
+
         # Application Settings
         self.overlay_hotkey = os.getenv('OVERLAY_HOTKEY', 'ctrl+shift+g')
         self.check_interval = int(os.getenv('CHECK_INTERVAL', '5'))
@@ -71,10 +77,23 @@ class Config:
         self.overlay_width = int(os.getenv('OVERLAY_WIDTH', '900'))
         self.overlay_height = int(os.getenv('OVERLAY_HEIGHT', '700'))
         self.overlay_minimized = os.getenv('OVERLAY_MINIMIZED', 'false').lower() == 'true'
+        self.overlay_opacity = float(os.getenv('OVERLAY_OPACITY', '0.95'))
 
         # Validate configuration (only if required)
         if require_keys:
             self._validate()
+
+    def _load_session_token(self, provider: str, raw_value: Optional[str]) -> None:
+        """Parse stored session information from .env."""
+        if not raw_value:
+            return
+
+        try:
+            parsed = json.loads(raw_value.strip("'\""))
+            if isinstance(parsed, dict):
+                self.session_tokens[provider] = parsed
+        except json.JSONDecodeError:
+            self.session_tokens[provider] = {"raw": raw_value}
 
     def _validate(self):
         """Validate configuration - raises ValueError if invalid"""
@@ -141,11 +160,12 @@ class Config:
         return None
 
     @staticmethod
-    def save_to_env(provider: str,
+    def save_to_env(provider: str, openai_key: str = '', anthropic_key: str = '', gemini_key: str = '',
+                    session_tokens: Optional[Dict[str, dict]] = None,
                     overlay_hotkey: str = 'ctrl+shift+g', check_interval: int = 5,
                     overlay_x: int = None, overlay_y: int = None,
                     overlay_width: int = None, overlay_height: int = None,
-                    overlay_minimized: bool = None):
+                    overlay_minimized: bool = None, overlay_opacity: float = None):
         """
         Save configuration to .env file
 
@@ -158,6 +178,7 @@ class Config:
             overlay_width: Overlay window width (optional)
             overlay_height: Overlay window height (optional)
             overlay_minimized: Overlay minimized state (optional)
+            overlay_opacity: Overlay opacity 0.0-1.0 (optional)
         """
         # Determine .env file location
         # Try multiple locations, prioritizing the most appropriate one
@@ -192,6 +213,11 @@ class Config:
         existing_content['OVERLAY_HOTKEY'] = overlay_hotkey
         existing_content['CHECK_INTERVAL'] = str(check_interval)
 
+        session_tokens = session_tokens or {}
+        existing_content['OPENAI_SESSION_DATA'] = json.dumps(session_tokens.get('openai', {}))
+        existing_content['ANTHROPIC_SESSION_DATA'] = json.dumps(session_tokens.get('anthropic', {}))
+        existing_content['GEMINI_SESSION_DATA'] = json.dumps(session_tokens.get('gemini', {}))
+
         # Update overlay settings if provided
         if overlay_x is not None:
             existing_content['OVERLAY_X'] = str(overlay_x)
@@ -203,6 +229,8 @@ class Config:
             existing_content['OVERLAY_HEIGHT'] = str(overlay_height)
         if overlay_minimized is not None:
             existing_content['OVERLAY_MINIMIZED'] = str(overlay_minimized).lower()
+        if overlay_opacity is not None:
+            existing_content['OVERLAY_OPACITY'] = str(overlay_opacity)
 
         # Write to .env file
         with open(env_path, 'w', encoding='utf-8') as f:
@@ -217,6 +245,11 @@ class Config:
             f.write("ANTHROPIC_API_KEY=\n")
             f.write("GEMINI_API_KEY=\n\n")
 
+            f.write("# Session Tokens\n")
+            f.write(f"OPENAI_SESSION_DATA='{existing_content['OPENAI_SESSION_DATA']}'\n")
+            f.write(f"ANTHROPIC_SESSION_DATA='{existing_content['ANTHROPIC_SESSION_DATA']}'\n")
+            f.write(f"GEMINI_SESSION_DATA='{existing_content['GEMINI_SESSION_DATA']}'\n\n")
+
             f.write("# Application Settings\n")
             f.write(f"OVERLAY_HOTKEY={existing_content['OVERLAY_HOTKEY']}\n")
             f.write(f"CHECK_INTERVAL={existing_content['CHECK_INTERVAL']}\n\n")
@@ -229,6 +262,7 @@ class Config:
                 f.write(f"OVERLAY_WIDTH={existing_content.get('OVERLAY_WIDTH', '900')}\n")
                 f.write(f"OVERLAY_HEIGHT={existing_content.get('OVERLAY_HEIGHT', '700')}\n")
                 f.write(f"OVERLAY_MINIMIZED={existing_content.get('OVERLAY_MINIMIZED', 'false')}\n")
+                f.write(f"OVERLAY_OPACITY={existing_content.get('OVERLAY_OPACITY', '0.95')}\n")
 
         return env_path
 

@@ -1209,3 +1209,18 @@ Alternatively, you can switch to a different AI provider in Settings.
 *Last Updated: 2025-11-13*
 *Session: Improve OpenAI Rate Limit and Quota Error Handling*
 *Status: Complete ✅*
+
+## Update: Embedded login workflow integration
+- Added `src/login_dialog.py` providing a reusable `LoginDialog` built on `QWebEngineView` to capture provider sessions and emit cookies.
+- Extended `SettingsDialog` in `src/gui.py` with sign-in buttons, session status labels, and emission of captured session data alongside legacy API-key fields.
+- Updated configuration management (`src/config.py`) to persist serialized session tokens in `.env` and expose them at runtime.
+- Replaced the prominent “Get API Key” buttons with demoted API-key page links and new sign-in actions per provider.
+
+### Tests Executed
+- `python -m py_compile src/gui.py src/login_dialog.py src/config.py`
+
+### Notes
+- WebEngine login success detection relies on redirect URL prefixes; users can still fall back to manual API key entry.
+
+### Commit
+- Recorded commit `Add embedded provider login workflow` capturing the new embedded sign-in dialog, Settings dialog updates, and configuration persistence changes.
