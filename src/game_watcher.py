@@ -26,7 +26,7 @@ class GameWatcher(QObject):
     """
 
     # Signals
-    game_changed = pyqtSignal(str, GameProfile)  # game_name, profile
+    game_changed = pyqtSignal(str, object)  # game_name, profile
     game_detected = pyqtSignal(str)  # game_name
     game_closed = pyqtSignal()  # No args
 
