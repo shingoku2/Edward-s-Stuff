@@ -23,6 +23,62 @@ This file provides complete context for AI assistants working on this project.
 
 ---
 
+## Recent Session: Game Detection Crash Fix (2025-11-14)
+
+### Session Goals
+1. Fix crash that occurs when a game is detected but AI assistant is not initialized
+
+### Problem Description
+The application was crashing when a game (specifically World of Warcraft) was detected if the user had not yet configured their API keys. The crash trace showed:
+
+```
+2025-11-13 20:39:40,089 - game_detector - INFO - Game detected: World of Warcraft
+2025-11-13 20:39:40,089 - gui - INFO - Game detected: World of Warcraft
+Crashed again
+```
+
+### Root Cause
+In `src/gui.py:1066`, the `on_game_detected()` method was calling `self.ai_assistant.set_current_game(game)` without checking if `self.ai_assistant` was `None`.
+
+This occurred because:
+1. When the application starts with no API keys configured, `ai_assistant` is initialized as `None`
+2. The user then configures API keys through the settings dialog
+3. However, the `ai_assistant` instance remains `None` (it's not re-initialized after settings are saved)
+4. When a game is detected, the code attempts to call a method on `None`, causing a crash
+
+### Solution
+Added a null check before calling `set_current_game()`, consistent with how other methods in the codebase handle the case where `ai_assistant` might be `None`.
+
+**Files Modified:**
+- `src/gui.py:1066-1067` - Added null check before calling `self.ai_assistant.set_current_game(game)`
+
+**Code Changes:**
+
+```python
+# Lines 1065-1067: Added null check
+# Update AI assistant context with current game
+if self.ai_assistant:
+    self.ai_assistant.set_current_game(game)
+```
+
+### Verification
+- ✅ All other uses of `self.ai_assistant` in the codebase already have proper null checks
+- ✅ Methods like `get_tips()`, `get_overview()`, `on_game_lost()`, `on_game_watcher_changed()`, and `on_game_watcher_closed()` all check for null before accessing `ai_assistant`
+- ✅ The fix follows the established pattern in the codebase
+
+### Impact
+
+**Before Fix:**
+- ❌ Application crashes when game is detected with no API keys configured
+- ❌ User loses all progress and must restart application
+
+**After Fix:**
+- ✅ Application continues running when game is detected
+- ✅ Game detection buttons are enabled but show appropriate error messages when clicked
+- ✅ User can configure API keys and use the application without restarting
+
+---
+
 ## Recent Session: Macro Execution Implementation (2025-11-14)
 
 ### Session Goals

@@ -1063,7 +1063,8 @@ class MainWindow(QMainWindow):
         self.recap_button.setEnabled(True)
 
         # Update AI assistant context with current game
-        self.ai_assistant.set_current_game(game)
+        if self.ai_assistant:
+            self.ai_assistant.set_current_game(game)
 
         # Show notification in chat (no auto-overview to save API costs)
         self.chat_widget.add_message(
