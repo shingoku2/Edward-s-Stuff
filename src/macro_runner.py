@@ -11,7 +11,7 @@ import random
 from typing import Optional, Callable
 from enum import Enum
 
-from macro_manager import Macro, MacroStep, MacroStepType
+from macro_manager import Macro, MacroStep, MacroStepType, MacroManager
 
 logger = logging.getLogger(__name__)
 
@@ -45,14 +45,16 @@ class MacroRunner:
     Runs in background thread to keep UI responsive
     """
 
-    def __init__(self, enabled: bool = False):
+    def __init__(self, enabled: bool = False, macro_manager: Optional[MacroManager] = None):
         """
         Initialize the macro runner
 
         Args:
             enabled: Whether macros are enabled (respects anti-cheat awareness)
+            macro_manager: The MacroManager instance with UI action handlers
         """
         self.enabled = enabled
+        self.macro_manager = macro_manager
         self.state = MacroExecutionState.IDLE
         self.current_macro: Optional[Macro] = None
         self.execution_thread: Optional[threading.Thread] = None
@@ -70,7 +72,7 @@ class MacroRunner:
             self.keyboard_controller = None
             self.mouse_controller = None
 
-        logger.info(f"MacroRunner initialized (enabled={enabled})")
+        logger.info(f"MacroRunner initialized (enabled={enabled}, macro_manager={'present' if macro_manager else 'None'})")
 
     def execute_macro(self, macro: Macro) -> bool:
         """
@@ -214,9 +216,27 @@ class MacroRunner:
             elif step.type == MacroStepType.DELAY.value:
                 time.sleep(delay / 1000.0)
 
-            # Handle legacy actions
+            # Handle UI/legacy actions via the MacroManager
+            elif self.macro_manager and step.type in self.macro_manager.action_handlers:
+                logger.debug(f"Executing UI action: {step.type}")
+                handler = self.macro_manager.action_handlers[step.type]
+
+                # Note: UI action steps typically don't have parameters
+                # For SEND_MESSAGE action, the text would be stored in 'key' field
+                params = {}
+                if step.type == MacroStepType.SEND_MESSAGE.value and step.key:
+                    params['message'] = step.key
+
+                # Execute the handler
+                handler(**params)
+
+                # Apply delay if specified
+                if delay > 0:
+                    time.sleep(delay / 1000.0)
+
+            # Handle unknown/unhandled step types
             elif step.type in [e.value for e in MacroStepType]:
-                logger.debug(f"Skipping legacy action type: {step.type}")
+                logger.warning(f"Skipping unhandled legacy/UI action type: {step.type}")
 
         except Exception as e:
             logger.error(f"Error executing step {step.type}: {e}")

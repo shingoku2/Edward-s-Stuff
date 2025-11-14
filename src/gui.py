@@ -22,6 +22,7 @@ from config import Config
 from login_dialog import LoginDialog
 from keybind_manager import KeybindManager, Keybind, DEFAULT_KEYBINDS
 from macro_manager import MacroManager, MacroActionType
+from macro_runner import MacroRunner
 from theme_manager import ThemeManager, DEFAULT_DARK_THEME
 from settings_dialog import TabbedSettingsDialog
 from game_watcher import get_game_watcher
@@ -668,6 +669,12 @@ class MainWindow(QMainWindow):
         if self.config.macros:
             self.macro_manager.load_from_dict(self.config.macros)
 
+        # Initialize MacroRunner (after MacroManager so we can pass it in)
+        self.macro_runner = MacroRunner(
+            enabled=self.config.macros_enabled,
+            macro_manager=self.macro_manager
+        )
+
         # Initialize ThemeManager
         self.theme_manager = ThemeManager()
 
@@ -729,7 +736,38 @@ class MainWindow(QMainWindow):
             lambda: self.overlay_window.hide() if hasattr(self, 'overlay_window') else None)
         self.macro_manager.register_action_handler(MacroActionType.OPEN_SETTINGS.value, self.open_advanced_settings)
 
+        # Register macro keybinds - iterate over all macros and register their keybinds
+        self._register_macro_keybinds()
+
         logger.info("Keybind callbacks registered")
+
+    def _register_macro_keybinds(self):
+        """Register keybind callbacks for all macros that have keybinds assigned"""
+        try:
+            # Get all macros from the macro manager
+            all_macros = self.macro_manager.get_all_macros()
+
+            for macro in all_macros:
+                if not macro.enabled:
+                    continue
+
+                # Check if this macro has a keybind registered
+                macro_keybind = self.keybind_manager.get_macro_keybind(macro.id)
+                if macro_keybind and macro_keybind.enabled:
+                    # Create a callback for this specific macro
+                    # Use a lambda with default argument to capture the macro correctly
+                    callback = lambda m=macro: self.macro_runner.execute_macro(m)
+
+                    # Update the callback for this macro's keybind
+                    action_key = f"macro_{macro.id}"
+                    self.keybind_manager.callbacks[action_key] = callback
+
+                    logger.debug(f"Registered keybind callback for macro: {macro.name} (ID: {macro.id})")
+
+            logger.info(f"Registered {len([m for m in all_macros if m.enabled])} macro keybind callbacks")
+
+        except Exception as e:
+            logger.error(f"Error registering macro keybinds: {e}", exc_info=True)
 
     def toggle_overlay_visibility(self):
         """Toggle overlay visibility"""
@@ -1281,6 +1319,8 @@ class MainWindow(QMainWindow):
         logger.info("Macros updated")
         # Reload macros
         self.macro_manager.load_from_dict(macros_dict)
+        # Re-register macro keybinds
+        self._register_macro_keybinds()
 
     def on_theme_updated(self, theme_dict: dict):
         """Handle theme being updated"""
