@@ -2925,3 +2925,938 @@ python test_macro_system.py
 *Last Updated: 2025-11-13*
 *Session: Macro & Keybind Engine Implementation*
 *Status: Complete ✅ - Core Engine Ready for UI Integration*
+
+---
+
+## Session: Knowledge Packs & Coaching Implementation (2025-11-14)
+
+### Session Goals
+1. Implement knowledge pack system for context-aware Q&A
+2. Build session logging and coaching features
+3. Create knowledge pack management UI
+4. Integrate grounded Q&A into AI chat pipeline
+
+### Overview
+
+Phase 3 adds two major features to the Gaming AI Assistant:
+1. **Knowledge Packs**: Allow users to attach documents, URLs, and notes to game profiles for context-aware AI responses
+2. **Session Coaching**: Track user sessions and provide AI-powered recaps and coaching suggestions
+
+---
+
+## Knowledge Pack System
+
+### Architecture
+
+The knowledge pack system consists of several layers:
+
+```
+┌─────────────────────────────────────────────┐
+│         User Interface Layer                │
+│  (KnowledgePacksTab, Dialogs)              │
+└─────────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────────┐
+│      Integration Layer                      │
+│  (KnowledgeIntegration)                     │
+│  - Coordinates knowledge retrieval          │
+│  - Manages session logging                  │
+└─────────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────────┐
+│      Core Components                        │
+│  - KnowledgeIndex (semantic search)         │
+│  - KnowledgePackStore (persistence)         │
+│  - IngestionPipeline (text extraction)      │
+└─────────────────────────────────────────────┘
+```
+
+### Data Models
+
+**src/knowledge_pack.py:32-46**
+```python
+@dataclass
+class KnowledgeSource:
+    id: str
+    type: str        # "file", "url", "note"
+    title: str
+    path: Optional[str] = None
+    url: Optional[str] = None
+    tags: List[str] = field(default_factory=list)
+    content: Optional[str] = None  # Raw text content
+
+@dataclass
+class KnowledgePack:
+    id: str
+    name: str
+    description: str
+    game_profile_id: str
+    sources: List[KnowledgeSource]
+    enabled: bool = True
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+```
+
+**src/knowledge_pack.py:133-145**
+```python
+@dataclass
+class RetrievedChunk:
+    """Chunk of text retrieved from knowledge index"""
+    text: str
+    source_id: str
+    score: float  # Relevance score (0-1)
+    meta: Dict = field(default_factory=dict)
+```
+
+### Storage Layer
+
+**KnowledgePackStore** (`src/knowledge_store.py`)
+
+Handles persistence of knowledge packs to disk:
+
+- **Storage Format**: JSON files in `~/.gaming_ai_assistant/knowledge_packs/`
+- **CRUD Operations**: Create, read, update, delete packs
+- **Filtering**: Query by game profile ID
+- **Import/Export**: Share packs between users
+
+Key Methods:
+- `save_pack(pack)` - Save pack to disk
+- `load_pack(pack_id)` - Load pack from disk
+- `get_packs_for_game(game_profile_id)` - Get all packs for a game
+- `get_enabled_packs_for_game(game_profile_id)` - Get only enabled packs
+
+### Ingestion Pipeline
+
+**IngestionPipeline** (`src/knowledge_ingestion.py`)
+
+Extracts text from various source types:
+
+**Supported Formats:**
+1. **Files**:
+   - `.txt`, `.log` - Plain text extraction
+   - `.md`, `.markdown` - Markdown with syntax stripping
+   - `.pdf` - PDF text extraction (requires PyPDF2 or pdfplumber)
+
+2. **URLs**:
+   - HTTP/HTTPS web pages
+   - HTML parsing with BeautifulSoup4
+   - Main content extraction (removes nav, footer, scripts)
+
+3. **Notes**:
+   - Plain text (no processing needed)
+
+**src/knowledge_ingestion.py:338-362**
+```python
+class IngestionPipeline:
+    def ingest(self, source_type: str, **kwargs) -> str:
+        """
+        Ingest content based on source type
+        
+        Args:
+            source_type: 'file', 'url', or 'note'
+            **kwargs: Type-specific parameters
+        
+        Returns:
+            Extracted text content
+        """
+        if source_type == 'file':
+            return self.file_ingestor.ingest_file(kwargs['file_path'])
+        elif source_type == 'url':
+            return self.url_ingestor.ingest_url(kwargs['url'])
+        elif source_type == 'note':
+            return self.note_ingestor.ingest_note(kwargs['content'])
+```
+
+### Indexing & Semantic Search
+
+**KnowledgeIndex** (`src/knowledge_index.py`)
+
+Provides semantic search over knowledge packs using embeddings:
+
+**Embedding Providers:**
+1. **SimpleTFIDFEmbedding** (default):
+   - Local TF-IDF based embeddings
+   - No external API required
+   - Good for simple keyword matching
+
+2. **OpenAIEmbedding** (optional):
+   - Uses OpenAI's `text-embedding-3-small` model
+   - Requires OpenAI API key
+   - Better semantic understanding
+
+**Indexing Process:**
+1. Text is split into overlapping chunks (500 chars, 50 char overlap)
+2. Each chunk is converted to an embedding vector
+3. Chunks are stored with metadata (source, pack, score)
+4. Index is persisted to disk (`~/.gaming_ai_assistant/knowledge_index/index.pkl`)
+
+**Query Process:**
+1. User question is converted to embedding
+2. Cosine similarity computed against all chunks
+3. Top K most relevant chunks returned
+4. Chunks filtered by minimum score threshold (default: 0.3)
+
+**src/knowledge_index.py:386-415**
+```python
+def query(self, game_profile_id: str, question: str, top_k: int = 5) -> List[RetrievedChunk]:
+    """
+    Query the index for relevant chunks
+    
+    Args:
+        game_profile_id: Game profile to search within
+        question: Question/query text
+        top_k: Number of top results to return
+    
+    Returns:
+        List of RetrievedChunk objects, sorted by relevance
+    """
+    # Generate query embedding
+    query_embedding = self.embedding_provider.generate_embedding(question)
+    
+    # Score all chunks
+    scores = []
+    for chunk_id, (text, source_id, pack_id, embedding, meta) in self.index[game_profile_id].items():
+        score = self._cosine_similarity(query_embedding, embedding)
+        scores.append((score, text, source_id, meta))
+    
+    # Sort by score (descending) and return top K
+    scores.sort(reverse=True, key=lambda x: x[0])
+    return [RetrievedChunk(text, source_id, score, meta) for score, text, source_id, meta in scores[:top_k]]
+```
+
+### Integration with AI Chat
+
+**KnowledgeIntegration** (`src/knowledge_integration.py`)
+
+Bridges knowledge packs with the AI assistant:
+
+**src/ai_assistant.py:231-247**
+```python
+# In ask_question() method:
+
+# Add knowledge pack context if available
+knowledge_context = None
+if self.current_profile:
+    game_profile_id = self.current_profile.id
+    extra_settings = self.current_profile.extra_settings
+    
+    # Check if knowledge packs should be used
+    if self.knowledge_integration.should_use_knowledge_packs(game_profile_id, extra_settings):
+        knowledge_context = self.knowledge_integration.get_knowledge_context(
+            game_profile_id=game_profile_id,
+            question=question,
+            extra_settings=extra_settings
+        )
+
+# Add knowledge context to user message
+if knowledge_context:
+    user_message = f"{knowledge_context}\n{user_message}"
+```
+
+**Context Format:**
+```
+=== Knowledge Pack Context ===
+The following information from your knowledge packs may be relevant:
+
+[Source 1: Build Guide from Elden Ring Strategy Pack]
+Intelligence builds should prioritize INT stat to 60-80 for maximum damage.
+Glintstone Sorcery scales with Intelligence...
+
+[Source 2: Boss Guide from Elden Ring Tips]
+Malenia can be defeated using a bleed build with Rivers of Blood...
+
+=== End Knowledge Pack Context ===
+
+User's actual question here...
+```
+
+**Profile Settings:**
+
+Knowledge pack behavior can be configured per game profile via `extra_settings`:
+
+```python
+profile.extra_settings = {
+    'use_knowledge_packs': True,  # Enable/disable knowledge packs
+    'knowledge_context_depth': 5,  # Number of chunks to retrieve (1-10)
+    'knowledge_min_score': 0.3    # Minimum relevance score (0.0-1.0)
+}
+```
+
+---
+
+## Session Coaching System
+
+### Session Logging
+
+**SessionLogger** (`src/session_logger.py`)
+
+Tracks user interactions per game profile:
+
+**Event Types:**
+- `question` - User asks a question
+- `answer` - AI provides an answer (truncated summary)
+- `macro` - User executes a macro
+- `knowledge_query` - Knowledge pack context retrieved
+
+**Storage:**
+- Events stored in `~/.gaming_ai_assistant/session_logs/`
+- Format: `{game_profile_id}_{session_id}.json`
+- Session timeout: 2 hours of inactivity starts new session
+- Rotating log: Max 100 events in memory, 500 on disk per session
+
+**src/session_logger.py:95-120**
+```python
+def log_event(self, game_profile_id: str, event_type: str, content: str, meta: Optional[Dict] = None):
+    """
+    Log a session event
+    
+    Args:
+        game_profile_id: Game profile ID
+        event_type: Type of event ('question', 'answer', 'macro', etc.)
+        content: Event content
+        meta: Optional metadata
+    """
+    event = SessionEvent(
+        timestamp=datetime.now(),
+        event_type=event_type,
+        game_profile_id=game_profile_id,
+        content=content,
+        meta=meta or {}
+    )
+    
+    # Add to in-memory storage
+    if game_profile_id not in self.events:
+        self.events[game_profile_id] = deque(maxlen=self.MAX_EVENTS_IN_MEMORY)
+    
+    self.events[game_profile_id].append(event)
+```
+
+### AI-Powered Coaching
+
+**SessionCoach** (`src/session_coaching.py`)
+
+Provides coaching features using AI:
+
+**1. Session Recap**
+
+Generates a summary of the current session:
+
+```python
+recap = session_coach.generate_session_recap(
+    game_profile_id="elden_ring",
+    game_name="Elden Ring"
+)
+```
+
+**Example Output:**
+```
+Summary: 
+You spent this session focusing on build optimization and boss strategies. 
+You explored Intelligence-based magic builds and discussed tactics for Malenia.
+
+Key Insights:
+• Magic builds require 60-80 INT for maximum effectiveness
+• Glintstone Sorcery is the primary damage dealer
+• Bleed builds are effective against Malenia
+• Rivers of Blood weapon recommended
+
+Next Steps:
+1. Farm runes to level INT to 60
+2. Acquire Meteorite Staff and Rock Sling spell
+3. Practice Malenia's waterfowl dance dodge timing
+```
+
+**2. Progress Summary**
+
+Analyzes progress over multiple sessions:
+
+```python
+progress = session_coach.get_progress_summary(
+    game_profile_id="elden_ring",
+    game_name="Elden Ring",
+    days=7
+)
+```
+
+**3. Ask My Coach**
+
+Interactive coaching with session context:
+
+```python
+answer = session_coach.ask_coach(
+    game_profile_id="elden_ring",
+    question="What should I focus on next?",
+    game_name="Elden Ring"
+)
+```
+
+### Session Recap UI
+
+**SessionRecapDialog** (`src/session_recap_dialog.py`)
+
+Provides UI for viewing session recaps:
+
+**Features:**
+- **Current Session Tab**: AI-generated recap of current session
+- **Weekly Progress Tab**: AI-generated progress summary
+- **Session Stats Tab**: Event counts, duration, breakdown by type
+
+**Usage:**
+```python
+dialog = SessionRecapDialog(
+    parent=main_window,
+    game_profile_id="elden_ring",
+    game_name="Elden Ring",
+    config=config
+)
+dialog.show()
+```
+
+---
+
+## User Interface
+
+### Knowledge Pack Management
+
+**KnowledgePacksTab** (`src/knowledge_packs_tab.py`)
+
+Settings tab for managing knowledge packs:
+
+**Features:**
+1. **Create New Pack**: Dialog to create pack with sources
+2. **Edit Pack**: Modify existing pack
+3. **Re-index Pack**: Rebuild index for pack
+4. **Delete Pack**: Remove pack and index
+
+**Creating a Pack:**
+1. User clicks "Create New Pack"
+2. Dialog opens with:
+   - Name input
+   - Description text area
+   - Game profile selector
+   - Enabled checkbox
+   - Sources list with add/remove buttons
+3. User can add sources:
+   - **Add File**: File picker for docs
+   - **Add URL**: Input dialog for web URLs
+   - **Add Note**: Text editor for inline notes
+4. On save:
+   - Pack is saved to disk
+   - Sources are ingested in background thread
+   - Progress dialog shows status
+   - Pack is indexed for search
+
+**Background Ingestion:**
+
+To keep UI responsive, ingestion runs in a background thread:
+
+**src/knowledge_packs_tab.py:30-60**
+```python
+class IngestionWorker(QThread):
+    """Worker thread for ingesting knowledge sources"""
+    
+    progress = pyqtSignal(int, str)  # Progress % and status
+    finished = pyqtSignal(bool, str)  # Success and message
+    
+    def run(self):
+        # Ingest each source
+        for i, source in enumerate(self.pack.sources):
+            # Update progress
+            progress = int((i / total_sources) * 100)
+            self.progress.emit(progress, f"Processing {source.title}...")
+            
+            # Ingest content
+            if source.type == 'file':
+                source.content = pipeline.ingest('file', file_path=source.path)
+            elif source.type == 'url':
+                source.content = pipeline.ingest('url', url=source.url)
+        
+        # Index the pack
+        self.index.add_pack(self.pack)
+        self.finished.emit(True, "Success!")
+```
+
+---
+
+## Configuration & Settings
+
+### Per-Profile Knowledge Pack Settings
+
+Game profiles can configure knowledge pack behavior via `extra_settings`:
+
+```python
+profile.extra_settings = {
+    # Knowledge pack settings
+    'use_knowledge_packs': True,      # Enable knowledge packs for this profile
+    'knowledge_context_depth': 5,     # Top K chunks to retrieve (1-10)
+    'knowledge_min_score': 0.3        # Minimum relevance score (0.0-1.0)
+}
+```
+
+**Settings Descriptions:**
+- `use_knowledge_packs`: Toggle knowledge pack integration on/off
+- `knowledge_context_depth`: How many relevant chunks to include (default: 5)
+- `knowledge_min_score`: Filter out low-relevance chunks (default: 0.3)
+
+---
+
+## Files Created
+
+### Core System
+1. **src/knowledge_pack.py** (175 lines)
+   - Data models: KnowledgeSource, KnowledgePack, RetrievedChunk
+
+2. **src/knowledge_store.py** (331 lines)
+   - Persistence layer for knowledge packs
+   - CRUD operations, filtering, import/export
+
+3. **src/knowledge_index.py** (432 lines)
+   - Embedding providers (TF-IDF, OpenAI)
+   - Vector index with semantic search
+   - Text chunking and cosine similarity
+
+4. **src/knowledge_ingestion.py** (395 lines)
+   - Text extraction from files, URLs, notes
+   - Support for TXT, MD, PDF formats
+   - HTML parsing and content extraction
+
+5. **src/knowledge_integration.py** (199 lines)
+   - Integration layer for AI assistant
+   - Knowledge context formatting
+   - Session logging coordination
+
+### Session Coaching
+6. **src/session_logger.py** (285 lines)
+   - Session event tracking per game
+   - Rotating logs with persistence
+   - Session statistics and summaries
+
+7. **src/session_coaching.py** (229 lines)
+   - AI-powered session recaps
+   - Progress summaries
+   - Interactive coaching
+
+### User Interface
+8. **src/knowledge_packs_tab.py** (548 lines)
+   - Knowledge pack management UI
+   - Create/edit/delete dialogs
+   - Background ingestion worker
+   - Progress indicators
+
+9. **src/session_recap_dialog.py** (239 lines)
+   - Session recap dialog
+   - Multi-tab interface (session/progress/stats)
+   - Background AI generation
+
+### Testing
+10. **test_knowledge_system.py** (423 lines)
+    - Unit tests for all core components
+    - Coverage: models, store, index, ingestion, logging
+
+---
+
+## Files Modified
+
+### AI Assistant Integration
+
+**src/ai_assistant.py** (Lines 10-16, 48-63, 209-302)
+
+Added knowledge pack integration:
+
+1. **Imports**: Added KnowledgeIntegration
+2. **Initialization**: Added knowledge_integration instance
+3. **ask_question()**: 
+   - Query knowledge index for relevant context
+   - Inject context into user message
+   - Log conversation to session logger
+
+**Key Changes:**
+```python
+# Line 16: Import knowledge integration
+from knowledge_integration import get_knowledge_integration, KnowledgeIntegration
+
+# Lines 60-61: Initialize knowledge integration
+self.knowledge_integration = get_knowledge_integration()
+
+# Lines 231-247: Query knowledge packs and inject context
+if self.current_profile:
+    if self.knowledge_integration.should_use_knowledge_packs(game_profile_id, extra_settings):
+        knowledge_context = self.knowledge_integration.get_knowledge_context(...)
+        if knowledge_context:
+            user_message = f"{knowledge_context}\n{user_message}"
+
+# Lines 284-290: Log conversation to session logger
+if self.current_profile:
+    self.knowledge_integration.log_conversation(
+        game_profile_id=self.current_profile.id,
+        question=question,
+        answer=content
+    )
+```
+
+---
+
+## Testing
+
+### Unit Tests
+
+**test_knowledge_system.py** includes comprehensive tests:
+
+**Test Classes:**
+1. `TestKnowledgeModels` - Data model validation
+2. `TestKnowledgeStore` - Persistence operations
+3. `TestKnowledgeIndex` - Indexing and search
+4. `TestIngestion` - Text extraction
+5. `TestSessionLogger` - Event logging
+
+**Syntax Validation:**
+```bash
+python -m py_compile src/knowledge_pack.py        # ✅
+python -m py_compile src/knowledge_store.py       # ✅
+python -m py_compile src/knowledge_index.py       # ✅
+python -m py_compile src/knowledge_ingestion.py   # ✅
+python -m py_compile src/session_logger.py        # ✅
+python -m py_compile src/session_coaching.py      # ✅
+python -m py_compile src/knowledge_integration.py # ✅
+python -m py_compile src/knowledge_packs_tab.py   # ✅
+python -m py_compile src/session_recap_dialog.py  # ✅
+python -m py_compile src/ai_assistant.py          # ✅
+```
+
+All files compile successfully without errors.
+
+---
+
+## Usage Examples
+
+### 1. Creating a Knowledge Pack
+
+```python
+from knowledge_pack import KnowledgePack, KnowledgeSource
+from knowledge_store import get_knowledge_pack_store
+import uuid
+
+# Create sources
+guide_source = KnowledgeSource(
+    id=str(uuid.uuid4()),
+    type="file",
+    title="Elden Ring Build Guide.pdf",
+    path="/path/to/guide.pdf"
+)
+
+notes_source = KnowledgeSource(
+    id=str(uuid.uuid4()),
+    type="note",
+    title="My Build Notes",
+    content="Focus on INT 60+, use Meteorite Staff..."
+)
+
+# Create pack
+pack = KnowledgePack(
+    id=str(uuid.uuid4()),
+    name="Elden Ring Magic Builds",
+    description="Comprehensive guides for magic builds",
+    game_profile_id="elden_ring",
+    sources=[guide_source, notes_source],
+    enabled=True
+)
+
+# Save pack
+store = get_knowledge_pack_store()
+store.save_pack(pack)
+```
+
+### 2. Ingesting and Indexing
+
+```python
+from knowledge_ingestion import get_ingestion_pipeline
+from knowledge_index import get_knowledge_index
+
+pipeline = get_ingestion_pipeline()
+index = get_knowledge_index()
+
+# Ingest sources
+for source in pack.sources:
+    if source.type == 'file':
+        source.content = pipeline.ingest('file', file_path=source.path)
+    elif source.type == 'url':
+        source.content = pipeline.ingest('url', url=source.url)
+
+# Index the pack
+index.add_pack(pack)
+```
+
+### 3. Querying Knowledge
+
+```python
+from knowledge_index import get_knowledge_index
+
+index = get_knowledge_index()
+
+# Query for relevant information
+chunks = index.query(
+    game_profile_id="elden_ring",
+    question="What is the best magic build?",
+    top_k=5
+)
+
+for chunk in chunks:
+    print(f"Score: {chunk.score:.2f}")
+    print(f"Source: {chunk.meta['source_title']}")
+    print(f"Text: {chunk.text}\n")
+```
+
+### 4. Session Logging
+
+```python
+from session_logger import get_session_logger
+
+logger = get_session_logger()
+
+# Log events
+logger.log_event(
+    game_profile_id="elden_ring",
+    event_type="question",
+    content="How do I beat Malenia?"
+)
+
+logger.log_event(
+    game_profile_id="elden_ring",
+    event_type="answer",
+    content="Use a bleed build with Rivers of Blood..."
+)
+
+# Get session summary
+summary = logger.get_session_summary("elden_ring")
+print(f"Session duration: {summary['duration_minutes']} minutes")
+print(f"Total events: {summary['total_events']}")
+```
+
+### 5. Generating Session Recap
+
+```python
+from session_coaching import get_session_coach
+
+coach = get_session_coach()
+
+# Generate recap
+recap = coach.generate_session_recap(
+    game_profile_id="elden_ring",
+    game_name="Elden Ring"
+)
+
+print(recap)
+```
+
+---
+
+## Integration Points
+
+### Where to Add UI Components
+
+To complete the integration, the following UI components need to be wired into the main application:
+
+**1. Add Knowledge Packs Tab to Settings**
+
+In `src/settings_dialog.py`:
+```python
+from knowledge_packs_tab import KnowledgePacksTab
+
+# In TabbedSettingsDialog.__init__():
+self.knowledge_packs_tab = KnowledgePacksTab(self)
+self.tab_widget.addTab(self.knowledge_packs_tab, "Knowledge Packs")
+```
+
+**2. Add Session Recap Button to Main Window**
+
+In `src/gui.py`:
+```python
+from session_recap_dialog import SessionRecapDialog
+
+# Add button to UI
+recap_btn = QPushButton("Session Recap")
+recap_btn.clicked.connect(self.show_session_recap)
+
+def show_session_recap(self):
+    if self.current_profile:
+        dialog = SessionRecapDialog(
+            parent=self,
+            game_profile_id=self.current_profile.id,
+            game_name=self.current_profile.display_name,
+            config=self.config
+        )
+        dialog.show()
+```
+
+**3. Enable Knowledge Packs in Game Profile Settings**
+
+Add checkbox to game profile editor:
+```python
+# In GameProfileDialog:
+use_knowledge_checkbox = QCheckBox("Use Knowledge Packs for this profile")
+use_knowledge_checkbox.setChecked(
+    profile.extra_settings.get('use_knowledge_packs', True)
+)
+
+# On save:
+profile.extra_settings['use_knowledge_packs'] = use_knowledge_checkbox.isChecked()
+```
+
+---
+
+## Performance Considerations
+
+### Ingestion
+
+- **Background Threading**: Ingestion runs in QThread to prevent UI freezing
+- **Progress Indicators**: Users see real-time progress during ingestion
+- **Error Handling**: Failed sources are marked with error message, don't block others
+
+### Indexing
+
+- **Persistent Storage**: Index saved to disk (`index.pkl`) to avoid re-indexing
+- **Lazy Loading**: Index loaded only when needed
+- **Chunk Caching**: Embeddings computed once and cached
+
+### Query Performance
+
+- **TF-IDF Default**: Fast local embeddings, no API calls
+- **Optional OpenAI**: Better semantic search, requires API key
+- **Top-K Limiting**: Only retrieve top 5 chunks by default (configurable 1-10)
+- **Score Threshold**: Filter low-relevance chunks (default: 0.3)
+
+### Session Logging
+
+- **Rotating Logs**: Max 100 events in memory, 500 on disk per session
+- **Periodic Saves**: Auto-save every 10 events to prevent data loss
+- **Session Timeout**: 2-hour inactivity creates new session
+
+---
+
+## Dependencies
+
+### Required (Already Installed)
+- PyQt6 - UI framework
+- requests - HTTP requests for URLs
+- beautifulsoup4 - HTML parsing
+
+### Optional
+- **PyPDF2** or **pdfplumber** - PDF text extraction
+  - Install: `pip install PyPDF2` or `pip install pdfplumber`
+  - Without these, PDF files cannot be ingested
+
+- **openai** - OpenAI embeddings (better semantic search)
+  - Install: `pip install openai`
+  - Without this, falls back to TF-IDF embeddings
+
+---
+
+## Future Enhancements
+
+### Phase 3+
+
+**Knowledge Pack Features:**
+1. **Advanced Embeddings**: Support for local sentence-transformers models
+2. **Multi-Modal**: Support for images, videos in knowledge packs
+3. **Auto-Refresh**: Periodically re-fetch URL sources
+4. **Tagging System**: Better organization with tags/categories
+5. **Pack Sharing**: Community marketplace for knowledge packs
+6. **Pack Templates**: Pre-built packs for popular games
+
+**Session Coaching Features:**
+1. **Goal Tracking**: Set and track in-game goals
+2. **Achievement Detection**: Recognize milestones and celebrate
+3. **Skill Analysis**: Track improvement in specific areas
+4. **Comparative Analysis**: Compare to other players (anonymized)
+5. **Voice Coaching**: Audio session recaps
+
+**Integration:**
+1. **Auto-Detect Knowledge Needs**: Suggest creating packs for new games
+2. **Smart Notifications**: Remind users to review session recap
+3. **Export Reports**: PDF/HTML session reports
+4. **Cloud Sync**: Sync packs and sessions across devices
+
+---
+
+## Known Limitations
+
+### Current Limitations
+
+1. **Embedding Quality**: TF-IDF is basic; OpenAI embeddings recommended for best results
+2. **PDF Support**: Requires additional library (PyPDF2 or pdfplumber)
+3. **URL Rate Limiting**: No rate limiting for URL fetching (could hit site limits)
+4. **Memory Usage**: Large packs stored fully in memory during indexing
+5. **No Incremental Updates**: Changing pack requires full re-indexing
+6. **Session Privacy**: All logs stored locally, no encryption
+
+### Workarounds
+
+1. **Poor Search Results**: Use OpenAI embeddings or add more specific sources
+2. **PDF Extraction Fails**: Convert PDF to text manually and add as note
+3. **URL Blocked**: Download HTML and add as file
+4. **Large Memory Usage**: Index fewer sources per pack, create multiple small packs
+5. **Slow Re-indexing**: Use "Enable/Disable" instead of editing when testing
+
+---
+
+## Commit Summary
+
+### Files Created (Total: ~3,256 lines)
+
+**Core System:**
+1. `src/knowledge_pack.py` - 175 lines
+2. `src/knowledge_store.py` - 331 lines
+3. `src/knowledge_index.py` - 432 lines
+4. `src/knowledge_ingestion.py` - 395 lines
+5. `src/knowledge_integration.py` - 199 lines
+
+**Session Coaching:**
+6. `src/session_logger.py` - 285 lines
+7. `src/session_coaching.py` - 229 lines
+
+**User Interface:**
+8. `src/knowledge_packs_tab.py` - 548 lines
+9. `src/session_recap_dialog.py` - 239 lines
+
+**Testing:**
+10. `test_knowledge_system.py` - 423 lines
+
+### Files Modified
+
+1. **src/ai_assistant.py** - Integrated knowledge pack retrieval and session logging
+   - Added knowledge_integration instance
+   - Modified ask_question() to query knowledge packs
+   - Added conversation logging
+
+---
+
+## Status
+
+✅ Knowledge pack data models (KnowledgeSource, KnowledgePack, RetrievedChunk)
+✅ KnowledgePackStore for persistence
+✅ KnowledgeIndex with TF-IDF and OpenAI embedding support
+✅ IngestionPipeline for files, URLs, and notes
+✅ SessionLogger for tracking user interactions
+✅ SessionCoach for AI-powered recaps and coaching
+✅ KnowledgeIntegration layer
+✅ AI assistant integration (grounded Q&A)
+✅ Knowledge packs management UI
+✅ Session recap dialog UI
+✅ Unit tests (syntax validated)
+✅ Comprehensive documentation
+
+**Ready for:**
+- UI integration into main application
+- User testing with real knowledge packs
+- Performance optimization based on user feedback
+
+**To Complete Full Integration:**
+1. Add KnowledgePacksTab to settings dialog
+2. Add Session Recap button to main window/overlay
+3. Add knowledge pack settings to game profile editor
+4. Test end-to-end workflow with real data
+
+*Last Updated: 2025-11-14*
+*Session: Knowledge Packs & Coaching Implementation*
+*Status: Complete ✅ - Core System Ready for UI Integration*
+

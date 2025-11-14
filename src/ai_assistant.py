@@ -13,6 +13,7 @@ from typing import Callable, Dict, List, Optional, TYPE_CHECKING
 from config import Config
 from ai_router import get_router, AIRouter
 from providers import ProviderError, ProviderAuthError, ProviderQuotaError, ProviderRateLimitError
+from knowledge_integration import get_knowledge_integration, KnowledgeIntegration
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -50,9 +51,14 @@ class AIAssistant:
         self.session_tokens = session_tokens or {}
         self.conversation_history = []
         self.current_game = None
+        self.current_profile = None
+        self.current_model = None
         self._session_refresh_handler: Optional[
             Callable[[str, str, Dict[str, str]], None]
         ] = None
+
+        # Initialize knowledge integration
+        self.knowledge_integration = get_knowledge_integration()
 
         logger.info(f"AIAssistant initialized with provider: {self.provider}")
 
@@ -222,6 +228,25 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
             # Build the user message
             user_message = question.strip()
 
+            # Add knowledge pack context if available
+            knowledge_context = None
+            if self.current_profile:
+                game_profile_id = self.current_profile.id
+                extra_settings = self.current_profile.extra_settings
+
+                # Check if knowledge packs should be used
+                if self.knowledge_integration.should_use_knowledge_packs(game_profile_id, extra_settings):
+                    knowledge_context = self.knowledge_integration.get_knowledge_context(
+                        game_profile_id=game_profile_id,
+                        question=question,
+                        extra_settings=extra_settings
+                    )
+
+            # Add knowledge context if available
+            if knowledge_context:
+                user_message = f"{knowledge_context}\n{user_message}"
+
+            # Add web scraping context if available
             if game_context:
                 user_message = f"{user_message}\n\nAdditional context from game resources:\n{game_context}"
 
@@ -255,6 +280,14 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
                         "role": "assistant",
                         "content": content
                     })
+
+                # Log conversation to session logger
+                if self.current_profile:
+                    self.knowledge_integration.log_conversation(
+                        game_profile_id=self.current_profile.id,
+                        question=question,
+                        answer=content
+                    )
 
                 return content
 
