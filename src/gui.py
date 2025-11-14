@@ -25,6 +25,7 @@ from macro_manager import MacroManager, MacroActionType
 from macro_runner import MacroRunner
 from theme_manager import ThemeManager, DEFAULT_DARK_THEME
 from settings_dialog import TabbedSettingsDialog
+from session_recap_dialog import SessionRecapDialog
 from game_watcher import get_game_watcher
 from game_profile import get_profile_store
 
@@ -855,6 +856,10 @@ class MainWindow(QMainWindow):
         self.overview_button.clicked.connect(self.get_overview)
         self.overview_button.setEnabled(False)
 
+        self.recap_button = QPushButton("📊 Session Recap")
+        self.recap_button.clicked.connect(self.show_session_recap)
+        self.recap_button.setEnabled(False)
+
         self.settings_button = QPushButton("⚙️ Settings")
         self.settings_button.clicked.connect(self.open_advanced_settings)
 
@@ -862,7 +867,7 @@ class MainWindow(QMainWindow):
         self.advanced_settings_button.clicked.connect(self.open_advanced_settings)
 
         # Apply styling to action buttons
-        for button in [self.tips_button, self.overview_button]:
+        for button in [self.tips_button, self.overview_button, self.recap_button]:
             button.setStyleSheet("""
                 QPushButton {
                     background-color: #6366f1;
@@ -1055,6 +1060,7 @@ class MainWindow(QMainWindow):
         # Enable game-specific action buttons
         self.tips_button.setEnabled(True)
         self.overview_button.setEnabled(True)
+        self.recap_button.setEnabled(True)
 
         # Update AI assistant context with current game
         self.ai_assistant.set_current_game(game)
@@ -1093,6 +1099,7 @@ class MainWindow(QMainWindow):
         # Disable game-specific action buttons
         self.tips_button.setEnabled(False)
         self.overview_button.setEnabled(False)
+        self.recap_button.setEnabled(False)
 
         logger.info("Game lost event handled")
 
@@ -1274,6 +1281,43 @@ class MainWindow(QMainWindow):
         self.overview_worker.error_occurred.connect(handle_overview_error)
         self.overview_worker.finished.connect(cleanup_worker)
         self.overview_worker.start()
+
+    def show_session_recap(self):
+        """Show session recap dialog with AI-powered coaching insights"""
+        if not self.current_game:
+            return
+
+        # Check if AI assistant is configured
+        if not self.ai_assistant:
+            self.chat_widget.add_message(
+                "System",
+                "⚠️ AI assistant not configured. Please click the ⚙️ Settings button to add your API keys.",
+                is_user=False
+            )
+            return
+
+        try:
+            game_name = self.current_game.get('name', 'Unknown Game')
+            game_profile_id = getattr(self.ai_assistant, 'current_game_profile_id', None)
+
+            # Create and show session recap dialog
+            dialog = SessionRecapDialog(
+                parent=self,
+                game_profile_id=game_profile_id,
+                game_name=game_name,
+                config=self.config
+            )
+            dialog.exec()
+
+            logger.info(f"Session recap dialog shown for {game_name}")
+
+        except Exception as e:
+            logger.error(f"Error showing session recap: {e}", exc_info=True)
+            self.chat_widget.add_message(
+                "System",
+                f"Error showing session recap: {str(e)}",
+                is_user=False
+            )
 
     def open_advanced_settings(self):
         """Open the advanced settings dialog with keybinds, macros, and themes"""

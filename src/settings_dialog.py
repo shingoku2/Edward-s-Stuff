@@ -15,6 +15,7 @@ from settings_tabs import KeybindingsTab, MacrosTab
 from appearance_tabs import AppAppearanceTab, OverlayAppearanceTab
 from providers_tab import ProvidersTab
 from game_profiles_tab import GameProfilesTab
+from knowledge_packs_tab import KnowledgePacksTab
 from keybind_manager import KeybindManager
 from macro_manager import MacroManager
 from theme_manager import ThemeManager
@@ -149,6 +150,10 @@ class TabbedSettingsDialog(QDialog):
         self.game_profiles_tab = GameProfilesTab()
         self.game_profiles_tab.profile_changed.connect(self.on_game_profiles_changed)
         self.tab_widget.addTab(self.game_profiles_tab, "🎮 Game Profiles")
+
+        # Knowledge Packs tab
+        self.knowledge_packs_tab = KnowledgePacksTab(self)
+        self.tab_widget.addTab(self.knowledge_packs_tab, "📚 Knowledge Packs")
 
         # Keybindings tab
         self.keybindings_tab = KeybindingsTab(self.keybind_manager)
