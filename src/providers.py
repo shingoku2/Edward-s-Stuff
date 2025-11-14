@@ -314,13 +314,27 @@ class AnthropicProvider:
         model = model or "claude-3-opus-20240229"
         max_tokens = kwargs.pop("max_tokens", 1024)
 
+        # Extract system messages - Anthropic requires them as a separate parameter
+        system_messages = [msg["content"] for msg in messages if msg["role"] == "system"]
+        user_messages = [msg for msg in messages if msg["role"] != "system"]
+
+        # Combine system messages if there are multiple
+        system_prompt = "\n\n".join(system_messages) if system_messages else None
+
         try:
-            response = self.client.messages.create(
-                model=model,
-                max_tokens=max_tokens,
-                messages=messages,
+            # Create the API call with system parameter if we have system messages
+            api_params = {
+                "model": model,
+                "max_tokens": max_tokens,
+                "messages": user_messages,
                 **kwargs
-            )
+            }
+
+            if system_prompt:
+                api_params["system"] = system_prompt
+
+            response = self.client.messages.create(**api_params)
+
             return {
                 "content": response.content[0].text,
                 "model": response.model,

@@ -255,6 +255,18 @@ class AIRouter:
             "details": health.details or {}
         }
 
+    def reload_providers(self) -> None:
+        """
+        Reload all provider instances from the current config.
+
+        This is useful when API keys have been updated through the settings dialog
+        and we need to refresh the provider clients with the new keys.
+        """
+        logger.info("Reloading all provider instances from config")
+        self._providers.clear()
+        self._initialize_providers()
+        logger.info(f"Reloaded providers: {list(self._providers.keys())}")
+
 
 # Global router instance
 _router: Optional[AIRouter] = None
