@@ -306,10 +306,11 @@ class OverlayWindow(QWidget):
         self.setWindowTitle("Gaming AI Assistant - Overlay")
 
         # Make window frameless and always on top
+        # Use Window type (not Tool) to prevent hiding when focus changes
         self.setWindowFlags(
+            Qt.WindowType.Window |
             Qt.WindowType.FramelessWindowHint |
-            Qt.WindowType.WindowStaysOnTopHint |
-            Qt.WindowType.Tool
+            Qt.WindowType.WindowStaysOnTopHint
         )
 
         # Set window position and size from config
@@ -621,7 +622,8 @@ class MainWindow(QMainWindow):
         self.init_managers()
 
         # Create overlay window (but don't show it yet)
-        self.overlay_window = OverlayWindow(ai_assistant, config, parent=self)
+        # Note: parent=None to prevent overlay from hiding when main window loses focus
+        self.overlay_window = OverlayWindow(ai_assistant, config, parent=None)
 
         # Initialize game watcher for game detection and profile switching
         self.game_watcher = get_game_watcher(check_interval=config.check_interval)
