@@ -1337,6 +1337,7 @@ class MainWindow(QMainWindow):
         dialog.macros_changed.connect(self.on_macros_updated)
         dialog.theme_changed.connect(self.on_theme_updated)
         dialog.overlay_appearance_changed.connect(self.on_overlay_appearance_updated)
+        dialog.provider_config_changed.connect(self.on_provider_config_updated)
 
         dialog.exec()
 
@@ -1383,6 +1384,14 @@ class MainWindow(QMainWindow):
         # Apply to overlay
         if hasattr(self, 'overlay_window'):
             self.apply_overlay_appearance()
+
+    def on_provider_config_updated(self, default_provider: str, credentials: dict):
+        """Handle provider configuration being updated"""
+        logger.info(f"Provider config updated: {default_provider}")
+        # Reload the AI router's provider instances with updated API keys
+        if hasattr(self.ai_assistant, 'router'):
+            self.ai_assistant.router.reload_providers()
+            logger.info("AI router providers reloaded with updated configuration")
 
     def apply_theme(self):
         """Apply current theme to the main window"""
