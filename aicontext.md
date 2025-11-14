@@ -3860,3 +3860,80 @@ profile.extra_settings['use_knowledge_packs'] = use_knowledge_checkbox.isChecked
 *Session: Knowledge Packs & Coaching Implementation*
 *Status: Complete ✅ - Core System Ready for UI Integration*
 
+---
+
+## Critical Bug Fixes - Session 014e7HJzB71YDHoiRo3ZJ83B
+
+### Overview
+Fixed three critical bugs that were preventing the new knowledge packs, session coaching, and macro systems from functioning in the built executable and UI.
+
+### Bug #1: Build Scripts Missing New Modules ✅
+**Problem:** Build scripts were missing hiddenimports for all new knowledge and session modules, causing ModuleNotFoundError in the .exe.
+
+**Files Fixed:**
+- `BUILD_WINDOWS.bat` - Added 9 new hiddenimports
+- `BUILD_DEBUG.bat` - Added 9 new hiddenimports
+- `GamingAIAssistant.spec` - Added 9 new hiddenimports
+- `GamingAIAssistant_DEBUG.spec` - Added 9 new hiddenimports
+
+**Modules Added:**
+- `knowledge_pack`
+- `knowledge_store`
+- `knowledge_index`
+- `knowledge_ingestion`
+- `knowledge_integration`
+- `knowledge_packs_tab`
+- `session_logger`
+- `session_coaching`
+- `session_recap_dialog`
+
+### Bug #2: New UI Tabs Not Connected ✅
+**Problem:** Knowledge Packs tab and Session Recap dialog were implemented but not wired into the main application.
+
+**Files Fixed:**
+- `src/settings_dialog.py`:
+  - Connected `knowledge_packs_tab.packs_changed` signal
+  - Added `on_packs_changed()` handler method
+
+**Status:** Session Recap Dialog was already fully connected in `src/gui.py` (lines 28, 859-861, 1063, 1102, 1285-1318)
+
+### Bug #3: Macro-to-Keybind UI Connection ✅
+**Problem:** Users could create macros and keybinds separately, but had no way to assign a macro to a keybind through the UI.
+
+**Files Fixed:**
+- `src/settings_tabs.py`:
+  - Modified `KeybindingsTab.__init__()` to accept `macro_manager` parameter
+  - Modified `KeybindEditDialog.__init__()` to accept `macro_manager` parameter
+  - Updated action dropdown to show both built-in actions and available macros
+  - Added macro detection in `save_keybind()` to create `MacroKeybind` objects
+  - Added `get_macro_keybind()` and `is_macro_action()` methods
+  - Updated `add_keybind()` and `edit_selected_keybind()` to handle macro keybinds
+  - Added `MacroKeybind` to imports from `keybind_manager`
+
+- `src/settings_dialog.py`:
+  - Updated `KeybindingsTab` instantiation to pass `macro_manager`
+
+**UI Changes:**
+- Action dropdown now shows:
+  - "--- Built-in Actions ---" section with all KeybindAction enums
+  - "--- Macros ---" section with all available macros (format: `macro:{id}`)
+- Users can now select a macro as an action when creating/editing keybinds
+- Macro keybinds are registered with `keybind_manager.register_macro_keybind()`
+
+### Impact
+All three critical bugs are now fixed:
+1. ✅ Executables will no longer crash with ModuleNotFoundError
+2. ✅ Users can access and manage Knowledge Packs through Settings
+3. ✅ Users can view Session Recaps after gaming sessions
+4. ✅ Users can assign hotkeys to trigger their custom macros
+
+### Testing Notes
+- Build scripts should now include all required modules for PyInstaller
+- Knowledge Packs tab is accessible in Settings → "📚 Knowledge Packs"
+- Session Recap button appears in main window when a game is detected
+- Macro selection appears in Keybindings → "Add Keybind" dialog
+
+*Last Updated: 2025-11-14*
+*Session: Critical Bug Fixes*
+*Status: All Critical Bugs Fixed ✅*
+

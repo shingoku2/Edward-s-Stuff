@@ -15,7 +15,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QColor
 
-from keybind_manager import Keybind, KeybindManager, KeybindAction, DEFAULT_KEYBINDS
+from keybind_manager import Keybind, KeybindManager, KeybindAction, MacroKeybind, DEFAULT_KEYBINDS
 from macro_manager import Macro, MacroManager, MacroStep, MacroStepType, DEFAULT_MACROS
 from theme_manager import (
     Theme, ThemeManager, ThemeMode, UIScale, LayoutMode,
@@ -31,9 +31,10 @@ class KeybindingsTab(QWidget):
 
     keybinds_changed = pyqtSignal(dict)  # Emits keybinds dict
 
-    def __init__(self, keybind_manager: KeybindManager, parent=None):
+    def __init__(self, keybind_manager: KeybindManager, macro_manager: MacroManager = None, parent=None):
         super().__init__(parent)
         self.keybind_manager = keybind_manager
+        self.macro_manager = macro_manager
         self.init_ui()
 
     def init_ui(self):
@@ -200,13 +201,27 @@ class KeybindingsTab(QWidget):
 
     def add_keybind(self):
         """Add a new keybind"""
-        dialog = KeybindEditDialog(None, self.keybind_manager, self)
+        dialog = KeybindEditDialog(None, self.keybind_manager, self.macro_manager, self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
-            keybind = dialog.get_keybind()
-            if keybind:
-                self.keybind_manager.register_keybind(keybind, lambda: None, override=True)
-                self.load_keybinds()
-                self.emit_keybinds()
+            # Check if it's a macro keybind
+            if dialog.is_macro_action():
+                macro_keybind = dialog.get_macro_keybind()
+                if macro_keybind:
+                    # For now, register with a placeholder callback
+                    # The actual macro execution should be wired at the application level
+                    self.keybind_manager.register_macro_keybind(macro_keybind, lambda: None, override=True)
+                    QMessageBox.information(
+                        self,
+                        "Macro Keybind Created",
+                        f"Macro keybind created: {macro_keybind.keys}\n\n"
+                        "Note: The macro execution will be active after saving settings and restarting."
+                    )
+            else:
+                keybind = dialog.get_keybind()
+                if keybind:
+                    self.keybind_manager.register_keybind(keybind, lambda: None, override=True)
+            self.load_keybinds()
+            self.emit_keybinds()
 
     def edit_selected_keybind(self):
         """Edit the selected keybind"""
@@ -224,13 +239,25 @@ class KeybindingsTab(QWidget):
         if not keybind:
             return
 
-        dialog = KeybindEditDialog(keybind, self.keybind_manager, self)
+        dialog = KeybindEditDialog(keybind, self.keybind_manager, self.macro_manager, self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
-            updated_keybind = dialog.get_keybind()
-            if updated_keybind:
-                self.keybind_manager.register_keybind(updated_keybind, lambda: None, override=True)
-                self.load_keybinds()
-                self.emit_keybinds()
+            # Check if it's a macro keybind
+            if dialog.is_macro_action():
+                macro_keybind = dialog.get_macro_keybind()
+                if macro_keybind:
+                    self.keybind_manager.register_macro_keybind(macro_keybind, lambda: None, override=True)
+                    QMessageBox.information(
+                        self,
+                        "Macro Keybind Updated",
+                        f"Macro keybind updated: {macro_keybind.keys}\n\n"
+                        "Note: The macro execution will be active after saving settings and restarting."
+                    )
+            else:
+                updated_keybind = dialog.get_keybind()
+                if updated_keybind:
+                    self.keybind_manager.register_keybind(updated_keybind, lambda: None, override=True)
+            self.load_keybinds()
+            self.emit_keybinds()
 
     def remove_selected_keybind(self):
         """Remove the selected keybind"""
@@ -292,11 +319,14 @@ class KeybindingsTab(QWidget):
 class KeybindEditDialog(QDialog):
     """Dialog for editing a keybind"""
 
-    def __init__(self, keybind: Optional[Keybind], keybind_manager: KeybindManager, parent=None):
+    def __init__(self, keybind: Optional[Keybind], keybind_manager: KeybindManager,
+                 macro_manager: MacroManager = None, parent=None):
         super().__init__(parent)
         self.keybind = keybind
         self.keybind_manager = keybind_manager
+        self.macro_manager = macro_manager
         self.is_new = (keybind is None)
+        self.is_macro_keybind = False  # Track if this is a macro keybind
         self.init_ui()
 
     def init_ui(self):
@@ -314,9 +344,20 @@ class KeybindEditDialog(QDialog):
         if self.is_new:
             self.action_input = QComboBox()
             # Add available actions
+            self.action_input.addItem("--- Built-in Actions ---")
             for action in KeybindAction:
-                self.action_input.addItem(action.value)
-            self.action_input.setEditable(True)
+                self.action_input.addItem(f"  {action.value}")
+
+            # Add macros if macro_manager is available
+            if self.macro_manager:
+                macros = self.macro_manager.get_all_macros()
+                if macros:
+                    self.action_input.addItem("--- Macros ---")
+                    for macro in macros:
+                        self.action_input.addItem(f"  macro:{macro.id}")
+
+            # Set to first actual action (skip the separator)
+            self.action_input.setCurrentIndex(1)
         else:
             self.action_input = QLineEdit(self.keybind.action)
             self.action_input.setReadOnly(True)
@@ -381,8 +422,8 @@ class KeybindEditDialog(QDialog):
         enabled = self.enabled_check.isChecked()
 
         # Validate
-        if not action:
-            QMessageBox.warning(self, "Invalid Input", "Action cannot be empty.")
+        if not action or action.startswith("---"):
+            QMessageBox.warning(self, "Invalid Input", "Please select a valid action.")
             return
 
         if not description:
@@ -412,20 +453,52 @@ class KeybindEditDialog(QDialog):
             if reply == QMessageBox.StandardButton.No:
                 return
 
-        # Create or update keybind
-        self.keybind = Keybind(
-            action=action,
-            keys=keys,
-            description=description,
-            enabled=enabled,
-            system_wide=system_wide
-        )
+        # Check if this is a macro keybind (starts with "macro:")
+        if action.startswith("macro:"):
+            # Extract macro ID
+            macro_id = action.replace("macro:", "").strip()
+
+            # Verify the macro exists
+            if self.macro_manager:
+                macro = self.macro_manager.get_macro(macro_id)
+                if not macro:
+                    QMessageBox.warning(self, "Invalid Macro", f"Macro '{macro_id}' not found.")
+                    return
+
+                # Create a MacroKeybind
+                self.macro_keybind = MacroKeybind(
+                    macro_id=macro_id,
+                    keys=keys,
+                    description=description
+                )
+                self.is_macro_keybind = True
+            else:
+                QMessageBox.warning(self, "Macro Manager Missing", "Cannot create macro keybind without macro manager.")
+                return
+        else:
+            # Create or update regular keybind
+            self.keybind = Keybind(
+                action=action,
+                keys=keys,
+                description=description,
+                enabled=enabled,
+                system_wide=system_wide
+            )
+            self.is_macro_keybind = False
 
         self.accept()
 
     def get_keybind(self) -> Optional[Keybind]:
         """Get the keybind"""
         return self.keybind
+
+    def get_macro_keybind(self) -> Optional['MacroKeybind']:
+        """Get the macro keybind if this is a macro action"""
+        return getattr(self, 'macro_keybind', None)
+
+    def is_macro_action(self) -> bool:
+        """Check if the saved action is a macro"""
+        return self.is_macro_keybind
 
 
 class MacrosTab(QWidget):

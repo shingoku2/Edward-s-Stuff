@@ -18,6 +18,9 @@ a = Analysis(
         # Game profiles and macros
         'game_profile', 'game_profiles_tab', 'game_watcher', 'overlay_modes',
         'macro_store', 'macro_runner', 'macro_ai_generator',
+        # Knowledge and session management
+        'knowledge_pack', 'knowledge_store', 'knowledge_index', 'knowledge_ingestion',
+        'knowledge_integration', 'knowledge_packs_tab', 'session_logger', 'session_coaching', 'session_recap_dialog',
         # Managers
         'keybind_manager', 'macro_manager', 'theme_manager',
         # AI providers

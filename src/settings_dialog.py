@@ -153,10 +153,11 @@ class TabbedSettingsDialog(QDialog):
 
         # Knowledge Packs tab
         self.knowledge_packs_tab = KnowledgePacksTab(self)
+        self.knowledge_packs_tab.packs_changed.connect(self.on_packs_changed)
         self.tab_widget.addTab(self.knowledge_packs_tab, "📚 Knowledge Packs")
 
         # Keybindings tab
-        self.keybindings_tab = KeybindingsTab(self.keybind_manager)
+        self.keybindings_tab = KeybindingsTab(self.keybind_manager, self.macro_manager)
         self.keybindings_tab.keybinds_changed.connect(self.on_keybinds_changed)
         self.tab_widget.addTab(self.keybindings_tab, "⌨️ Keybindings")
 
@@ -204,6 +205,10 @@ class TabbedSettingsDialog(QDialog):
         """Handle game profiles changed"""
         logger.info("Game profiles changed")
         self.game_profiles_changed.emit()
+
+    def on_packs_changed(self):
+        """Handle knowledge packs being updated"""
+        logger.info("Knowledge packs changed")
 
     def save_all_settings(self):
         """Save all settings from all tabs"""
