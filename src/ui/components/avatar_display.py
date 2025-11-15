@@ -2,7 +2,7 @@
 Omnix Avatar Display Component
 ================================
 
-Visual display component for showing the AI assistant avatar and game context.
+Visual display component showing the AI assistant avatar and game context.
 """
 
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame
@@ -12,127 +12,25 @@ from typing import Optional
 from ..tokens import COLORS, SPACING, RADIUS, TYPOGRAPHY
 
 
-class OmnixAvatarDisplay(QFrame):
+class AvatarCircle(QWidget):
     """
-    Avatar display component showing AI assistant visualization and context.
-
-    Features:
-    - Animated circular avatar with gradient effects
-    - Game context display
-    - Status indicators
-    - Smooth animations
-
-    Usage:
-        avatar = OmnixAvatarDisplay()
-        avatar.set_game_context("Elden Ring")
-        avatar.set_status("Active")
+    Custom widget for drawing the animated avatar circle.
+    This widget handles its own painting to avoid QPainter crashes.
     """
 
     def __init__(self, parent: Optional[QWidget] = None):
-        """
-        Initialize avatar display.
-
-        Args:
-            parent: Parent widget
-        """
         super().__init__(parent)
-
-        # State
-        self.game_context = None
-        self.status = "Ready"
         self.animation_frame = 0
-
-        # Setup UI
-        self._init_ui()
-
-        # Setup animation timer
-        self.animation_timer = QTimer(self)
-        self.animation_timer.timeout.connect(self._animate)
-        self.animation_timer.start(50)  # 20 FPS animation
-
-    def _init_ui(self):
-        """Initialize the UI components."""
-        # Apply styling
-        self.setStyleSheet(f"""
-            QFrame {{
-                background-color: rgba(44, 44, 74, 0.4);
-                border: 1px solid {COLORS.border_subtle};
-                border-radius: {RADIUS.lg}px;
-            }}
-        """)
-
-        # Main layout
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(SPACING.xl, SPACING.xl, SPACING.xl, SPACING.xl)
-        main_layout.setSpacing(SPACING.lg)
-        main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        # Avatar circle container
-        self.avatar_container = QWidget()
-        self.avatar_container.setFixedSize(200, 200)
-        main_layout.addWidget(self.avatar_container, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        # Info section
-        info_layout = QVBoxLayout()
-        info_layout.setSpacing(SPACING.sm)
-        info_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        # Title label
-        self.title_label = QLabel("Omnix AI Assistant")
-        self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.title_label.setStyleSheet(f"""
-            QLabel {{
-                color: {COLORS.accent_primary};
-                font-size: {TYPOGRAPHY.size_xl}pt;
-                font-weight: {TYPOGRAPHY.weight_bold};
-                background: transparent;
-                border: none;
-            }}
-        """)
-        info_layout.addWidget(self.title_label)
-
-        # Status label
-        self.status_label = QLabel(self.status)
-        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.status_label.setStyleSheet(f"""
-            QLabel {{
-                color: {COLORS.accent_secondary};
-                font-size: {TYPOGRAPHY.size_base}pt;
-                font-weight: {TYPOGRAPHY.weight_medium};
-                background: transparent;
-                border: none;
-            }}
-        """)
-        info_layout.addWidget(self.status_label)
-
-        # Game context label
-        self.game_label = QLabel("")
-        self.game_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.game_label.setStyleSheet(f"""
-            QLabel {{
-                color: {COLORS.text_secondary};
-                font-size: {TYPOGRAPHY.size_sm}pt;
-                font-weight: {TYPOGRAPHY.weight_normal};
-                background: transparent;
-                border: none;
-            }}
-        """)
-        info_layout.addWidget(self.game_label)
-
-        main_layout.addLayout(info_layout)
-
-        self.setLayout(main_layout)
+        self.setFixedSize(200, 200)
 
     def paintEvent(self, event):
         """Custom paint event for the avatar circle."""
-        super().paintEvent(event)
-
-        painter = QPainter(self.avatar_container)
+        painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
         # Calculate center
-        center_x = self.avatar_container.width() // 2
-        center_y = self.avatar_container.height() // 2
+        center_x = self.width() // 2
+        center_y = self.height() // 2
         radius = min(center_x, center_y) - 10
 
         # Draw outer glow ring (animated)
@@ -190,9 +88,119 @@ class OmnixAvatarDisplay(QFrame):
             y = center_y + size * 0.7 * math.sin(angle)
             painter.drawLine(center_x, center_y, int(x), int(y))
 
+
+class OmnixAvatarDisplay(QFrame):
+    """
+    Avatar display component showing AI assistant visualization and context.
+
+    Features:
+    - Animated circular avatar with gradient effects
+    - Game context display
+    - Status indicators
+    - Smooth animations
+
+    Usage:
+        avatar = OmnixAvatarDisplay()
+        avatar.set_game_context("Elden Ring")
+        avatar.set_status("Active")
+    """
+
+    def __init__(self, parent: Optional[QWidget] = None):
+        """
+        Initialize avatar display.
+
+        Args:
+            parent: Parent widget
+        """
+        super().__init__(parent)
+
+        # State
+        self.game_context = None
+        self.status = "Ready"
+
+        # Setup UI
+        self._init_ui()
+
+        # Setup animation timer
+        self.animation_timer = QTimer(self)
+        self.animation_timer.timeout.connect(self._animate)
+        self.animation_timer.start(50)  # 20 FPS animation
+
+    def _init_ui(self):
+        """Initialize the UI components."""
+        # Apply styling
+        self.setStyleSheet(f"""
+            QFrame {{
+                background-color: rgba(44, 44, 74, 0.4);
+                border: 1px solid {COLORS.border_subtle};
+                border-radius: {RADIUS.lg}px;
+            }}
+        """)
+
+        # Main layout
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(SPACING.xl, SPACING.xl, SPACING.xl, SPACING.xl)
+        main_layout.setSpacing(SPACING.lg)
+        main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # Avatar circle container - now using custom AvatarCircle widget
+        self.avatar_container = AvatarCircle()
+        main_layout.addWidget(self.avatar_container, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        # Info section
+        info_layout = QVBoxLayout()
+        info_layout.setSpacing(SPACING.sm)
+        info_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # Title label
+        self.title_label = QLabel("Omnix AI Assistant")
+        self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.title_label.setStyleSheet(f"""
+            QLabel {{
+                color: {COLORS.accent_primary};
+                font-size: {TYPOGRAPHY.size_xl}pt;
+                font-weight: {TYPOGRAPHY.weight_bold};
+                background: transparent;
+                border: none;
+            }}
+        """)
+        info_layout.addWidget(self.title_label)
+
+        # Status label
+        self.status_label = QLabel(self.status)
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.status_label.setStyleSheet(f"""
+            QLabel {{
+                color: {COLORS.accent_secondary};
+                font-size: {TYPOGRAPHY.size_base}pt;
+                font-weight: {TYPOGRAPHY.weight_medium};
+                background: transparent;
+                border: none;
+            }}
+        """)
+        info_layout.addWidget(self.status_label)
+
+        # Game context label
+        self.game_label = QLabel("")
+        self.game_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.game_label.setStyleSheet(f"""
+            QLabel {{
+                color: {COLORS.text_secondary};
+                font-size: {TYPOGRAPHY.size_sm}pt;
+                font-weight: {TYPOGRAPHY.weight_normal};
+                background: transparent;
+                border: none;
+            }}
+        """)
+        info_layout.addWidget(self.game_label)
+
+        main_layout.addLayout(info_layout)
+
+        self.setLayout(main_layout)
+
     def _animate(self):
         """Update animation frame."""
-        self.animation_frame += 1
+        self.avatar_container.animation_frame += 1
         self.avatar_container.update()
 
     def set_game_context(self, game_name: Optional[str]):
