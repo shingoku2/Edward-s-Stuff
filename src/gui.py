@@ -32,7 +32,7 @@ from game_profile import get_profile_store
 # Import design system components
 from ui.components import (
     OmnixButton, OmnixIconButton, OmnixLineEdit, OmnixTextEdit,
-    OmnixGrid, OmnixHeaderBar, OmnixDashboardButton
+    OmnixGrid, OmnixHeaderBar, OmnixDashboardButton, OmnixAvatarDisplay
 )
 from ui.icons import icons
 from ui.tokens import COLORS, SPACING, RADIUS, TYPOGRAPHY
@@ -198,6 +198,10 @@ class ChatWidget(QWidget):
         self.ai_worker.finished.connect(self.on_ai_finished)
         self.ai_worker.start()
 
+        # Notify parent about thinking state if available
+        if self.parent() and hasattr(self.parent().parent(), 'avatar_display'):
+            self.parent().parent().avatar_display.set_thinking(True)
+
     def on_ai_response(self, response: str):
         """Handle AI response"""
         self.add_message("AI Assistant", response, is_user=False)
@@ -212,6 +216,10 @@ class ChatWidget(QWidget):
         self.input_field.setEnabled(True)
         self.send_button.setText("Send")
         self.ai_worker = None
+
+        # Notify parent about thinking state end if available
+        if self.parent() and hasattr(self.parent().parent(), 'avatar_display'):
+            self.parent().parent().avatar_display.set_thinking(False)
 
     def add_message(self, sender: str, message: str, is_user: bool = True):
         """
@@ -744,7 +752,7 @@ class MainWindow(QMainWindow):
             QTimer.singleShot(250, self.open_advanced_settings)
 
     def init_ui(self):
-        """Initialize the main window UI as a 3x3 dashboard with frosted glass aesthetic"""
+        """Initialize the main window UI as a 2x3 dashboard with avatar display and frosted glass aesthetic"""
         self.setWindowTitle("Omnix AI Assistant - Dashboard")
 
         # Make window frameless and translucent for frosted glass effect
@@ -771,57 +779,58 @@ class MainWindow(QMainWindow):
         self.header = OmnixHeaderBar(title="Omnix AI Assistant", logo_text="⬡")
         main_layout.addWidget(self.header)
 
-        # Dashboard Grid Container
-        grid_container = QWidget()
-        grid_layout = QVBoxLayout()
-        grid_layout.setContentsMargins(SPACING.lg, SPACING.lg, SPACING.lg, SPACING.lg)
-        grid_layout.setSpacing(SPACING.lg)
+        # Dashboard Container
+        dashboard_container = QWidget()
+        dashboard_layout = QVBoxLayout()
+        dashboard_layout.setContentsMargins(SPACING.lg, SPACING.lg, SPACING.lg, SPACING.lg)
+        dashboard_layout.setSpacing(SPACING.lg)
 
-        # Create 3x3 grid using OmnixGrid
+        # Avatar Display Section (Top)
+        self.avatar_display = OmnixAvatarDisplay()
+        self.avatar_display.setMinimumHeight(300)
+        dashboard_layout.addWidget(self.avatar_display)
+
+        # Button Grid Section (Bottom) - 2x3 layout
+        button_grid_container = QWidget()
+        button_grid_layout = QVBoxLayout()
+        button_grid_layout.setContentsMargins(0, 0, 0, 0)
+        button_grid_layout.setSpacing(SPACING.base)
+
+        # Create 2x3 grid using OmnixGrid
         self.dashboard_grid = OmnixGrid(spacing=SPACING.base)
 
-        # Row 1: Omnix, AI, Knowledge Pack
-        self.omnix_button = OmnixDashboardButton("omnix_logo", "Omnix")
-        self.omnix_button.clicked.connect(self.show_about_dialog)
-        self.dashboard_grid.add_widget(self.omnix_button, 0, 0)
+        # Row 1: Chat, AI Provider, Settings
+        self.chat_button = OmnixDashboardButton("chat", "Chat")
+        self.chat_button.clicked.connect(self.toggle_overlay_visibility)
+        self.dashboard_grid.add_widget(self.chat_button, 0, 0)
 
-        self.ai_button = OmnixDashboardButton("ai", "AI")
+        self.ai_button = OmnixDashboardButton("ai", "AI Provider")
         self.ai_button.clicked.connect(lambda: self.open_settings_tab(0))
         self.dashboard_grid.add_widget(self.ai_button, 0, 1)
 
-        self.knowledge_button = OmnixDashboardButton("knowledge", "Knowledge Pack")
-        self.knowledge_button.clicked.connect(lambda: self.open_settings_tab(2))
-        self.dashboard_grid.add_widget(self.knowledge_button, 0, 2)
+        self.settings_button = OmnixDashboardButton("settings", "Settings")
+        self.settings_button.clicked.connect(self.open_advanced_settings)
+        self.dashboard_grid.add_widget(self.settings_button, 0, 2)
 
-        # Row 2: Game Profiles, Chat, Settings
+        # Row 2: Game Profiles, Knowledge Pack, Session Coaching
         self.profiles_button = OmnixDashboardButton("game", "Game Profiles")
         self.profiles_button.clicked.connect(lambda: self.open_settings_tab(1))
         self.dashboard_grid.add_widget(self.profiles_button, 1, 0)
 
-        self.chat_button = OmnixDashboardButton("chat", "Chat")
-        self.chat_button.clicked.connect(self.toggle_overlay_visibility)
-        self.dashboard_grid.add_widget(self.chat_button, 1, 1)
-
-        self.settings_button = OmnixDashboardButton("settings", "Settings")
-        self.settings_button.clicked.connect(self.open_advanced_settings)
-        self.dashboard_grid.add_widget(self.settings_button, 1, 2)
-
-        # Row 3: Macros, Session Coaching, Secure Credentials
-        self.macros_button = OmnixDashboardButton("macro", "Macros")
-        self.macros_button.clicked.connect(lambda: self.open_settings_tab(4))
-        self.dashboard_grid.add_widget(self.macros_button, 2, 0)
+        self.knowledge_button = OmnixDashboardButton("knowledge", "Knowledge Pack")
+        self.knowledge_button.clicked.connect(lambda: self.open_settings_tab(2))
+        self.dashboard_grid.add_widget(self.knowledge_button, 1, 1)
 
         self.session_button = OmnixDashboardButton("session", "Session Coaching")
         self.session_button.clicked.connect(self.show_session_recap)
-        self.dashboard_grid.add_widget(self.session_button, 2, 1)
+        self.dashboard_grid.add_widget(self.session_button, 1, 2)
 
-        self.credentials_button = OmnixDashboardButton("secure", "Secure Credentials")
-        self.credentials_button.clicked.connect(lambda: self.open_settings_tab(0))
-        self.dashboard_grid.add_widget(self.credentials_button, 2, 2)
+        button_grid_layout.addWidget(self.dashboard_grid)
+        button_grid_container.setLayout(button_grid_layout)
+        dashboard_layout.addWidget(button_grid_container)
 
-        grid_layout.addWidget(self.dashboard_grid)
-        grid_container.setLayout(grid_layout)
-        main_layout.addWidget(grid_container)
+        dashboard_container.setLayout(dashboard_layout)
+        main_layout.addWidget(dashboard_container)
 
         central_widget.setLayout(main_layout)
 
@@ -831,7 +840,7 @@ class MainWindow(QMainWindow):
         # Global keyboard shortcuts
         self.create_shortcuts()
 
-        logger.info("Main window initialized as dashboard")
+        logger.info("Main window initialized as 2x3 dashboard with avatar display")
 
     def mousePressEvent(self, event):
         """Handle mouse press for dragging the frameless window"""
@@ -951,6 +960,10 @@ class MainWindow(QMainWindow):
         if self.ai_assistant:
             self.ai_assistant.set_current_game(game)
 
+        # Update avatar display
+        if hasattr(self, 'avatar_display'):
+            self.avatar_display.set_game_context(game_name)
+
         # Show notification in overlay chat
         if hasattr(self, 'overlay_window') and self.overlay_window:
             self.overlay_window.chat_widget.add_message(
@@ -969,6 +982,10 @@ class MainWindow(QMainWindow):
         if self.ai_assistant:
             self.ai_assistant.current_game = None
             logger.info("Cleared AI assistant game context")
+
+        # Clear avatar display
+        if hasattr(self, 'avatar_display'):
+            self.avatar_display.set_game_context(None)
 
         logger.info("Game lost event handled")
 
@@ -997,6 +1014,10 @@ class MainWindow(QMainWindow):
         try:
             logger.info(f"GameWatcher detected game change: {game_name} (profile: {profile.id})")
 
+            # Update avatar display
+            if hasattr(self, 'avatar_display'):
+                self.avatar_display.set_game_context(game_name)
+
             # Update overlay title with current game
             if self.overlay_window:
                 self.overlay_window.setWindowTitle(f"Gaming Copilot - {game_name}")
@@ -1015,6 +1036,10 @@ class MainWindow(QMainWindow):
         """Handle game close/loss from GameWatcher"""
         try:
             logger.info("GameWatcher: game closed")
+
+            # Clear avatar display
+            if hasattr(self, 'avatar_display'):
+                self.avatar_display.set_game_context(None)
 
             # Update overlay title
             if self.overlay_window:
