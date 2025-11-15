@@ -58,6 +58,9 @@ class AvatarCircle(QWidget):
         # Draw inner symbol (hexagon logo)
         self._draw_hexagon(painter, center_x, center_y, radius * 0.5)
 
+        # Always end the painter to prevent crashes
+        painter.end()
+
     def _draw_hexagon(self, painter: QPainter, center_x: int, center_y: int, size: float):
         """Draw a hexagon symbol in the center of the avatar."""
         import math
