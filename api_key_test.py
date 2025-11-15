@@ -26,6 +26,7 @@ print("=" * 70)
 # Load API keys from CredentialStore
 try:
     from config import Config
+    from provider_tester import ProviderTester
     config = Config(require_keys=False)
 except Exception as e:
     print(f"Error loading config: {e}")
@@ -37,35 +38,19 @@ anthropic_key = config.get_api_key('anthropic')
 
 if anthropic_key:
     print(f"  Key found: {anthropic_key[:20]}...{anthropic_key[-10:]}")
-    print(f"  Key length: {len(anthropic_key)} characters")
-    print(f"  Expected format: sk-ant-api03-...")
 
     try:
-        import anthropic
-        client = anthropic.Anthropic(api_key=anthropic_key)
-
-        # Try the simplest possible request
-        print("  Attempting minimal API call...")
-
-        response = client.messages.create(
-            model="claude-3-haiku-20240307",  # Smallest/cheapest model
-            max_tokens=10,
-            messages=[{"role": "user", "content": "Hi"}]
-        )
-
-        print(f"✓ Anthropic API key is VALID!")
-        print(f"  Response: {response.content[0].text}")
-
-    except anthropic.NotFoundError as e:
-        print(f"✗ Model not found error: {e}")
-        print(f"  This likely means the API key doesn't have model access")
-    except anthropic.AuthenticationError as e:
-        print(f"✗ Authentication error: {e}")
-        print(f"  The API key is invalid or expired")
+        success, message = ProviderTester.test_anthropic(anthropic_key)
+        if success:
+            print(f"✓ Anthropic Test SUCCESSFUL!")
+            print(f"  {message.splitlines()[0]}")
+        else:
+            print(f"✗ Anthropic Test FAILED:")
+            print(f"  {message}")
     except Exception as e:
         print(f"✗ Error: {e}")
 else:
-    print("✗ No Anthropic API key found in CredentialStore")
+    print("  No Anthropic API key found in CredentialStore")
 
 # Test OpenAI API
 print("\n[2/3] Testing OpenAI API Key...")
@@ -73,35 +58,19 @@ openai_key = config.get_api_key('openai')
 
 if openai_key:
     print(f"  Key found: {openai_key[:20]}...{openai_key[-10:]}")
-    print(f"  Key length: {len(openai_key)} characters")
-    print(f"  Expected format: sk-proj-...")
 
     try:
-        import openai
-        client = openai.OpenAI(api_key=openai_key)
-
-        # Try the simplest possible request
-        print("  Attempting minimal API call...")
-
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",  # Cheapest model
-            max_tokens=10,
-            messages=[{"role": "user", "content": "Hi"}]
-        )
-
-        print(f"✓ OpenAI API key is VALID!")
-        print(f"  Response: {response.choices[0].message.content}")
-
-    except openai.AuthenticationError as e:
-        print(f"✗ Authentication error: {e}")
-        print(f"  The API key is invalid")
-    except openai.PermissionDeniedError as e:
-        print(f"✗ Permission denied: {e}")
-        print(f"  The API key doesn't have access to the API")
+        success, message = ProviderTester.test_openai(openai_key)
+        if success:
+            print(f"✓ OpenAI Test SUCCESSFUL!")
+            print(f"  {message.splitlines()[0]}")
+        else:
+            print(f"✗ OpenAI Test FAILED:")
+            print(f"  {message}")
     except Exception as e:
         print(f"✗ Error: {e}")
 else:
-    print("✗ No OpenAI API key found in CredentialStore")
+    print("  No OpenAI API key found in CredentialStore")
 
 # Test Gemini API
 print("\n[3/3] Testing Gemini API Key...")
@@ -109,31 +78,19 @@ gemini_key = config.get_api_key('gemini')
 
 if gemini_key:
     print(f"  Key found: {gemini_key[:20]}...{gemini_key[-10:]}")
-    print(f"  Key length: {len(gemini_key)} characters")
-    print(f"  Expected format: AIza...")
 
     try:
-        import google.generativeai as genai
-        genai.configure(api_key=gemini_key)
-        model = genai.GenerativeModel('gemini-1.5-flash')
-
-        # Try the simplest possible request
-        print("  Attempting minimal API call...")
-
-        response = model.generate_content("Hi", stream=False)
-
-        print(f"✓ Gemini API key is VALID!")
-        print(f"  Response: {response.text[:50]}...")
-
-    except Exception as e:
-        error_msg = str(e).lower()
-        if 'unauthorized' in error_msg or 'authentication' in error_msg:
-            print(f"✗ Authentication error: {e}")
-            print(f"  The API key is invalid or expired")
+        success, message = ProviderTester.test_gemini(gemini_key)
+        if success:
+            print(f"✓ Gemini Test SUCCESSFUL!")
+            print(f"  {message.splitlines()[0]}")
         else:
-            print(f"✗ Error: {e}")
+            print(f"✗ Gemini Test FAILED:")
+            print(f"  {message}")
+    except Exception as e:
+        print(f"✗ Error: {e}")
 else:
-    print("✗ No Gemini API key found in CredentialStore")
+    print("  No Gemini API key found in CredentialStore")
 
 print("\n" + "=" * 70)
 print("DIAGNOSTIC COMPLETE")

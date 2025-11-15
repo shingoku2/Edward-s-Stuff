@@ -114,6 +114,15 @@ python -m PyInstaller ^
     --hidden-import=macro_store ^
     --hidden-import=macro_runner ^
     --hidden-import=macro_ai_generator ^
+    --hidden-import=knowledge_pack ^
+    --hidden-import=knowledge_store ^
+    --hidden-import=knowledge_index ^
+    --hidden-import=knowledge_ingestion ^
+    --hidden-import=knowledge_integration ^
+    --hidden-import=knowledge_packs_tab ^
+    --hidden-import=session_logger ^
+    --hidden-import=session_coaching ^
+    --hidden-import=session_recap_dialog ^
     --hidden-import=anthropic ^
     --hidden-import=openai ^
     --hidden-import=google.generativeai ^

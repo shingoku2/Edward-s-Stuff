@@ -109,16 +109,29 @@ def test_module_integration():
     print_header("Testing Module Integration")
 
     try:
+        from config import Config
         from game_detector import GameDetector
         from ai_assistant import AIAssistant
         from info_scraper import InfoScraper
-        from config import Config
+        from gui import MainWindow
+        from ai_router import AIRouter
+        from providers import AIProvider
+        from keybind_manager import KeybindManager
+        from macro_manager import MacroManager
+        from knowledge_pack import KnowledgePack
+        from session_logger import SessionLogger
 
-        print("✓ game_detector module")
-        print("✓ ai_assistant module")
-        print("✓ info_scraper module")
-        print("✓ config module")
-        print("✓ gui module (PyQt6 available)")
+        print("✓ config")
+        print("✓ game_detector")
+        print("✓ ai_assistant")
+        print("✓ info_scraper")
+        print("✓ gui")
+        print("✓ ai_router")
+        print("✓ providers")
+        print("✓ keybind_manager")
+        print("✓ macro_manager")
+        print("✓ knowledge_pack")
+        print("✓ session_logger")
 
         print("\nAll modules integrated successfully!")
         return True
@@ -163,19 +176,23 @@ def show_next_steps():
     print("""
 To use the Gaming AI Assistant:
 
-1. Get an AI API Key:
+1. Get an AI API Key (if you don't have one):
    • Anthropic (Claude): https://console.anthropic.com/
    • OpenAI (GPT): https://platform.openai.com/
+   • Google Gemini: https://aistudio.google.com/app/apikey
 
-2. Configure your API key:
-   • Edit the .env file
-   • Add your API key to ANTHROPIC_API_KEY or OPENAI_API_KEY
-   • Set AI_PROVIDER to 'anthropic' or 'openai'
-
-3. Run the application:
+2. Run the application:
    python main.py
 
-4. The GUI will open and start detecting games!
+3. Configure your API key:
+   • The Setup Wizard will launch automatically on first run
+   • Select your preferred AI provider (Anthropic, OpenAI, or Gemini)
+   • Enter your API key (it will be stored securely in CredentialStore)
+   • Your key is encrypted and NOT stored in .env files
+
+4. Start gaming!
+   • The GUI will open and start detecting games
+   • Press Ctrl+Shift+G while in a game to open the assistant
 
 Keyboard Shortcuts:
   • Ctrl+Shift+G - Toggle assistant window
@@ -217,7 +234,8 @@ def main():
 
     print_header("✅ All Tests Passed!")
     print("\nThe Gaming AI Assistant is ready to use!")
-    print("Configure your API key in .env and run: python main.py\n")
+    print("Run: python main.py")
+    print("The Setup Wizard will guide you through API key configuration.\n")
 
 
 if __name__ == "__main__":

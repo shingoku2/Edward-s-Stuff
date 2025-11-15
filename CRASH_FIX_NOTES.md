@@ -52,13 +52,9 @@ The crash was caused by errors in the web scraping code that tries to fetch info
    BUILD_DEBUG.bat
    ```
 
-3. **Copy your .env file:**
-   ```cmd
-   copy .env dist\GamingAIAssistant\.env
-   ```
-
-4. **Test the new .exe:**
+3. **Test the new .exe:**
    - Run the application
+   - **Note:** The Setup Wizard will run on first launch to configure your API key.
    - Start World of Warcraft (or any game)
    - Click "Game Overview"
    - Should now work without crashing!
@@ -147,7 +143,7 @@ If web scraping fails completely, the AI will still generate an overview based o
 2. **Check the error message** in the console window
 
 3. **Common issues:**
-   - **"API key not found"**: Make sure .env file is in the same folder as the .exe
+   - **"API key not found"**: Run the Setup Wizard (launches on first run) or go to Settings → Providers
    - **"Network error"**: Check your internet connection
    - **"Timeout"**: The wiki might be slow, try again
 

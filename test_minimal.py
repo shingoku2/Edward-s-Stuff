@@ -34,8 +34,11 @@ try:
 
     print("\n3. Testing AI assistant...")
     from ai_assistant import AIAssistant
-    ai = AIAssistant(provider=config.ai_provider, api_key=config.get_api_key())
-    print(f"   ✓ AI assistant loaded")
+    from ai_router import get_router
+    # Initialize the router, which is what AIAssistant will use
+    router = get_router(config)
+    ai = AIAssistant(config=config)
+    print(f"   ✓ AI assistant loaded (using router)")
 
     print("\n4. Testing info scraper...")
     from info_scraper import InfoScraper

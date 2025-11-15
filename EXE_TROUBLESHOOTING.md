@@ -128,7 +128,7 @@ Use the updated BUILD_WINDOWS.bat or BUILD_SIMPLE.bat
    - Check if you have credits
 
 3. **Test the API key:**
-   - Run test_minimal.py before building
+   - Run api_key_test.py before building
    - It will verify your API key works
 
 ---
@@ -143,17 +143,16 @@ python test_before_build.py
 ```
 
 This checks:
-- .env file exists
-- API keys are configured
 - All modules import correctly
 - Dependencies are installed
+- Basic configuration is valid
 
-### Test 2: Minimal Test
+### Test 2: API Key Test
 ```cmd
-python test_minimal.py
+python api_key_test.py
 ```
 
-This tests the core functionality without GUI.
+This tests your API key connections to providers.
 
 ### Test 3: Run from Python
 ```cmd
@@ -214,21 +213,18 @@ If none of these fix your issue:
 
 1. **Run the DEBUG build** and copy the error message
 
-2. **Check these files:**
-   - .env (is it in the right place?)
+2. **Check these:**
    - requirements.txt (all dependencies installed?)
    - Python version (3.8+ required)
+   - API key configured in Setup Wizard or Settings
 
 3. **Common error patterns:**
 
    **Error:** "ImportError: DLL load failed"
    **Fix:** Install Visual C++ Redistributables
 
-   **Error:** "FileNotFoundError: .env"
-   **Fix:** Copy .env to same folder as .exe
-
    **Error:** "ValueError: API key not found"
-   **Fix:** Check .env file has correct API key
+   **Fix:** Run the .exe to launch the Setup Wizard and enter your key
 
    **Error:** "ModuleNotFoundError: config"
    **Fix:** Rebuild with --paths=src flag
@@ -240,7 +236,7 @@ If none of these fix your issue:
 Try building a simple test version:
 
 ```cmd
-python -m PyInstaller --name=Test --console --onefile test_minimal.py
+python -m PyInstaller --name=Test --console --onefile api_key_test.py
 ```
 
 Run: `dist\Test.exe`
@@ -258,11 +254,8 @@ Edward-s-Stuff/
 ├── dist/
 │   └── GamingAIAssistant/
 │       ├── GamingAIAssistant.exe    ← The application
-│       ├── _internal/                ← Dependencies (auto-created)
-│       ├── README.md
-│       └── other files...
-├── .env                              ← Your local config (NOT distributed)
-├── .env.example                      ← Template
+│       ├── .env.example             ← Template
+│       └── [other files...]
 ├── BUILD_WINDOWS.bat
 ├── BUILD_DEBUG.bat
 └── main.py

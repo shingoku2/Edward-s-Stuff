@@ -52,12 +52,53 @@ cmd = [
     "--add-data=.env.example:.",
     "--add-data=README.md:.",
     "--add-data=SETUP.md:.",
+    "--paths=src",
     # PyQt6 modules
     "--hidden-import=PyQt6.QtCore",
     "--hidden-import=PyQt6.QtGui",
     "--hidden-import=PyQt6.QtWidgets",
-    "--hidden-import=PyQt6.QtCore.QTimer",
-    "--hidden-import=PyQt6.QtWidgets.QApplication",
+    "--hidden-import=PyQt6.QtWebEngineCore",
+    "--hidden-import=PyQt6.QtWebEngineWidgets",
+    # Core modules
+    "--hidden-import=config",
+    "--hidden-import=game_detector",
+    "--hidden-import=ai_assistant",
+    "--hidden-import=info_scraper",
+    "--hidden-import=gui",
+    # Secure modules
+    "--hidden-import=credential_store",
+    "--hidden-import=provider_tester",
+    "--hidden-import=providers",
+    "--hidden-import=ai_router",
+    "--hidden-import=setup_wizard",
+    # Settings and UI
+    "--hidden-import=providers_tab",
+    "--hidden-import=settings_dialog",
+    "--hidden-import=settings_tabs",
+    "--hidden-import=appearance_tabs",
+    "--hidden-import=login_dialog",
+    # Game profiles and macros
+    "--hidden-import=game_profile",
+    "--hidden-import=game_profiles_tab",
+    "--hidden-import=game_watcher",
+    "--hidden-import=overlay_modes",
+    "--hidden-import=macro_store",
+    "--hidden-import=macro_runner",
+    "--hidden-import=macro_ai_generator",
+    # Knowledge and session management
+    "--hidden-import=knowledge_pack",
+    "--hidden-import=knowledge_store",
+    "--hidden-import=knowledge_index",
+    "--hidden-import=knowledge_ingestion",
+    "--hidden-import=knowledge_integration",
+    "--hidden-import=knowledge_packs_tab",
+    "--hidden-import=session_logger",
+    "--hidden-import=session_coaching",
+    "--hidden-import=session_recap_dialog",
+    # Managers
+    "--hidden-import=keybind_manager",
+    "--hidden-import=macro_manager",
+    "--hidden-import=theme_manager",
     # AI Provider modules
     "--hidden-import=anthropic",
     "--hidden-import=openai",
@@ -67,19 +108,12 @@ cmd = [
     "--hidden-import=requests",
     "--hidden-import=bs4",
     "--hidden-import=dotenv",
+    "--hidden-import=cryptography",
+    "--hidden-import=keyring",
+    "--hidden-import=pynput",
     # Additional dependencies
     "--hidden-import=urllib3",
     "--hidden-import=certifi",
-    "--hidden-import=charset_normalizer",
-    "--hidden-import=idna",
-    "--hidden-import=pydantic",
-    "--hidden-import=pydantic_core",
-    "--hidden-import=win32api",
-    "--hidden-import=win32con",
-    "--hidden-import=win32gui",
-    "--hidden-import=win32process",
-    # Encoding support
-    "--hidden-import=encodings.utf_8",
     "main.py"
 ]
 
@@ -112,25 +146,34 @@ if os.path.exists(dist_dir):
 GAMING AI ASSISTANT - QUICK START
 ==================================
 
-1. SETUP API KEY:
-   - Copy ".env.example" to ".env"
-   - Add your Anthropic API key to the .env file
-   - Set AI_PROVIDER=anthropic
-
-2. RUN THE APPLICATION:
+1. RUN THE APPLICATION:
    - Double-click GamingAIAssistant.exe
-   - Launch a game (League of Legends, Minecraft, etc.)
-   - Press Ctrl+Shift+G to open the assistant while in-game
+   - The Setup Wizard will launch automatically on first run
 
-3. GET AN API KEY:
-   - Visit: https://console.anthropic.com/
-   - Create an account and generate an API key
-   - Add credits to your account
+2. CONFIGURE YOUR AI PROVIDER:
+   - Select your preferred AI provider (Anthropic Claude, OpenAI, or Gemini)
+   - Enter your API key (it will be stored securely in encrypted CredentialStore)
+   - Test the connection
+
+3. START GAMING:
+   - Launch a game (League of Legends, Minecraft, VALORANT, Elden Ring, etc.)
+   - Press Ctrl+Shift+G to open the assistant while in-game
+   - Ask questions, get tips, and enhance your gameplay!
+
+4. GET AN API KEY (if you don't have one):
+   - Anthropic Claude: https://console.anthropic.com/
+   - OpenAI: https://platform.openai.com/api-keys
+   - Gemini: https://aistudio.google.com/app/apikey
+
+SECURITY NOTE:
+- Your API key is stored securely in your system's credential manager
+- API keys are NOT stored in .env files
+- No data is sent to anyone except your chosen AI provider
 
 For detailed instructions, see SETUP.md
 
-Supported Games: League of Legends, Minecraft, VALORANT,
-Dota 2, Elden Ring, Dark Souls 3, and 30+ more!
+Supported Games: 50+ games including League of Legends, Minecraft, VALORANT,
+Dota 2, Elden Ring, Dark Souls 3, Cyberpunk 2077, and more!
 """
 
     with open(os.path.join(dist_dir, "START_HERE.txt"), "w") as f:
@@ -157,6 +200,9 @@ print(f"\n📦 Distribution package:")
 print(f"   File: {dist_name}.zip")
 print(f"\n💡 To use on Windows:")
 print(f"   1. Extract {dist_name}.zip")
-print(f"   2. Copy .env.example to .env and add your API key")
-print(f"   3. Run GamingAIAssistant.exe")
+print(f"   2. Run GamingAIAssistant.exe")
+print(f"   3. Setup Wizard will guide you through API key configuration")
+print(f"\n🔒 Security:")
+print(f"   - API keys are stored securely in system credential manager")
+print(f"   - NOT stored in .env files!")
 print("=" * 70)

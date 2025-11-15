@@ -110,9 +110,10 @@ REM Install PyInstaller
 python -m pip install pyinstaller
 
 REM Build the executable
-python -m PyInstaller --name=GamingAIAssistant --windowed --onedir --paths=src --add-data=".env.example;." --hidden-import=PyQt6.QtCore --hidden-import=PyQt6.QtGui --hidden-import=PyQt6.QtWidgets --hidden-import=config --hidden-import=game_detector --hidden-import=ai_assistant --hidden-import=info_scraper --hidden-import=gui --hidden-import=anthropic --hidden-import=openai --hidden-import=psutil --hidden-import=bs4 --hidden-import=dotenv main.py
+python -m PyInstaller --name=GamingAIAssistant --windowed --onedir --clean --noconfirm --paths=src --hidden-import=PyQt6.QtCore --hidden-import=PyQt6.QtGui --hidden-import=PyQt6.QtWidgets --hidden-import=PyQt6.QtWebEngineCore --hidden-import=PyQt6.QtWebEngineWidgets --hidden-import=config --hidden-import=game_detector --hidden-import=ai_assistant --hidden-import=info_scraper --hidden-import=gui --hidden-import=credential_store --hidden-import=provider_tester --hidden-import=providers --hidden-import=ai_router --hidden-import=setup_wizard --hidden-import=providers_tab --hidden-import=settings_dialog --hidden-import=settings_tabs --hidden-import=appearance_tabs --hidden-import=login_dialog --hidden-import=keybind_manager --hidden-import=macro_manager --hidden-import=theme_manager --hidden-import=game_profile --hidden-import=game_profiles_tab --hidden-import=game_watcher --hidden-import=overlay_modes --hidden-import=macro_store --hidden-import=macro_runner --hidden-import=macro_ai_generator --hidden-import=knowledge_pack --hidden-import=knowledge_store --hidden-import=knowledge_index --hidden-import=knowledge_ingestion --hidden-import=knowledge_integration --hidden-import=knowledge_packs_tab --hidden-import=session_logger --hidden-import=session_coaching --hidden-import=session_recap_dialog --hidden-import=anthropic --hidden-import=openai --hidden-import=google.generativeai --hidden-import=psutil --hidden-import=requests --hidden-import=bs4 --hidden-import=dotenv --hidden-import=cryptography --hidden-import=keyring --hidden-import=pynput main.py
 
 REM Your .exe will be at: dist\GamingAIAssistant\GamingAIAssistant.exe
+REM The Setup Wizard will launch on first run to configure your API key
 ```
 
 ---

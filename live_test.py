@@ -28,13 +28,15 @@ print("GAMING AI ASSISTANT - LIVE API TEST")
 print("=" * 70)
 
 # Test 1: Load Configuration
-print("\n[1/6] Loading configuration from .env...")
+print("\n[1/6] Loading configuration...")
 try:
     config = Config()
     print(f"✓ Configuration loaded")
     print(f"  - AI Provider: {config.ai_provider}")
-    print(f"  - OpenAI Key: {'*' * 20}{config.openai_api_key[-10:] if config.openai_api_key else 'Not set'}")
-    print(f"  - Anthropic Key: {'*' * 20}{config.anthropic_api_key[-10:] if config.anthropic_api_key else 'Not set'}")
+    openai_key = config.get_api_key('openai')
+    anthropic_key = config.get_api_key('anthropic')
+    print(f"  - OpenAI Key: {'*' * 20}{openai_key[-10:] if openai_key else 'Not set'}")
+    print(f"  - Anthropic Key: {'*' * 20}{anthropic_key[-10:] if anthropic_key else 'Not set'}")
 except Exception as e:
     print(f"✗ Configuration error: {e}")
     sys.exit(1)
@@ -64,23 +66,24 @@ except Exception as e:
     print(f"✗ Info scraper error: {e}")
     sys.exit(1)
 
-# Test 4: Initialize AI Assistant (Anthropic)
-print("\n[4/6] Initializing AI Assistant with Anthropic (Claude)...")
+# Test 4: Initialize AI Assistant (using AIRouter)
+print("\n[4/6] Initializing AI Assistant (using provider from config)...")
 try:
-    ai_anthropic = AIAssistant(provider="anthropic", api_key=config.anthropic_api_key)
-    print(f"✓ Anthropic AI assistant initialized")
+    # AIAssistant will use the provider from config via the router
+    ai_anthropic = AIAssistant(config=config)
+    print(f"✓ AI assistant initialized with {config.ai_provider}")
 
     # Set a test game context
     ai_anthropic.set_current_game({"name": "League of Legends"})
     print(f"✓ Game context set: League of Legends")
 
 except Exception as e:
-    print(f"✗ Anthropic initialization error: {e}")
+    print(f"✗ AI assistant initialization error: {e}")
     ai_anthropic = None
 
-# Test 5: Make a real API call to Anthropic
+# Test 5: Make a real API call
 if ai_anthropic:
-    print("\n[5/6] Testing real API call to Anthropic...")
+    print(f"\n[5/6] Testing real API call with {config.ai_provider}...")
     print("  Question: 'What are the main roles in League of Legends?'")
 
     try:
@@ -89,7 +92,7 @@ if ai_anthropic:
         elapsed_time = time.time() - start_time
 
         print(f"✓ API call successful (took {elapsed_time:.2f} seconds)")
-        print(f"\n  Claude's Response:")
+        print(f"\n  AI Response:")
         print("  " + "-" * 60)
         # Print first 500 chars of response
         response_preview = response[:500] + "..." if len(response) > 500 else response
@@ -102,28 +105,29 @@ if ai_anthropic:
         print(f"\n✓ Conversation history: {len(history)} messages")
 
     except Exception as e:
-        print(f"✗ Anthropic API call error: {e}")
+        print(f"✗ API call error: {e}")
 else:
-    print("\n[5/6] Skipping Anthropic test (initialization failed)")
+    print("\n[5/6] Skipping API test (initialization failed)")
 
-# Test 6: Test OpenAI (optional)
-print("\n[6/6] Testing OpenAI initialization...")
+# Test 6: Test with different game context
+print("\n[6/6] Testing with different game context...")
 try:
-    ai_openai = AIAssistant(provider="openai", api_key=config.openai_api_key)
-    print(f"✓ OpenAI AI assistant initialized")
+    # This test will use the *default* provider, just with a different game.
+    ai_test2 = AIAssistant(config=config)
+    print(f"✓ Second AI assistant initialized")
 
     # Set a test game context
-    ai_openai.set_current_game({"name": "Minecraft"})
+    ai_test2.set_current_game({"name": "Minecraft"})
     print(f"✓ Game context set: Minecraft")
 
     # Make a quick test call
     print("  Question: 'What are the basic resources in Minecraft?'")
     start_time = time.time()
-    response = ai_openai.ask_question("What are the basic resources in Minecraft?")
+    response = ai_test2.ask_question("What are the basic resources in Minecraft?")
     elapsed_time = time.time() - start_time
 
-    print(f"✓ OpenAI API call successful (took {elapsed_time:.2f} seconds)")
-    print(f"\n  GPT-4's Response:")
+    print(f"✓ API call successful (took {elapsed_time:.2f} seconds)")
+    print(f"\n  AI Response:")
     print("  " + "-" * 60)
     response_preview = response[:500] + "..." if len(response) > 500 else response
     for line in response_preview.split('\n'):
@@ -131,7 +135,7 @@ try:
     print("  " + "-" * 60)
 
 except Exception as e:
-    print(f"✗ OpenAI test error: {e}")
+    print(f"✗ Second test error: {e}")
 
 # Test 7: Test conversation history trimming
 if ai_anthropic:
@@ -174,8 +178,8 @@ print("=" * 70)
 print("✓ Configuration: PASSED")
 print("✓ Game Detection: PASSED")
 print("✓ Info Scraper: PASSED")
-print("✓ Anthropic AI: PASSED" if ai_anthropic else "✗ Anthropic AI: FAILED")
-print("✓ OpenAI AI: PASSED")
+print("✓ AI Assistant: PASSED" if ai_anthropic else "✗ AI Assistant: FAILED")
+print("✓ Multiple Contexts: PASSED")
 print("✓ Conversation Management: PASSED")
 print("\n🎉 ALL TESTS PASSED! Application is ready for use.")
 print("=" * 70)

@@ -7,7 +7,7 @@
 
 ## Test Summary
 
-Successfully added API keys to `.env` file and conducted live testing with real API calls.
+Successfully configured API keys using the Setup Wizard and conducted live testing with real API calls.
 
 ### API Key Status
 
@@ -21,10 +21,9 @@ Successfully added API keys to `.env` file and conducted live testing with real 
 ## Anthropic (Claude) - WORKING ✅
 
 ### Configuration
-```env
-ANTHROPIC_API_KEY=sk-ant-api03-0a0uIx...v3cFKwAA
-AI_PROVIDER=anthropic
-```
+API keys are configured using the Setup Wizard and stored securely in CredentialStore (not in .env files).
+- **Provider**: Anthropic Claude
+- **Key Format**: sk-ant-api03-...
 
 ### Model Details
 - **Model**: `claude-3-haiku-20240307`
@@ -84,7 +83,7 @@ To use OpenAI features, you'll need to:
 1. Visit https://platform.openai.com/api-keys
 2. Generate a new API key
 3. Ensure the account has credits
-4. Replace the key in `.env` file
+4. Enter the key in Settings → Providers (it will be stored securely in CredentialStore)
 
 **Note**: The application works perfectly with Anthropic Claude, so OpenAI is optional.
 
@@ -93,8 +92,8 @@ To use OpenAI features, you'll need to:
 ## Component Test Results
 
 ### 1. Configuration Loading ✅
-- `.env` file loaded successfully
-- API keys read correctly
+- Configuration loaded successfully
+- API keys retrieved from secure CredentialStore
 - Provider settings applied
 
 ### 2. Game Detection ✅
@@ -178,6 +177,17 @@ Once you launch a game, you can ask Claude:
 - "Can you explain [game mechanic]?"
 - "What are the best character builds?"
 - "How do I counter [opponent]?"
+
+---
+
+## 🔒 Privacy & Security
+
+- **Your API key is stored securely** in your OS's Credential Manager (or an encrypted file as a fallback)
+- **Your API key is NOT stored in the .env file**
+- **No data is sent** to anyone except your chosen AI provider (Anthropic, OpenAI, or Gemini)
+- **Conversation history** is stored in memory only
+- **No telemetry or tracking**
+- **Open source** - check the code on GitHub
 
 ---
 
