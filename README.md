@@ -1,25 +1,35 @@
 This is a passion project of mine. I am using AI to fully help me code the entire app. So I guess it's also an experiment, to see if it's possible.
 
-# 🎮 Gaming AI Assistant
+# 🎮 Omnix - All-knowing Gaming Companion
 
-An intelligent, real-time gaming companion that automatically detects what game you're playing and provides AI-powered tips, strategies, and answers to your questions while you play.
+A sophisticated desktop AI gaming companion that automatically detects what game you're playing and provides AI-powered assistance, knowledge integration, macro automation, and session coaching to enhance your gaming experience.
 
 ![Python](https://img.shields.io/badge/python-3.8+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 ## ✨ Features
 
-- **🎯 Automatic Game Detection** - Detects running games by monitoring processes
-- **🤖 AI-Powered Assistant** - Uses Claude, GPT, or Gemini to answer gaming questions in real-time
-- **🔍 Web Information Retrieval** - Scrapes gaming wikis, forums, and guides automatically
-- **💬 Real-Time Q&A** - Ask questions about the game and get instant answers
-- **🎨 Modern GUI** - Clean, dark-themed interface with system tray support
-- **⌨️ Hotkey Support** - Quick access with Ctrl+Shift+G
-- **📐 Movable & Resizable Overlay** - Drag to move, resize from edges, remembers position
-- **🪟 Minimize/Restore** - Collapse overlay to title bar, one-click restore
-- **💾 Auto-Save Layout** - Window position and size saved automatically
-- **📚 Game Knowledge Base** - Supports 50+ popular games out of the box
-- **🌐 Multi-Source Intelligence** - Combines AI with wiki data and community resources
+### Core Features
+- **🎯 Automatic Game Detection** - Monitors 50+ pre-configured games with custom profile support
+- **🤖 Multi-Provider AI** - Seamlessly switch between OpenAI, Anthropic, and Google Gemini
+- **📚 Knowledge System** - Per-game knowledge packs with semantic search (TF-IDF)
+- **⌨️ Macro & Automation** - Record and execute keyboard/mouse macros with hotkey support
+- **📊 Session Coaching** - AI-powered gameplay insights and improvement tips
+- **🔐 Secure Credentials** - Encrypted API key storage in system keyring
+
+### User Interface
+- **🎨 Modern Design System** - Consistent UI with design tokens and reusable components
+- **🪟 Advanced Overlay** - Movable, resizable, minimizable with auto-save
+- **📐 Display Modes** - Switch between compact and full chat interfaces
+- **⌨️ Global Hotkeys** - Customizable shortcuts for all actions
+- **🌙 Dark Theme** - Sleek gaming-optimized dark interface
+
+### Intelligence Features
+- **🔍 Knowledge Integration** - Import PDFs, documents, wikis, and notes per game
+- **🧠 Semantic Search** - Find relevant information with TF-IDF embeddings
+- **🎮 Game-Specific AI** - Customized system prompts for each game profile
+- **📝 Session Tracking** - Log interactions and generate AI-powered recaps
+- **💡 Coaching Insights** - Personalized tips based on your gameplay patterns
 
 ## 🎥 Demo
 
@@ -43,8 +53,8 @@ The assistant automatically:
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/gaming-ai-assistant.git
-   cd gaming-ai-assistant
+   git clone https://github.com/shingoku2/Omnix-All-knowing-gaming-companion.git
+   cd Omnix-All-knowing-gaming-companion
    ```
 
 2. **Install dependencies**
@@ -150,33 +160,128 @@ The assistant has built-in support for 50+ popular games including:
 
 *Don't see your game? The assistant can still detect and help with unknown games!*
 
+## 🔧 Advanced Features
+
+### Knowledge Packs
+Create game-specific knowledge bases to enhance AI responses:
+- **Import Sources**: PDFs, DOCX, TXT, Markdown files, or web URLs
+- **Semantic Search**: TF-IDF-based retrieval finds relevant information
+- **Per-Game Organization**: Each game can have multiple knowledge packs
+- **Automatic Integration**: Knowledge automatically augments AI conversations
+
+**Example Use Cases:**
+- Import boss strategy guides for Elden Ring
+- Add build guides for League of Legends
+- Save patch notes for competitive games
+
+### Macro System
+Automate repetitive actions with keyboard/mouse macros:
+- **Record Macros**: Capture keyboard and mouse inputs
+- **AI-Assisted Creation**: Generate macros from natural language descriptions
+- **Global Hotkeys**: Bind macros to custom keyboard shortcuts
+- **Safety Limits**: Built-in protections against infinite loops and runaway execution
+- **Game-Specific**: Create macros that only activate for specific games
+
+**Macro Step Types:**
+- Key press/hold/release
+- Mouse movement and clicks
+- Scroll actions
+- Delays with jitter (anti-detection)
+- Text typing sequences
+
+### Session Coaching
+Track your gaming sessions and get AI-powered insights:
+- **Automatic Logging**: All questions and answers are tracked
+- **Session Recaps**: AI-generated summaries of your gaming session
+- **Pattern Recognition**: Identify areas where you need help most
+- **Personalized Tips**: Coaching based on your actual gameplay questions
+- **Progress Tracking**: See your improvement over time
+
+### Game Profiles
+Customize AI behavior per game:
+- **Custom System Prompts**: Tailor AI personality and expertise
+- **Provider Selection**: Choose different AI providers per game
+- **Overlay Preferences**: Set default display mode (compact/full)
+- **Knowledge Integration**: Enable/disable knowledge packs
+- **Macro Library**: Game-specific automation scripts
+
 ## 🏗️ Project Structure
 
+**~14,700 lines of Python code** organized into a modular architecture:
+
 ```
-gaming-ai-assistant/
-├── main.py                 # Application entry point
-├── requirements.txt        # Python dependencies
-├── .env.example           # Example environment configuration
-├── .gitignore            # Git ignore file
-├── README.md             # This file
-└── src/
-    ├── game_detector.py   # Game detection module
-    ├── ai_assistant.py    # AI integration (Claude/GPT)
-    ├── info_scraper.py    # Web scraping for game info
-    ├── gui.py            # GUI interface
-    └── config.py         # Configuration management
+Omnix-All-knowing-gaming-companion/
+├── main.py                      # Application entry point
+├── requirements.txt             # Python dependencies
+├── .env.example                 # Configuration template
+├── CLAUDE.md                    # Comprehensive developer guide
+├── README.md                    # This file
+├── GamingAIAssistant.spec       # PyInstaller build specification
+│
+└── src/                         # Main source directory
+    ├── Core Application
+    ├── config.py                # Configuration management
+    ├── credential_store.py      # Encrypted API key storage
+    │
+    ├── Game Detection
+    ├── game_detector.py         # Process monitoring & detection
+    ├── game_watcher.py          # Background monitoring thread
+    ├── game_profile.py          # Per-game configurations
+    │
+    ├── AI Integration
+    ├── ai_assistant.py          # High-level AI interface
+    ├── ai_router.py             # Multi-provider routing
+    ├── providers.py             # OpenAI, Anthropic, Gemini
+    │
+    ├── Knowledge System
+    ├── knowledge_pack.py        # Knowledge data structures
+    ├── knowledge_store.py       # Persistence layer
+    ├── knowledge_index.py       # TF-IDF semantic search
+    ├── knowledge_integration.py # AI augmentation
+    ├── knowledge_ingestion.py   # Import from files/URLs
+    │
+    ├── Macro & Automation
+    ├── macro_manager.py         # Macro definitions
+    ├── macro_runner.py          # Execution engine
+    ├── keybind_manager.py       # Global hotkey system
+    │
+    ├── Session Management
+    ├── session_logger.py        # Event tracking
+    ├── session_coaching.py      # AI-powered insights
+    │
+    ├── GUI Layer
+    ├── gui.py                   # Main application window
+    ├── settings_dialog.py       # Settings interface
+    ├── settings_tabs.py         # Advanced configuration
+    │
+    └── ui/                      # Design System
+        ├── design_system.py     # Centralized styling
+        ├── tokens.py            # Design tokens
+        └── components/          # Reusable UI components
+            ├── buttons.py
+            ├── inputs.py
+            ├── cards.py
+            └── ... more
 ```
+
+For detailed architecture documentation, see [CLAUDE.md](CLAUDE.md).
 
 ## ⚙️ Configuration
 
+### Secure API Key Storage
+API keys are stored securely using your system's credential manager:
+- **Windows**: Windows Credential Manager
+- **macOS**: Keychain
+- **Linux**: SecretService with encrypted file fallback
+
+Keys are encrypted with AES-256 and never stored in plain text.
+
+### Basic Configuration
 Edit `.env` to customize the application:
 
 ```env
 # AI Provider (choose one: anthropic, openai, or gemini)
 AI_PROVIDER=anthropic
-ANTHROPIC_API_KEY=your_key
-OPENAI_API_KEY=your_key
-GEMINI_API_KEY=your_key
 
 # Application Settings
 OVERLAY_HOTKEY=ctrl+shift+g    # Hotkey to toggle window
@@ -188,29 +293,35 @@ OVERLAY_Y=100                  # Window Y position
 OVERLAY_WIDTH=900              # Window width
 OVERLAY_HEIGHT=700             # Window height
 OVERLAY_MINIMIZED=false        # Minimized state
+OVERLAY_OPACITY=0.95           # Window transparency (0.0-1.0)
 ```
 
-## 🔧 Advanced Features
+### Extended Configuration
+Additional settings are stored in `~/.gaming_ai_assistant/`:
+- `game_profiles.json` - Custom game configurations
+- `macros.json` - Macro definitions
+- `keybinds.json` - Custom hotkey bindings
+- `theme.json` - Appearance preferences
+- `knowledge_packs/` - Game knowledge bases
+- `sessions/` - Gaming session logs
+
+## 🎨 Customization
 
 ### Adding Custom Games
 
-Edit `src/game_detector.py` to add custom game detection:
+You can add support for any game through the GUI:
+1. Open **Settings** → **Game Profiles**
+2. Click **Add Custom Profile**
+3. Enter the game's executable name (e.g., `yourgame.exe`)
+4. Customize the AI system prompt
+5. Set preferred AI provider and overlay mode
+
+Or edit `src/game_detector.py` directly:
 
 ```python
-KNOWN_GAMES = {
-    "yourgame.exe": "Your Game Name",
+common_games = {
+    "Your Game Name": ["yourgame.exe", "alternate.exe"],
     # ... more games
-}
-```
-
-### Custom Wiki Sources
-
-Add custom wiki URLs in `src/info_scraper.py`:
-
-```python
-self.wiki_urls = {
-    "Your Game": "https://yourgame.wiki.com/",
-    # ... more wikis
 }
 ```
 
@@ -218,15 +329,55 @@ self.wiki_urls = {
 
 ### Running Tests
 
+Comprehensive test suite with 10+ test files:
+
 ```bash
-# Test game detection
-python src/game_detector.py
+# Run all tests
+python -m pytest
 
-# Test AI assistant
-python src/ai_assistant.py
+# Run specific test suites
+python test_modules.py           # Module imports
+python test_macro_system.py      # Macro functionality
+python test_knowledge_system.py  # Knowledge packs
+python test_game_profiles.py     # Game profiles
+python test_edge_cases.py        # Error handling
 
-# Test web scraper
-python src/info_scraper.py
+# Pre-build validation
+python test_before_build.py
+
+# Live API testing (requires API keys)
+python live_test.py
+```
+
+### Building Executables
+
+Build standalone Windows executable:
+
+```bash
+# Automated build script
+python build_windows_exe.py
+
+# Manual PyInstaller build
+pyinstaller GamingAIAssistant.spec
+
+# Debug build (shows console)
+pyinstaller GamingAIAssistant_DEBUG.spec
+```
+
+Output: `dist/GamingAIAssistant/GamingAIAssistant.exe`
+
+### Development Setup
+
+```bash
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run from source
+python main.py
 ```
 
 ### Contributing
@@ -234,42 +385,110 @@ python src/info_scraper.py
 Contributions are welcome! Please:
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes and test thoroughly
+4. Commit with clear messages (`git commit -m 'Add amazing feature'`)
+5. Push to your branch (`git push origin feature/amazing-feature`)
+6. Submit a pull request
+
+See [CLAUDE.md](CLAUDE.md) for detailed architecture documentation.
 
 ## 📋 Requirements
 
-- Python 3.8+
-- psutil (process monitoring)
-- requests (web scraping)
-- beautifulsoup4 (HTML parsing)
-- PyQt6 (GUI framework)
-- openai or anthropic (AI providers)
-- python-dotenv (environment configuration)
+### Core Technologies
+- **Python** 3.8+ (3.10+ recommended)
+- **PyQt6** 6.6.0+ - Desktop GUI framework
+- **PyQt6-WebEngine** 6.6.0+ - Web content rendering
+
+### AI Providers
+- **openai** 1.3.0+ - OpenAI GPT models
+- **anthropic** 0.7.0+ - Anthropic Claude models
+- **google-generativeai** 0.3.0+ - Google Gemini models
+
+### System Integration
+- **psutil** 5.9.0+ - Process monitoring for game detection
+- **pynput** 1.7.6+ - Keyboard/mouse automation
+- **keyring** 24.2.0+ - Secure credential storage
+- **cryptography** 41.0.0+ - API key encryption
+
+### Data Processing
+- **beautifulsoup4** 4.12.0+ - HTML/XML parsing
+- **lxml** 4.9.0+ - Fast XML/HTML processing
+- **scikit-learn** - TF-IDF embeddings (optional, for knowledge system)
+
+### Configuration
+- **python-dotenv** 1.0.0+ - Environment configuration
+- **pywin32** 306+ - Windows-specific features
+
+See `requirements.txt` for complete dependency list.
 
 ## ⚠️ Troubleshooting
 
-### "No API key found"
-- Make sure you've copied `.env.example` to `.env`
-- Add your API key to the `.env` file
-- Set `AI_PROVIDER` to match your API key
+### "No API key found" or Authentication Errors
+- Run the Setup Wizard (appears on first launch)
+- Verify API key format (should start with `sk-ant-`, `sk-`, or provider-specific prefix)
+- Check credential storage: Settings → AI Providers → Test Connection
+- Keys are stored in system keyring, not `.env` file
 
-### "No game detected"
-- Make sure the game is running
-- Check if your game is in the supported games list
-- Try adding your game manually to `KNOWN_GAMES`
+### Game Not Detected
+- Verify the game is actually running
+- Check Task Manager/Activity Monitor for the exact process name
+- Add custom profile: Settings → Game Profiles → Add Custom Profile
+- Check logs in `gaming_ai_assistant_*.log` for detection attempts
 
-### GUI doesn't start
-- Make sure PyQt6 is installed: `pip install PyQt6`
-- On Linux, you may need: `apt-get install python3-pyqt6`
+### Knowledge Packs Not Working
+- Ensure knowledge pack is enabled: Settings → Knowledge Packs
+- Verify pack is associated with the correct game profile
+- Rebuild index if needed (delete and re-add sources)
+- Check that knowledge integration is enabled in game profile settings
+
+### Macros Not Executing
+- Verify macro is enabled in Macro Manager
+- Check hotkey bindings for conflicts
+- Ensure game window has focus (if not set to system-wide)
+- Review macro execution logs for errors
+
+### GUI Freezing or Slow Response
+- Long AI responses may take time (normal behavior)
+- Check internet connection for API calls
+- Try reducing conversation history length in settings
+- Verify system has adequate RAM (2GB+ recommended)
+
+### Build or Installation Errors
+- Ensure Python 3.8+ is installed
+- Use virtual environment to avoid conflicts
+- Install all dependencies: `pip install -r requirements.txt`
+- On Windows, install Visual C++ Redistributable if needed
+- On Linux, install PyQt6 system packages
+
+For detailed troubleshooting, see [CLAUDE.md](CLAUDE.md) Troubleshooting Guide.
 
 ## 🔐 Privacy & Security
 
-- All data is processed locally on your machine
-- API calls are made directly to OpenAI/Anthropic (no intermediaries)
-- No game data is stored or transmitted except to the AI provider
-- API keys are stored locally in `.env` file (never committed to git)
+### Data Protection
+- **Local Processing**: All data processing happens on your machine
+- **Direct API Calls**: Communicates directly with AI providers (no intermediaries)
+- **Encrypted Storage**: API keys encrypted with AES-256 and stored in system keyring
+- **No Telemetry**: No usage tracking, analytics, or data collection
+- **Session Privacy**: Gaming sessions stored locally only
+
+### What Gets Sent to AI Providers
+- Your questions and conversation history
+- Game context (game name, current profile)
+- Relevant knowledge pack excerpts (if enabled)
+- No screenshots, no keystrokes, no personal data beyond what you type
+
+### Security Features
+- **Credential Encryption**: AES-256 encryption for API keys
+- **System Keyring**: Platform-native secure storage (Credential Manager, Keychain, SecretService)
+- **Macro Safety Limits**: Prevents runaway automation with timeouts and repeat limits
+- **No Code Execution**: Knowledge packs and macros don't execute arbitrary code
+- **Git Safety**: API keys never committed to repository (.gitignore protected)
+
+### Platform Security
+- **Windows**: Windows Credential Manager integration
+- **macOS**: Keychain Services integration
+- **Linux**: SecretService D-Bus API with encrypted fallback
 
 ## 📜 License
 
@@ -290,37 +509,106 @@ For issues, questions, or suggestions:
 
 ## 📝 Recent Updates
 
+### Version 1.2+ (2025-11-15)
+**Major Feature Additions:**
+- ✅ **Knowledge Pack System** - Import and search game-specific knowledge bases
+- ✅ **Macro Automation** - Create and execute keyboard/mouse macros
+- ✅ **Session Coaching** - AI-powered gameplay insights and session recaps
+- ✅ **Design System** - Comprehensive UI component library with design tokens
+- ✅ **Secure Credentials** - System keyring integration with AES-256 encryption
+- ✅ **Game Profiles** - Advanced per-game AI customization
+- ✅ **Global Hotkeys** - Customizable keybindings system
+
+**Infrastructure:**
+- ✅ **~14,700 LOC** - Extensive codebase with modular architecture
+- ✅ **10+ Test Files** - Comprehensive test coverage
+- ✅ **CLAUDE.md** - Detailed developer documentation
+- ✅ **PyInstaller Build** - Windows executable distribution
+
 ### Version 1.2 (2025-11-13)
+**UI Improvements:**
 - ✅ **Movable & Resizable Overlay** - Drag window to any position, resize from edges/corners
-- ✅ **Minimize/Restore Button** - Collapse overlay to title bar for minimal screen space usage
-- ✅ **Auto-Save Window Layout** - Position and size automatically saved to .env configuration
-- ✅ **Smart Cursor Feedback** - Cursor changes to indicate resize directions
+- ✅ **Minimize/Restore Button** - Collapse overlay to title bar
+- ✅ **Auto-Save Window Layout** - Position and size automatically saved
+- ✅ **Dashboard Redesign** - 2x3 layout with avatar display
 
 ### Version 1.1 (2025-11-13)
-- ✅ **Removed Ollama/Open WebUI support** - Streamlined to focus on mainstream cloud AI providers (OpenAI, Anthropic, Gemini)
-- ✅ **Fixed API key handling** - Resolved issue with pre-loaded test keys in executable builds
-- ✅ **Improved setup wizard** - Fixed provider switching and placeholder string consistency
-- ✅ **Added .env.example template** - Better configuration management for new users
-- ✅ **Cleaned up test suite** - Removed 1,000+ lines of deprecated Ollama-specific test code
+**Provider Streamlining:**
+- ✅ **Removed Ollama/Open WebUI** - Focus on mainstream cloud providers
+- ✅ **Fixed API key handling** - Resolved pre-loaded test keys issue
+- ✅ **Improved Setup Wizard** - Better provider switching
+- ✅ **Test Suite Cleanup** - Removed 1,000+ lines of deprecated code
 
 ### Supported AI Providers
-- ✅ **Anthropic Claude** (recommended)
-- ✅ **OpenAI GPT**
-- ✅ **Google Gemini**
+- ✅ **Anthropic Claude** - Opus, Sonnet, Haiku models
+- ✅ **OpenAI GPT** - GPT-4, GPT-3.5-turbo
+- ✅ **Google Gemini** - Gemini Pro, Gemini Pro Vision
 
 ## 🗺️ Roadmap
 
-- [ ] Voice input support
-- [ ] Overlay mode (transparent window over games)
-- [ ] Custom hotkeys for quick actions
-- [ ] Game-specific plugins
-- [ ] Multi-language support
-- [ ] Mobile companion app
-- [ ] Replay analysis
-- [ ] Performance tracking
+### Planned Features
+- [ ] **Voice Input Support** - Speak questions instead of typing
+- [ ] **Advanced Overlay Modes** - Transparent window overlay, always-on-top
+- [ ] **Plugin System** - Game-specific extension plugins
+- [ ] **Multi-Language Support** - Internationalization (i18n)
+- [ ] **Mobile Companion App** - Cross-platform mobile client
+- [ ] **Replay Analysis** - Analyze recorded gameplay with AI
+- [ ] **Performance Tracking** - Stats tracking and improvement metrics
+- [ ] **Cloud Sync** - Sync knowledge packs and settings across devices
+- [ ] **Community Knowledge** - Share knowledge packs with other users
+- [ ] **Advanced Macro Recorder** - Visual macro builder with conditional logic
+
+### Under Consideration
+- [ ] **Local AI Models** - Support for local LLMs (Ollama integration)
+- [ ] **Screenshot Analysis** - AI vision for gameplay screenshots
+- [ ] **Streaming Integration** - Twitch/YouTube chat integration
+- [ ] **Tournament Mode** - Features for competitive gaming
+- [ ] **Team Coordination** - Multi-user session support
+
+## 🔗 Quick Links
+
+- **Repository**: [github.com/shingoku2/Omnix-All-knowing-gaming-companion](https://github.com/shingoku2/Omnix-All-knowing-gaming-companion)
+- **Developer Guide**: [CLAUDE.md](CLAUDE.md) - Comprehensive architecture documentation
+- **Setup Guide**: [SETUP.md](SETUP.md) - Installation and configuration
+- **Issues**: [GitHub Issues](https://github.com/shingoku2/Omnix-All-knowing-gaming-companion/issues)
+- **Pull Requests**: [GitHub PRs](https://github.com/shingoku2/Omnix-All-knowing-gaming-companion/pulls)
+
+## 💻 Technology Stack
+
+**Language & Framework:**
+- Python 3.8+ (~14,700 LOC)
+- PyQt6 for desktop GUI
+
+**AI Integration:**
+- OpenAI API (GPT-4, GPT-3.5)
+- Anthropic API (Claude 3)
+- Google Generative AI (Gemini)
+
+**Key Libraries:**
+- **UI**: PyQt6, PyQt6-WebEngine
+- **Process Monitoring**: psutil
+- **Automation**: pynput
+- **Security**: cryptography, keyring
+- **Web Scraping**: requests, BeautifulSoup4, lxml
+- **ML**: scikit-learn (TF-IDF embeddings)
+
+**Platform Support:**
+- ✅ Windows 10/11 (Primary)
+- ✅ macOS (Supported)
+- ✅ Linux (Supported)
+
+---
+
+## 🌟 Star History
+
+If you find Omnix useful, please consider giving it a star! ⭐
+
+This helps others discover the project and motivates continued development.
 
 ---
 
 **Made with ❤️ for gamers by gamers**
+
+*This project demonstrates the power of AI-assisted development - the entire codebase was created with AI collaboration.*
 
 *Happy Gaming! 🎮*
