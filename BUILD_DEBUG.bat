@@ -76,6 +76,18 @@ python -m PyInstaller ^
     --hidden-import=cryptography ^
     --hidden-import=keyring ^
     --hidden-import=pynput ^
+    --hidden-import=ui.design_system ^
+    --hidden-import=ui.tokens ^
+    --hidden-import=ui.icons ^
+    --hidden-import=ui.components.buttons ^
+    --hidden-import=ui.components.inputs ^
+    --hidden-import=ui.components.cards ^
+    --hidden-import=ui.components.layouts ^
+    --hidden-import=ui.components.navigation ^
+    --hidden-import=ui.components.modals ^
+    --hidden-import=ui.components.dashboard_button ^
+    --hidden-import=ui.components.avatar_display ^
+    --hidden-import=ui.components.overlay ^
     main.py
 
 if errorlevel 1 (
