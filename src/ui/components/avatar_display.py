@@ -26,70 +26,89 @@ class AvatarCircle(QWidget):
     def paintEvent(self, event):
         """Custom paint event for the avatar circle."""
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        try:
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
-        # Calculate center
-        center_x = self.width() // 2
-        center_y = self.height() // 2
-        radius = min(center_x, center_y) - 10
+            # Calculate center
+            center_x = self.width() // 2
+            center_y = self.height() // 2
+            radius = min(center_x, center_y) - 10
 
-        # Draw outer glow ring (animated)
-        glow_radius = radius + 5 + (3 * abs((self.animation_frame % 60) - 30) / 30)
-        glow_gradient = QRadialGradient(center_x, center_y, glow_radius)
-        glow_gradient.setColorAt(0, QColor(0, 191, 255, 100))
-        glow_gradient.setColorAt(0.7, QColor(0, 191, 255, 50))
-        glow_gradient.setColorAt(1, QColor(0, 191, 255, 0))
+            # Safety check
+            if radius <= 0:
+                return
 
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(glow_gradient)
-        painter.drawEllipse(center_x - glow_radius, center_y - glow_radius,
-                          glow_radius * 2, glow_radius * 2)
+            # Draw outer glow ring (animated)
+            glow_radius = radius + 5 + (3 * abs((self.animation_frame % 60) - 30) / 30)
+            glow_gradient = QRadialGradient(center_x, center_y, glow_radius)
+            glow_gradient.setColorAt(0, QColor(0, 191, 255, 100))
+            glow_gradient.setColorAt(0.7, QColor(0, 191, 255, 50))
+            glow_gradient.setColorAt(1, QColor(0, 191, 255, 0))
 
-        # Draw main avatar circle with gradient
-        gradient = QRadialGradient(center_x, center_y, radius)
-        gradient.setColorAt(0, QColor(57, 255, 20, 200))  # Neon green center
-        gradient.setColorAt(0.5, QColor(0, 191, 255, 150))  # Electric blue
-        gradient.setColorAt(1, QColor(44, 44, 74, 200))  # Dark edge
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(glow_gradient)
+            painter.drawEllipse(center_x - glow_radius, center_y - glow_radius,
+                              glow_radius * 2, glow_radius * 2)
 
-        painter.setBrush(gradient)
-        painter.setPen(QPen(QColor(0, 191, 255), 2))
-        painter.drawEllipse(center_x - radius, center_y - radius, radius * 2, radius * 2)
+            # Draw main avatar circle with gradient
+            gradient = QRadialGradient(center_x, center_y, radius)
+            gradient.setColorAt(0, QColor(57, 255, 20, 200))  # Neon green center
+            gradient.setColorAt(0.5, QColor(0, 191, 255, 150))  # Electric blue
+            gradient.setColorAt(1, QColor(44, 44, 74, 200))  # Dark edge
 
-        # Draw inner symbol (hexagon logo)
-        self._draw_hexagon(painter, center_x, center_y, radius * 0.5)
+            painter.setBrush(gradient)
+            painter.setPen(QPen(QColor(0, 191, 255), 2))
+            painter.drawEllipse(center_x - radius, center_y - radius, radius * 2, radius * 2)
 
-        # Always end the painter to prevent crashes
-        painter.end()
+            # Draw inner symbol (hexagon logo)
+            self._draw_hexagon(painter, center_x, center_y, radius * 0.5)
+
+        except Exception as e:
+            # Log the error but don't crash the app
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in AvatarCircle.paintEvent: {e}", exc_info=True)
+
+        finally:
+            # Always end the painter to prevent crashes
+            painter.end()
 
     def _draw_hexagon(self, painter: QPainter, center_x: int, center_y: int, size: float):
         """Draw a hexagon symbol in the center of the avatar."""
-        import math
+        try:
+            import math
 
-        painter.setPen(QPen(QColor(255, 255, 255, 230), 3))
-        painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.setPen(QPen(QColor(255, 255, 255, 230), 3))
+            painter.setBrush(Qt.BrushStyle.NoBrush)
 
-        # Calculate hexagon points
-        points = []
-        for i in range(6):
-            angle = math.radians(60 * i - 30)
-            x = center_x + size * math.cos(angle)
-            y = center_y + size * math.sin(angle)
-            points.append((x, y))
+            # Calculate hexagon points
+            points = []
+            for i in range(6):
+                angle = math.radians(60 * i - 30)
+                x = center_x + size * math.cos(angle)
+                y = center_y + size * math.sin(angle)
+                points.append((x, y))
 
-        # Draw hexagon
-        for i in range(6):
-            x1, y1 = points[i]
-            x2, y2 = points[(i + 1) % 6]
-            painter.drawLine(int(x1), int(y1), int(x2), int(y2))
+            # Draw hexagon
+            for i in range(6):
+                x1, y1 = points[i]
+                x2, y2 = points[(i + 1) % 6]
+                painter.drawLine(int(x1), int(y1), int(x2), int(y2))
 
-        # Draw inner lines
-        rotation_offset = (self.animation_frame % 120) * 3
-        painter.setPen(QPen(QColor(0, 191, 255, 150), 2))
-        for i in range(3):
-            angle = math.radians(rotation_offset + 120 * i)
-            x = center_x + size * 0.7 * math.cos(angle)
-            y = center_y + size * 0.7 * math.sin(angle)
-            painter.drawLine(center_x, center_y, int(x), int(y))
+            # Draw inner lines
+            rotation_offset = (self.animation_frame % 120) * 3
+            painter.setPen(QPen(QColor(0, 191, 255, 150), 2))
+            for i in range(3):
+                angle = math.radians(rotation_offset + 120 * i)
+                x = center_x + size * 0.7 * math.cos(angle)
+                y = center_y + size * 0.7 * math.sin(angle)
+                painter.drawLine(center_x, center_y, int(x), int(y))
+
+        except Exception as e:
+            # Log the error but don't crash the app
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in AvatarCircle._draw_hexagon: {e}", exc_info=True)
 
 
 class OmnixAvatarDisplay(QFrame):

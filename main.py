@@ -11,6 +11,7 @@ and provides tips, strategies, and answers to your questions.
 import sys
 import os
 import logging
+import traceback
 from pathlib import Path
 from datetime import datetime
 
@@ -31,6 +32,45 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+
+
+# Global exception hook to catch ALL unhandled exceptions
+def global_exception_handler(exc_type, exc_value, exc_traceback):
+    """Catch and log all unhandled exceptions"""
+    if issubclass(exc_type, KeyboardInterrupt):
+        # Allow Ctrl+C to work normally
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+
+    logger.critical("=" * 70)
+    logger.critical("UNHANDLED EXCEPTION CAUGHT!")
+    logger.critical("=" * 70)
+    logger.critical(f"Exception Type: {exc_type.__name__}")
+    logger.critical(f"Exception Value: {exc_value}")
+    logger.critical("Traceback:")
+
+    # Log the full traceback
+    tb_lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
+    for line in tb_lines:
+        logger.critical(line.rstrip())
+
+    logger.critical("=" * 70)
+
+    # Print to console as well
+    print("\n" + "=" * 70)
+    print("💥 UNHANDLED EXCEPTION!")
+    print("=" * 70)
+    print(f"Type: {exc_type.__name__}")
+    print(f"Message: {exc_value}")
+    print("\nFull traceback:")
+    print("".join(tb_lines))
+    print("=" * 70)
+    print(f"\n📝 Full error log saved to: {log_file}")
+    print()
+
+# Install the global exception handler
+sys.excepthook = global_exception_handler
+logger.info("Global exception handler installed")
 
 # Add src directory to path
 src_path = Path(__file__).parent / 'src'

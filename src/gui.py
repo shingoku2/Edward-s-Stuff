@@ -5,13 +5,14 @@ Main application interface with overlay capabilities
 
 import sys
 import logging
+import traceback
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QTextEdit, QLineEdit, QPushButton, QLabel, QSystemTrayIcon,
     QMenu, QFrame, QDialog, QRadioButton, QButtonGroup, QMessageBox,
     QGroupBox
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QThread, QObject, QTimer
+from PyQt6.QtCore import Qt, pyqtSignal, QThread, QObject, QTimer, qInstallMessageHandler, QtMsgType
 from PyQt6.QtGui import QAction, QKeySequence, QShortcut, QIcon, QPixmap, QPainter, QColor
 from typing import Optional, Dict
 import os
@@ -40,6 +41,35 @@ from ui.tokens import COLORS, SPACING, RADIUS, TYPOGRAPHY
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def qt_message_handler(msg_type, context, message):
+    """
+    Custom Qt message handler to catch Qt warnings and errors.
+    This helps catch C++ level Qt errors that might not be visible in Python exceptions.
+    """
+    if msg_type == QtMsgType.QtDebugMsg:
+        logger.debug(f"Qt Debug: {message}")
+    elif msg_type == QtMsgType.QtInfoMsg:
+        logger.info(f"Qt Info: {message}")
+    elif msg_type == QtMsgType.QtWarningMsg:
+        logger.warning(f"Qt Warning: {message}")
+        logger.warning(f"  File: {context.file if context.file else 'unknown'}")
+        logger.warning(f"  Line: {context.line if context.line else 'unknown'}")
+        logger.warning(f"  Function: {context.function if context.function else 'unknown'}")
+    elif msg_type == QtMsgType.QtCriticalMsg:
+        logger.critical(f"Qt Critical: {message}")
+        logger.critical(f"  File: {context.file if context.file else 'unknown'}")
+        logger.critical(f"  Line: {context.line if context.line else 'unknown'}")
+        logger.critical(f"  Function: {context.function if context.function else 'unknown'}")
+    elif msg_type == QtMsgType.QtFatalMsg:
+        logger.critical(f"Qt Fatal: {message}")
+        logger.critical(f"  File: {context.file if context.file else 'unknown'}")
+        logger.critical(f"  Line: {context.line if context.line else 'unknown'}")
+        logger.critical(f"  Function: {context.function if context.function else 'unknown'}")
+        logger.critical("=" * 70)
+        logger.critical("Qt FATAL ERROR - Application will crash!")
+        logger.critical("=" * 70)
 
 
 class AIWorkerThread(QThread):
@@ -1426,6 +1456,10 @@ def run_gui(game_detector, ai_assistant, info_scraper, config, credential_store,
         design_system_instance: Design system instance for styling
     """
     try:
+        # Install Qt message handler BEFORE creating QApplication
+        qInstallMessageHandler(qt_message_handler)
+        logger.info("Qt message handler installed")
+
         app = QApplication(sys.argv)
         app.setApplicationName("Gaming AI Assistant")
 
@@ -1481,23 +1515,52 @@ def run_gui(game_detector, ai_assistant, info_scraper, config, credential_store,
                 return
 
         # Create and show main window
-        window = MainWindow(
-            game_detector,
-            ai_assistant,
-            info_scraper,
-            config,
-            credential_store,
-            design_system_instance,
-        )
-        window.show()
+        try:
+            logger.info("Creating MainWindow...")
+            window = MainWindow(
+                game_detector,
+                ai_assistant,
+                info_scraper,
+                config,
+                credential_store,
+                design_system_instance,
+            )
+            logger.info("MainWindow created successfully")
 
-        # Handle application quit
-        app.aboutToQuit.connect(window.cleanup)
+            logger.info("Showing MainWindow...")
+            window.show()
+            logger.info("MainWindow shown successfully")
 
-        sys.exit(app.exec())
+            # Handle application quit
+            app.aboutToQuit.connect(window.cleanup)
+
+        except Exception as e:
+            logger.error("=" * 70, exc_info=True)
+            logger.error(f"FAILED TO CREATE/SHOW MAINWINDOW: {e}", exc_info=True)
+            logger.error("=" * 70)
+            logger.error("Full traceback:")
+            logger.error(traceback.format_exc())
+            raise
+
+        logger.info("Starting Qt event loop...")
+        try:
+            exit_code = app.exec()
+            logger.info(f"Qt event loop exited with code: {exit_code}")
+            sys.exit(exit_code)
+        except Exception as e:
+            logger.error("=" * 70)
+            logger.error(f"EXCEPTION IN QT EVENT LOOP: {e}", exc_info=True)
+            logger.error("=" * 70)
+            logger.error("Full traceback:")
+            logger.error(traceback.format_exc())
+            raise
 
     except Exception as e:
-        logger.error(f"GUI error: {e}", exc_info=True)
+        logger.error("=" * 70)
+        logger.error(f"GUI INITIALIZATION ERROR: {e}", exc_info=True)
+        logger.error("=" * 70)
+        logger.error("Full traceback:")
+        logger.error(traceback.format_exc())
         raise
 
 
