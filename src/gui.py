@@ -948,7 +948,10 @@ class MainWindow(QMainWindow):
             }
 
             if self.ai_assistant:
-                self.ai_assistant.current_game = self.current_game
+                # Ensure the assistant resets its system prompt/history before
+                # applying the game-specific profile so responses align with
+                # the newly detected title.
+                self.ai_assistant.set_current_game(self.current_game)
                 logger.debug("AI Assistant current game context updated")
 
             # Update avatar display
