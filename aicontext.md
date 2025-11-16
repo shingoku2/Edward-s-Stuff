@@ -4296,3 +4296,9 @@ All three critical bugs are now fixed:
 
 ## Session: QA Audit (2025-11-16)
 - Ran `pytest -q` to capture repository health for QA baseline; observed 3 failures (PyQt6 libGL missing, custom profile resolution mismatch, knowledge index returning zero chunks) plus existing PytestReturnNotNone warnings. See chunk 3f54fd.
+
+## Session: AI provider + keybind regression fixes (2025-11-19)
+- Synced the settings dialog provider handler with the live `AIAssistant` instance again so manual provider changes stick even after automatic profile switches.
+- Swapped the keybind bootstrapping/reload logic over to `KeybindManager.load_from_dict` to avoid mis-parsing nested config structures and restore macro-enabled hotkeys on startup.
+- Standardized Gemini usage on the generally available `gemini-pro` model (both in runtime provider and provider tester) and cache the default model client up front to prevent repeated initialization.
+- Testing: `pytest test_minimal.py` (discovers zero tests by design, confirms harness runs). 【40554b†L1-L9】

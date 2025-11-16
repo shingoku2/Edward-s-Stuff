@@ -140,7 +140,7 @@ class ProviderTester:
             import google.generativeai as genai
 
             genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-1.5-pro')
+            model = genai.GenerativeModel('gemini-pro')
 
             # Make a minimal API call to test connectivity
             response = model.generate_content(

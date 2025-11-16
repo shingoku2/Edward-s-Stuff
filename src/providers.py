@@ -364,7 +364,9 @@ class GeminiProvider:
             api_key: Google AI API key
         """
         self.api_key = api_key
+        self.default_model = "gemini-pro"
         self.client = None
+        self._genai = None
         self._initialize_client()
 
     def _initialize_client(self):
@@ -373,7 +375,8 @@ class GeminiProvider:
             import google.generativeai as genai
             if self.api_key:
                 genai.configure(api_key=self.api_key)
-                self.client = genai
+                self._genai = genai
+                self.client = genai.GenerativeModel(self.default_model)
         except ImportError:
             logger.warning("google-generativeai library not installed")
 
@@ -392,7 +395,7 @@ class GeminiProvider:
 
         try:
             # Try a minimal content generation
-            model = self.client.GenerativeModel("gemini-1.5-pro")
+            model = self.client or self._genai.GenerativeModel(self.default_model)
             response = model.generate_content("Hi", stream=False)
             return ProviderHealth(
                 is_healthy=True,
@@ -447,10 +450,13 @@ class GeminiProvider:
         if not self.is_configured():
             raise ProviderAuthError("Gemini API key not configured")
 
-        model_name = model or "gemini-1.5-pro"
+        model_name = model or self.default_model
 
         try:
-            model = self.client.GenerativeModel(model_name)
+            if model_name == self.default_model and self.client:
+                model_client = self.client
+            else:
+                model_client = self._genai.GenerativeModel(model_name)
 
             # Convert messages to Gemini format
             gemini_messages = []
@@ -460,7 +466,7 @@ class GeminiProvider:
                     "parts": [{"text": msg["content"]}]
                 })
 
-            response = model.generate_content(
+            response = model_client.generate_content(
                 gemini_messages,
                 stream=False,
                 **kwargs
