@@ -260,7 +260,7 @@ class AnthropicProvider:
         try:
             # Try a minimal message creation
             response = self.client.messages.create(
-                model="claude-3-opus-20240229",
+                model="claude-3-5-sonnet-20241022",
                 max_tokens=5,
                 messages=[{"role": "user", "content": "Hi"}],
             )
@@ -302,7 +302,7 @@ class AnthropicProvider:
 
         Args:
             messages: Conversation messages
-            model: Model name (default: claude-3-opus-20240229)
+            model: Model name (default: claude-3-5-sonnet-20241022)
             **kwargs: Additional parameters (max_tokens, etc.)
 
         Returns:
@@ -311,7 +311,7 @@ class AnthropicProvider:
         if not self.is_configured():
             raise ProviderAuthError("Anthropic API key not configured")
 
-        model = model or "claude-3-opus-20240229"
+        model = model or "claude-3-5-sonnet-20241022"
         max_tokens = kwargs.pop("max_tokens", 1024)
 
         # Extract system messages - Anthropic requires them as a separate parameter
@@ -392,7 +392,7 @@ class GeminiProvider:
 
         try:
             # Try a minimal content generation
-            model = self.client.GenerativeModel("gemini-pro")
+            model = self.client.GenerativeModel("gemini-1.5-pro")
             response = model.generate_content("Hi", stream=False)
             return ProviderHealth(
                 is_healthy=True,
@@ -438,7 +438,7 @@ class GeminiProvider:
 
         Args:
             messages: Conversation messages
-            model: Model name (default: gemini-pro)
+            model: Model name (default: gemini-1.5-pro)
             **kwargs: Additional parameters
 
         Returns:
@@ -447,7 +447,7 @@ class GeminiProvider:
         if not self.is_configured():
             raise ProviderAuthError("Gemini API key not configured")
 
-        model_name = model or "gemini-pro"
+        model_name = model or "gemini-1.5-pro"
 
         try:
             model = self.client.GenerativeModel(model_name)

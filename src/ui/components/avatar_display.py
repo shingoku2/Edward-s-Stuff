@@ -47,8 +47,8 @@ class AvatarCircle(QWidget):
 
             painter.setPen(Qt.PenStyle.NoPen)
             painter.setBrush(glow_gradient)
-            painter.drawEllipse(center_x - glow_radius, center_y - glow_radius,
-                              glow_radius * 2, glow_radius * 2)
+            painter.drawEllipse(int(center_x - glow_radius), int(center_y - glow_radius),
+                              int(glow_radius * 2), int(glow_radius * 2))
 
             # Draw main avatar circle with gradient
             gradient = QRadialGradient(center_x, center_y, radius)
@@ -58,7 +58,7 @@ class AvatarCircle(QWidget):
 
             painter.setBrush(gradient)
             painter.setPen(QPen(QColor(0, 191, 255), 2))
-            painter.drawEllipse(center_x - radius, center_y - radius, radius * 2, radius * 2)
+            painter.drawEllipse(int(center_x - radius), int(center_y - radius), int(radius * 2), int(radius * 2))
 
             # Draw inner symbol (hexagon logo)
             self._draw_hexagon(painter, center_x, center_y, radius * 0.5)
