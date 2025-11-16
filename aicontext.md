@@ -4293,3 +4293,6 @@ All three critical bugs are now fixed:
 
 ### Testing & Troubleshooting
 - `pytest test_game_profiles.py::TestGameProfileStore::test_builtin_profiles_loaded -q` ✅ – Confirms the expanded built-in roster still loads correctly inside the store and keeps the generic + Elden Ring references that the tests assert against.
+
+## Session: QA Audit (2025-11-16)
+- Ran `pytest -q` to capture repository health for QA baseline; observed 3 failures (PyQt6 libGL missing, custom profile resolution mismatch, knowledge index returning zero chunks) plus existing PytestReturnNotNone warnings. See chunk 3f54fd.
