@@ -260,7 +260,7 @@ class AnthropicProvider:
         try:
             # Try a minimal message creation
             response = self.client.messages.create(
-                model="claude-3-5-sonnet-20241022",
+                model="claude-3-5-sonnet-20240620",
                 max_tokens=5,
                 messages=[{"role": "user", "content": "Hi"}],
             )
@@ -302,7 +302,7 @@ class AnthropicProvider:
 
         Args:
             messages: Conversation messages
-            model: Model name (default: claude-3-5-sonnet-20241022)
+            model: Model name (default: claude-3-5-sonnet-20240620)
             **kwargs: Additional parameters (max_tokens, etc.)
 
         Returns:
@@ -311,7 +311,7 @@ class AnthropicProvider:
         if not self.is_configured():
             raise ProviderAuthError("Anthropic API key not configured")
 
-        model = model or "claude-3-5-sonnet-20241022"
+        model = model or "claude-3-5-sonnet-20240620"
         max_tokens = kwargs.pop("max_tokens", 1024)
 
         # Extract system messages - Anthropic requires them as a separate parameter
