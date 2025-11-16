@@ -4,6 +4,33 @@ Omnix Theme Bridge
 
 Bridges the new Omnix UI Design System with the existing theme_manager.py
 to ensure backward compatibility and smooth migration.
+
+⚠️ TECHNICAL DEBT WARNING ⚠️
+=============================
+This bridge exists because Omnix currently has TWO theme systems:
+
+1. **Legacy System** (src/theme_manager.py):
+   - Uses Theme dataclass with basic color/font settings
+   - Modified through Appearance Settings UI (src/appearance_tabs.py)
+   - Saved to ~/.gaming_ai_assistant/theme.json
+
+2. **New Design System** (src/ui/design_system.py, src/ui/tokens.py):
+   - Modern token-based design system
+   - Used by all new UI components in src/ui/components/
+   - Generates comprehensive QSS stylesheets
+
+CURRENT ISSUES:
+- Users changing settings in Appearance tab may not see full effects on new components
+- Two sources of truth for styling creates confusion
+- Settings don't fully propagate between systems
+
+RECOMMENDED REFACTORING:
+1. Migrate src/appearance_tabs.py to directly modify src/ui/tokens.py
+2. Deprecate legacy Theme system in favor of OmnixDesignTokens
+3. Update all components to use the new design system exclusively
+4. Remove this bridge once migration is complete
+
+Until then, this bridge provides backward compatibility.
 """
 
 import sys

@@ -1950,6 +1950,60 @@ stats.sort_stats('cumulative')
 stats.print_stats(10)  # Top 10 slowest
 ```
 
+### Known Issues and Technical Debt
+
+#### ⚠️ Dual Theme Systems
+
+**Issue:** Omnix currently has **two separate theming systems** that are not fully integrated:
+
+1. **Legacy System** (`src/theme_manager.py`):
+   - Uses `Theme` dataclass with basic color/font settings
+   - Modified through Appearance Settings UI (`src/appearance_tabs.py`)
+   - Saved to `~/.gaming_ai_assistant/theme.json`
+
+2. **New Design System** (`src/ui/design_system.py`, `src/ui/tokens.py`):
+   - Modern token-based design system
+   - Used by all new UI components in `src/ui/components/`
+   - Generates comprehensive QSS stylesheets
+
+**Current Problems:**
+- Users changing settings in Appearance tab may not see full effects on new components
+- Two sources of truth for styling creates confusion
+- Settings don't fully propagate between systems
+- `src/ui/theme_bridge.py` attempts to bridge them but it's a temporary solution
+
+**Workaround:**
+For now, the bridge ensures basic compatibility. New components use the design system tokens.
+
+**Recommended Fix:**
+1. Refactor `src/appearance_tabs.py` to directly modify `src/ui/tokens.py`
+2. Deprecate legacy `Theme` system in favor of `OmnixDesignTokens`
+3. Update all components to use the new design system exclusively
+4. Remove the bridge once migration is complete
+
+See `src/ui/theme_bridge.py` for detailed documentation of this issue.
+
+#### ✅ Dependencies Clarification
+
+**Note:** Some analysis tools may flag `scikit-learn` as a missing dependency for the knowledge system. This is **incorrect**.
+
+The `SimpleTFIDFEmbedding` class in `src/knowledge_index.py` implements TF-IDF **from scratch** using only Python standard library:
+- `re` module for tokenization
+- `math` module for TF-IDF calculations
+- `hashlib` for fallback embeddings
+
+**No additional dependencies are required** for the knowledge system to function.
+
+#### ✅ Build Files
+
+**Note:** Only use the following build files:
+- `GamingAIAssistant.spec` - Production build
+- `GamingAIAssistant_DEBUG.spec` - Debug build with console
+- `build_windows_exe.py` - Automated build script
+- All `.bat` files in the repository
+
+Any other `.spec` files found in older documentation should be ignored as they may be outdated.
+
 ---
 
 ## Extension Points
