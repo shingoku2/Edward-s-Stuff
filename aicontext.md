@@ -4274,3 +4274,12 @@ All three critical bugs are now fixed:
 
 - Ran `pytest test_game_profiles.py::TestProfileIntegration::test_custom_profile_resolution` to confirm duplicate custom profiles now overwrite gracefully (pass). 【eb56f4†L1-L9】
 
+
+## Session: GUI threading & watcher cleanup (2025-11-16)
+- Refactored `ChatWidget` to always delegate AI requests to `AIWorkerThread`, added a context-provider hook, and now disable the input/UI while work happens to eliminate UI freezes during chat responses.
+- Wired the overlay chat to receive lightweight game context from `MainWindow` so the AI worker can include the active game name in prompts without blocking the UI thread.
+- Removed the legacy `GameDetectionThread` + manual detector wiring; the `GameWatcher` system is now the single source of truth for game changes, and it updates both the avatar display and AI assistant context directly.
+- Updated `MainWindow` to set/clear `current_game` from GameWatcher events, push notices into the overlay chat, and expose `_get_chat_game_context()` for the chat widget.
+- Deleted the redundant `create_shortcuts`/`toggle_visibility` combo so the `KeybindManager` exclusively owns overlay hotkeys.
+- Simplified `run_gui`/`MainWindow` signatures (no more `game_detector` arg) and adjusted `main.py` to use the new entry point.
+- Testing: `pytest test_minimal.py` (baseline discovery, 0 tests collected by design).

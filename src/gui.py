@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import (
     QGroupBox
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QThread, QObject, QTimer, qInstallMessageHandler, QtMsgType
-from PyQt6.QtGui import QAction, QKeySequence, QShortcut, QIcon, QPixmap, QPainter, QColor
+from PyQt6.QtGui import QAction, QIcon, QPixmap, QPainter, QColor
 from typing import Optional, Dict
 import os
 import webbrowser
@@ -102,54 +102,6 @@ class SessionEventBridge(QObject):
         self.session_event.emit(provider, action, payload)
 
 
-class GameDetectionThread(QThread):
-    """Background thread for game detection"""
-    game_detected = pyqtSignal(dict)
-    game_lost = pyqtSignal()
-
-    def __init__(self, game_detector):
-        super().__init__()
-        self.game_detector = game_detector
-        self.running = True
-        self.current_game = None
-
-    def run(self):
-        """Run game detection loop"""
-        try:
-            while self.running:
-                game = self.game_detector.detect_running_game()
-
-                # Check if this is a new game by comparing name and process (ignore timestamp)
-                is_new_game = False
-                if game and self.current_game:
-                    # Compare only name and process, not the entire dict (which includes timestamp)
-                    is_new_game = (
-                        game.get('name') != self.current_game.get('name') or
-                        game.get('process') != self.current_game.get('process')
-                    )
-                elif game and not self.current_game:
-                    # First game detection
-                    is_new_game = True
-
-                if is_new_game:
-                    self.current_game = game
-                    self.game_detected.emit(game)
-                    logger.info(f"Game detected: {game.get('name')}")
-                elif not game and self.current_game:
-                    self.current_game = None
-                    self.game_lost.emit()
-                    logger.info("Game closed")
-
-                self.msleep(5000)  # Check every 5 seconds
-        except Exception as e:
-            logger.error(f"Game detection thread error: {e}", exc_info=True)
-
-    def stop(self):
-        """Stop the detection thread"""
-        self.running = False
-        logger.info("Game detection thread stopped")
-
-
 class ChatWidget(QWidget):
     """Chat interface widget for Q&A interactions with AI assistant"""
 
@@ -157,6 +109,7 @@ class ChatWidget(QWidget):
         super().__init__()
         self.ai_assistant = ai_assistant
         self.ai_worker = None
+        self.game_context_provider = None
         self.init_ui()
 
     def init_ui(self):
@@ -195,6 +148,10 @@ class ChatWidget(QWidget):
 
         self.setLayout(layout)
 
+    def set_game_context_provider(self, provider):
+        """Register a callable that returns additional game context for chat prompts"""
+        self.game_context_provider = provider
+
     def send_message(self):
         """Process and send user message to AI assistant"""
         question = self.input_field.text().strip()
@@ -221,8 +178,17 @@ class ChatWidget(QWidget):
         self.input_field.setEnabled(False)
         self.send_button.setText("Thinking...")
 
+        # Resolve optional game context without blocking UI
+        game_context = None
+        if callable(self.game_context_provider):
+            try:
+                game_context = self.game_context_provider()
+            except Exception as exc:
+                logger.error(f"Failed to gather game context: {exc}", exc_info=True)
+                game_context = None
+
         # Create and start worker thread
-        self.ai_worker = AIWorkerThread(self.ai_assistant, question)
+        self.ai_worker = AIWorkerThread(self.ai_assistant, question, game_context=game_context)
         self.ai_worker.response_ready.connect(self.on_ai_response)
         self.ai_worker.error_occurred.connect(self.on_ai_error)
         self.ai_worker.finished.connect(self.on_ai_finished)
@@ -558,7 +524,6 @@ class MainWindow(QMainWindow):
 
     def __init__(
         self,
-        game_detector,
         ai_assistant,
         info_scraper,
         config,
@@ -566,7 +531,6 @@ class MainWindow(QMainWindow):
         design_system,
     ):
         super().__init__()
-        self.game_detector = game_detector
         self.ai_assistant = ai_assistant  # Can be None if no API keys configured
         self.info_scraper = info_scraper
         self.config = config
@@ -574,7 +538,6 @@ class MainWindow(QMainWindow):
         self.design_system = design_system
 
         self.current_game = None
-        self.detection_thread = None
 
         # Worker threads for button actions (prevents garbage collection crashes)
         self.tips_worker = None
@@ -593,6 +556,8 @@ class MainWindow(QMainWindow):
         # Create overlay window (but don't show it yet)
         # Note: parent=None to prevent overlay from hiding when main window loses focus
         self.overlay_window = OverlayWindow(ai_assistant, config, design_system, parent=None)
+        if hasattr(self.overlay_window, 'chat_widget'):
+            self.overlay_window.chat_widget.set_game_context_provider(self._get_chat_game_context)
 
         # Initialize game watcher for game detection and profile switching
         self.game_watcher = get_game_watcher(check_interval=config.check_interval)
@@ -607,7 +572,6 @@ class MainWindow(QMainWindow):
             )
 
         self.init_ui()
-        self.start_game_detection()
         self.start_game_watcher()
 
         # Start global hotkey listener after UI is ready
@@ -867,9 +831,6 @@ class MainWindow(QMainWindow):
         # System tray integration
         self.create_system_tray()
 
-        # Global keyboard shortcuts
-        self.create_shortcuts()
-
         logger.info("Main window initialized as 2x3 dashboard with avatar display")
 
     def mousePressEvent(self, event):
@@ -952,73 +913,6 @@ class MainWindow(QMainWindow):
 
         return QIcon(pixmap)
 
-    def create_shortcuts(self):
-        """Register global keyboard shortcuts"""
-        # Ctrl+Shift+G: Toggle window visibility
-        toggle_shortcut = QShortcut(QKeySequence("Ctrl+Shift+G"), self)
-        toggle_shortcut.activated.connect(self.toggle_visibility)
-
-    def toggle_visibility(self):
-        """Toggle overlay window visibility between shown and hidden states"""
-        if self.overlay_window.isVisible():
-            self.overlay_window.hide()
-            logger.info("Overlay hidden")
-        else:
-            self.overlay_window.show()
-            self.overlay_window.activateWindow()
-            logger.info("Overlay shown")
-
-    def start_game_detection(self):
-        """Initialize and start the game detection background thread"""
-        self.detection_thread = GameDetectionThread(self.game_detector)
-        self.detection_thread.game_detected.connect(self.on_game_detected)
-        self.detection_thread.game_lost.connect(self.on_game_lost)
-        self.detection_thread.start()
-        logger.info("Game detection thread started")
-
-    def on_game_detected(self, game: Dict):
-        """
-        Handle game detection event
-
-        Args:
-            game: Dictionary containing detected game information
-        """
-        self.current_game = game
-        game_name = game.get('name', 'Unknown Game')
-
-        # Update AI assistant context with current game
-        if self.ai_assistant:
-            self.ai_assistant.set_current_game(game)
-
-        # Update avatar display
-        if hasattr(self, 'avatar_display'):
-            self.avatar_display.set_game_context(game_name)
-
-        # Show notification in overlay chat
-        if hasattr(self, 'overlay_window') and self.overlay_window:
-            self.overlay_window.chat_widget.add_message(
-                "System",
-                f"Detected {game_name}! Ask me any questions about the game.",
-                is_user=False
-            )
-
-        logger.info(f"Game detected event handled: {game_name}")
-
-    def on_game_lost(self):
-        """Handle game close/lost detection event"""
-        self.current_game = None
-
-        # Clear AI assistant's game context
-        if self.ai_assistant:
-            self.ai_assistant.current_game = None
-            logger.info("Cleared AI assistant game context")
-
-        # Clear avatar display
-        if hasattr(self, 'avatar_display'):
-            self.avatar_display.set_game_context(None)
-
-        logger.info("Game lost event handled")
-
     def start_game_watcher(self):
         """Start the game watcher background thread for profile switching"""
         try:
@@ -1042,7 +936,20 @@ class MainWindow(QMainWindow):
             profile: GameProfile for this game
         """
         try:
-            logger.info(f"GameWatcher detected game change: {game_name} (profile: {profile.id})")
+            profile_label = getattr(profile, 'id', 'unknown') if profile else 'unknown'
+            logger.info(f"GameWatcher detected game change: {game_name} (profile: {profile_label})")
+
+            profile_id = getattr(profile, 'id', None)
+            executable_name = getattr(profile, 'executable_name', None)
+            self.current_game = {
+                "name": game_name,
+                "profile_id": profile_id,
+                "executable": executable_name,
+            }
+
+            if self.ai_assistant:
+                self.ai_assistant.current_game = self.current_game
+                logger.debug("AI Assistant current game context updated")
 
             # Update avatar display
             if hasattr(self, 'avatar_display'):
@@ -1051,9 +958,14 @@ class MainWindow(QMainWindow):
             # Update overlay title with current game
             if self.overlay_window:
                 self.overlay_window.setWindowTitle(f"Gaming Copilot - {game_name}")
+                self.overlay_window.chat_widget.add_message(
+                    "System",
+                    f"Detected {game_name}! Ask me any questions about the game.",
+                    is_user=False
+                )
 
             # Switch AI assistant to this game's profile
-            if self.ai_assistant:
+            if self.ai_assistant and profile:
                 self.ai_assistant.set_game_profile(profile)
                 logger.info(f"AI Assistant switched to profile: {profile.id}")
             else:
@@ -1080,8 +992,27 @@ class MainWindow(QMainWindow):
                 self.ai_assistant.clear_game_profile()
                 logger.info("AI Assistant profile cleared")
 
+            self.current_game = None
+            if self.ai_assistant:
+                self.ai_assistant.current_game = None
+
         except Exception as e:
             logger.error(f"Error handling game close: {e}")
+
+    def _get_chat_game_context(self) -> Optional[str]:
+        """Return lightweight textual context about the current game for chat prompts"""
+        if not self.current_game:
+            return None
+
+        game_name = self.current_game.get('name')
+        if not game_name:
+            return None
+
+        profile_id = self.current_game.get('profile_id')
+        if profile_id:
+            return f"Current game: {game_name} (profile: {profile_id})"
+
+        return f"Current game: {game_name}"
 
     def get_tips(self):
         """Request and display tips for the currently detected game"""
@@ -1356,14 +1287,6 @@ class MainWindow(QMainWindow):
         """Cleanup resources before closing"""
         logger.info("Cleaning up resources")
 
-        # Stop game detection thread
-        if self.detection_thread and self.detection_thread.isRunning():
-            self.detection_thread.stop()
-            self.detection_thread.wait(3000)  # Wait up to 3 seconds
-            if self.detection_thread.isRunning():
-                logger.warning("Game detection thread did not stop gracefully")
-                self.detection_thread.terminate()
-
         # Stop any active AI worker threads
         if hasattr(self.chat_widget, 'ai_worker') and self.chat_widget.ai_worker:
             if self.chat_widget.ai_worker.isRunning():
@@ -1443,12 +1366,11 @@ class MainWindow(QMainWindow):
         logger.info("Window close event - minimized to tray")
 
 
-def run_gui(game_detector, ai_assistant, info_scraper, config, credential_store, design_system_instance):
+def run_gui(ai_assistant, info_scraper, config, credential_store, design_system_instance):
     """
     Initialize and run the GUI application
 
     Args:
-        game_detector: Game detection service instance
         ai_assistant: AI assistant service instance (can be None if no credentials)
         info_scraper: Information scraper service instance
         config: Configuration instance
@@ -1518,7 +1440,6 @@ def run_gui(game_detector, ai_assistant, info_scraper, config, credential_store,
         try:
             logger.info("Creating MainWindow...")
             window = MainWindow(
-                game_detector,
                 ai_assistant,
                 info_scraper,
                 config,
