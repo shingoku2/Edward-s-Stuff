@@ -1004,12 +1004,12 @@ CHECK_INTERVAL=5
 ### Anthropic Claude
 - **API Key Format:** `sk-ant-...`
 - **Signup:** https://console.anthropic.com/settings/keys
-- **Models Used:** claude-3-opus-20240229
+- **Models Used:** claude-3-5-sonnet-20241022
 
 ### Google Gemini
 - **API Key Format:** `AIza...`
 - **Signup:** https://aistudio.google.com/app/apikey
-- **Models Used:** gemini-pro
+- **Models Used:** gemini-1.5-pro
 
 ### Ollama (Local)
 - **API Key:** None required

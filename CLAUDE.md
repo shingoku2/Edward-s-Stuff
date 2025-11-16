@@ -1685,7 +1685,7 @@ profile_store.save_profile(profile)
 **2. Set preferred AI provider:**
 ```python
 profile.default_provider = "anthropic"  # or "openai", "gemini"
-profile.default_model = "claude-3-opus-20240229"  # Specific model
+profile.default_model = "claude-3-5-sonnet-20241022"  # Specific model
 profile_store.save_profile(profile)
 ```
 
