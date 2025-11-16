@@ -239,6 +239,8 @@ class TabbedSettingsDialog(QDialog):
                 Config.save_to_env(
                     provider=default_provider
                 )
+                # Update the config object in memory so changes take effect immediately
+                self.config.ai_provider = default_provider
 
             # Emit signals
             self.keybinds_changed.emit(keybinds)
