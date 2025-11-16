@@ -157,6 +157,114 @@ class GameProfileStore:
             overlay_mode_default="compact",
             is_builtin=True,
         ),
+        GameProfile(
+            id="league_of_legends",
+            display_name="League of Legends",
+            exe_names=["LeagueClientUx.exe", "League of Legends.exe"],
+            system_prompt=(
+                "You are a Challenger-tier League of Legends coach. Provide pick/ban advice, "
+                "lane matchups, rune setups, and mid-game macro plans tailored to the asked role."
+            ),
+            default_provider="anthropic",
+            overlay_mode_default="compact",
+            is_builtin=True,
+        ),
+        GameProfile(
+            id="valorant",
+            display_name="Valorant",
+            exe_names=["VALORANT.exe", "valorant.exe"],
+            system_prompt=(
+                "You are an expert Valorant shot-caller. Provide agent compositions, "
+                "utility lineups, economy advice, and map-specific executes."
+            ),
+            default_provider="anthropic",
+            overlay_mode_default="compact",
+            is_builtin=True,
+        ),
+        GameProfile(
+            id="counter_strike_2",
+            display_name="Counter-Strike 2",
+            exe_names=["cs2.exe", "csgo.exe"],
+            system_prompt=(
+                "You are a Counter-Strike 2 analyst. Share buy strats, nade lineups, callouts, "
+                "and aim/spray control tips for competitive play."
+            ),
+            default_provider="anthropic",
+            overlay_mode_default="compact",
+            is_builtin=True,
+        ),
+        GameProfile(
+            id="dota_2",
+            display_name="Dota 2",
+            exe_names=["dota2.exe"],
+            system_prompt=(
+                "You are a Dota 2 drafter and coach. Offer hero counters, lane builds, "
+                "power spike reminders, and teamfight execution plans."
+            ),
+            default_provider="anthropic",
+            overlay_mode_default="compact",
+            is_builtin=True,
+        ),
+        GameProfile(
+            id="world_of_warcraft",
+            display_name="World of Warcraft",
+            exe_names=["Wow.exe", "WowClassic.exe"],
+            system_prompt=(
+                "You are a World of Warcraft raid lead. Give rotation tips, gearing paths, "
+                "dungeon/raid mechanics, and class talent suggestions for retail and classic."
+            ),
+            default_provider="anthropic",
+            overlay_mode_default="compact",
+            is_builtin=True,
+        ),
+        GameProfile(
+            id="minecraft",
+            display_name="Minecraft",
+            exe_names=["javaw.exe", "Minecraft.exe"],
+            system_prompt=(
+                "You are a master Minecraft builder. Provide crafting recipes, redstone ideas, "
+                "survival progression routes, and mob farming tips."
+            ),
+            default_provider="anthropic",
+            overlay_mode_default="compact",
+            is_builtin=True,
+        ),
+        GameProfile(
+            id="fortnite",
+            display_name="Fortnite",
+            exe_names=["FortniteClient-Win64-Shipping.exe"],
+            system_prompt=(
+                "You are a Fortnite coach. Offer drop spot plans, building/edit drills, "
+                "loadout advice, and rotating strategies for the current season."
+            ),
+            default_provider="anthropic",
+            overlay_mode_default="compact",
+            is_builtin=True,
+        ),
+        GameProfile(
+            id="pubg",
+            display_name="PUBG",
+            exe_names=["TslGame.exe"],
+            system_prompt=(
+                "You are a PUBG strategist. Provide drop recommendations, loot routes, "
+                "mid-game rotation guidance, and gunplay tips for each map."
+            ),
+            default_provider="anthropic",
+            overlay_mode_default="compact",
+            is_builtin=True,
+        ),
+        GameProfile(
+            id="gta_v",
+            display_name="GTA V",
+            exe_names=["GTA5.exe", "gtavicecity.exe"],
+            system_prompt=(
+                "You are a GTA V expert. Provide heist prep tips, vehicle and weapon suggestions, "
+                "and efficient money-making or exploration ideas."
+            ),
+            default_provider="anthropic",
+            overlay_mode_default="compact",
+            is_builtin=True,
+        ),
     ]
 
     def __init__(self):

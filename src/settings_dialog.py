@@ -237,7 +237,16 @@ class TabbedSettingsDialog(QDialog):
             if default_provider:
                 from config import Config
                 Config.save_to_env(
-                    provider=default_provider
+                    provider=default_provider,
+                    session_tokens=self.config.session_tokens,
+                    overlay_hotkey=self.config.overlay_hotkey,
+                    check_interval=self.config.check_interval,
+                    overlay_x=self.config.overlay_x,
+                    overlay_y=self.config.overlay_y,
+                    overlay_width=self.config.overlay_width,
+                    overlay_height=self.config.overlay_height,
+                    overlay_minimized=self.config.overlay_minimized,
+                    overlay_opacity=self.config.overlay_opacity
                 )
                 # Update the config object in memory so changes take effect immediately
                 self.config.ai_provider = default_provider

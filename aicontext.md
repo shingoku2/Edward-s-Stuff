@@ -4283,3 +4283,13 @@ All three critical bugs are now fixed:
 - Deleted the redundant `create_shortcuts`/`toggle_visibility` combo so the `KeybindManager` exclusively owns overlay hotkeys.
 - Simplified `run_gui`/`MainWindow` signatures (no more `game_detector` arg) and adjusted `main.py` to use the new entry point.
 - Testing: `pytest test_minimal.py` (baseline discovery, 0 tests collected by design).
+
+## Session: Provider/game profile persistence fixes (2025-11-17)
+
+### Changes
+- Synced the overlay AI assistant with provider changes from the Settings dialog so the active `AIAssistant` now honors the saved provider immediately and reloads router instances before the next chat turn.
+- Ensured both the provider save flow and overlay geometry persistence pass every Config setting (including session tokens and overlay placement) into `Config.save_to_env` so unrelated preferences are no longer reset when saving a single field.
+- Expanded the built-in `GameProfileStore` catalog with entries for League of Legends, Valorant, Counter-Strike 2, Dota 2, World of Warcraft, Minecraft, Fortnite, PUBG, and GTA V so `GameWatcher` can correctly match all previously supported executables instead of falling back to `generic_game`.
+
+### Testing & Troubleshooting
+- `pytest test_game_profiles.py::TestGameProfileStore::test_builtin_profiles_loaded -q` ✅ – Confirms the expanded built-in roster still loads correctly inside the store and keeps the generic + Elden Ring references that the tests assert against.

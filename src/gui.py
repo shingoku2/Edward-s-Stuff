@@ -487,6 +487,7 @@ class OverlayWindow(QWidget):
         geometry = self.geometry()
         Config.save_to_env(
             provider=self.config.ai_provider,
+            session_tokens=self.config.session_tokens,
             overlay_hotkey=self.config.overlay_hotkey,
             check_interval=self.config.check_interval,
             overlay_x=geometry.x(),
@@ -1245,6 +1246,8 @@ class MainWindow(QMainWindow):
     def on_provider_config_updated(self, default_provider: str, credentials: dict):
         """Handle provider configuration being updated"""
         logger.info(f"Provider config updated: {default_provider}")
+        if self.ai_assistant:
+            self.ai_assistant.provider = default_provider
         # Reload the AI router's provider instances with updated API keys
         if hasattr(self.ai_assistant, 'router'):
             self.ai_assistant.router.reload_providers()
