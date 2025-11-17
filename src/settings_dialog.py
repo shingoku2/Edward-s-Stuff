@@ -18,7 +18,7 @@ from game_profiles_tab import GameProfilesTab
 from knowledge_packs_tab import KnowledgePacksTab
 from keybind_manager import KeybindManager
 from macro_manager import MacroManager
-from theme_manager import ThemeManager
+from theme_compat import ThemeManager
 
 logger = logging.getLogger(__name__)
 

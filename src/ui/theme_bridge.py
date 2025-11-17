@@ -1,13 +1,18 @@
 """
-Omnix Theme Bridge
-==================
+Omnix Theme Bridge (DEPRECATED)
+================================
 
-Bridges the new Omnix UI Design System with the existing theme_manager.py
-to ensure backward compatibility and smooth migration.
+⚠️  DEPRECATION WARNING ⚠️
+This module is deprecated and replaced by theme_compat.py
 
-⚠️ TECHNICAL DEBT WARNING ⚠️
-=============================
-This bridge exists because Omnix currently has TWO theme systems:
+**Migration Path:**
+- Use `theme_compat.ThemeManagerCompat` instead
+- This provides the same backward compatibility with better architecture
+
+⚠️ TECHNICAL DEBT - RESOLVED ⚠️
+=================================
+This bridge was created because Omnix had TWO theme systems.
+This has now been resolved with the new unified system.
 
 1. **Legacy System** (src/theme_manager.py):
    - Uses Theme dataclass with basic color/font settings

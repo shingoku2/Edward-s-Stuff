@@ -1,6 +1,6 @@
 """
-Appearance Configuration Tabs
-Contains UI tabs for appearance customization
+Appearance Configuration Tabs (Refactored for New Design System)
+Contains UI tabs for appearance customization using OmnixThemeManager
 """
 
 import logging
@@ -11,26 +11,26 @@ from PyQt6.QtWidgets import (
     QCheckBox, QSpinBox, QDoubleSpinBox, QMessageBox, QColorDialog, QLineEdit
 )
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QColor, QPalette
+from PyQt6.QtGui import QColor
 
-from theme_manager import (
-    Theme, ThemeManager, ThemeMode, UIScale, LayoutMode,
-    OverlayAppearance, OverlayPosition,
-    DEFAULT_DARK_THEME, DEFAULT_LIGHT_THEME
-)
+# Import new design system
+from ui.theme_manager import OmnixThemeManager
 
 logger = logging.getLogger(__name__)
 
 
 class AppAppearanceTab(QWidget):
-    """Tab for configuring main app appearance"""
+    """Tab for configuring main app appearance using new design system"""
 
-    theme_changed = pyqtSignal(dict)  # Emits theme dict
+    theme_changed = pyqtSignal()  # Emits when theme changes
 
-    def __init__(self, theme_manager: ThemeManager, parent=None):
+    def __init__(self, theme_manager: OmnixThemeManager, parent=None):
         super().__init__(parent)
         self.theme_manager = theme_manager
-        self.current_theme = theme_manager.current_theme
+
+        # Register callback for theme updates
+        self.theme_manager.add_update_callback(self.on_theme_updated)
+
         self.init_ui()
 
     def init_ui(self):
@@ -39,282 +39,298 @@ class AppAppearanceTab(QWidget):
 
         # Header
         header = QLabel("Main Application Appearance")
-        header.setStyleSheet("font-size: 14pt; font-weight: bold; color: #14b8a6; padding: 10px;")
+        header.setStyleSheet(f"font-size: 14pt; font-weight: bold; color: {self.theme_manager.tokens.colors.accent_primary}; padding: 10px;")
         layout.addWidget(header)
 
-        # Theme Mode
-        theme_group = QGroupBox("Theme Mode")
-        theme_layout = QVBoxLayout()
-
-        self.theme_button_group = QButtonGroup()
-
-        self.dark_radio = QRadioButton("Dark Mode")
-        self.light_radio = QRadioButton("Light Mode")
-        self.auto_radio = QRadioButton("Auto (System)")
-
-        self.theme_button_group.addButton(self.dark_radio, 0)
-        self.theme_button_group.addButton(self.light_radio, 1)
-        self.theme_button_group.addButton(self.auto_radio, 2)
-
-        if self.current_theme.mode == ThemeMode.DARK.value:
-            self.dark_radio.setChecked(True)
-        elif self.current_theme.mode == ThemeMode.LIGHT.value:
-            self.light_radio.setChecked(True)
-        else:
-            self.auto_radio.setChecked(True)
-
-        self.theme_button_group.buttonClicked.connect(self.on_theme_mode_changed)
-
-        theme_layout.addWidget(self.dark_radio)
-        theme_layout.addWidget(self.light_radio)
-        theme_layout.addWidget(self.auto_radio)
-        theme_group.setLayout(theme_layout)
-        layout.addWidget(theme_group)
-
-        # Colors
-        colors_group = QGroupBox("Colors")
+        # Colors Section
+        colors_group = QGroupBox("Color Palette")
         colors_layout = QVBoxLayout()
 
-        # Primary color
-        primary_layout = QHBoxLayout()
-        primary_label = QLabel("Primary Color:")
-        primary_layout.addWidget(primary_label)
+        # Primary Accent Color
+        self._add_color_picker(colors_layout, "Primary Accent", "accent_primary",
+                               "Main accent color used for buttons, links, and highlights")
 
-        self.primary_button = QPushButton()
-        self.primary_button.setFixedSize(100, 30)
-        self.update_color_button(self.primary_button, self.current_theme.primary_color)
-        self.primary_button.clicked.connect(lambda: self.choose_color('primary'))
-        primary_layout.addWidget(self.primary_button)
+        # Secondary Accent Color
+        self._add_color_picker(colors_layout, "Secondary Accent", "accent_secondary",
+                               "Secondary accent color for warnings and special elements")
 
-        primary_layout.addStretch()
-        colors_layout.addLayout(primary_layout)
+        # Background Colors
+        self._add_color_picker(colors_layout, "Primary Background", "bg_primary",
+                               "Main application background color")
 
-        # Secondary color
-        secondary_layout = QHBoxLayout()
-        secondary_label = QLabel("Secondary Color:")
-        secondary_layout.addWidget(secondary_label)
+        self._add_color_picker(colors_layout, "Secondary Background", "bg_secondary",
+                               "Panel and container background color")
 
-        self.secondary_button = QPushButton()
-        self.secondary_button.setFixedSize(100, 30)
-        self.update_color_button(self.secondary_button, self.current_theme.secondary_color)
-        self.secondary_button.clicked.connect(lambda: self.choose_color('secondary'))
-        secondary_layout.addWidget(self.secondary_button)
+        # Text Colors
+        self._add_color_picker(colors_layout, "Primary Text", "text_primary",
+                               "Main text color")
 
-        secondary_layout.addStretch()
-        colors_layout.addLayout(secondary_layout)
+        self._add_color_picker(colors_layout, "Secondary Text", "text_secondary",
+                               "Secondary/muted text color")
 
         colors_group.setLayout(colors_layout)
         layout.addWidget(colors_group)
 
-        # Typography
-        typo_group = QGroupBox("Typography")
-        typo_layout = QVBoxLayout()
+        # Typography Section
+        typography_group = QGroupBox("Typography")
+        typography_layout = QVBoxLayout()
 
-        # Font size
+        # Font Family
+        font_family_layout = QHBoxLayout()
+        font_family_label = QLabel("Font Family:")
+        font_family_layout.addWidget(font_family_label)
+
+        self.font_family_input = QLineEdit()
+        self.font_family_input.setText(self.theme_manager.tokens.typography.font_primary)
+        self.font_family_input.setPlaceholderText("e.g., Roboto, Arial, sans-serif")
+        self.font_family_input.textChanged.connect(self.on_font_family_changed)
+        font_family_layout.addWidget(self.font_family_input)
+
+        typography_layout.addLayout(font_family_layout)
+
+        # Base Font Size
         font_size_layout = QHBoxLayout()
-        font_size_label = QLabel("Font Size:")
+        font_size_label = QLabel("Base Font Size:")
         font_size_layout.addWidget(font_size_label)
 
         self.font_size_spin = QSpinBox()
-        self.font_size_spin.setRange(8, 16)
-        self.font_size_spin.setValue(self.current_theme.font_size)
+        self.font_size_spin.setRange(8, 20)
+        self.font_size_spin.setValue(self.theme_manager.tokens.typography.size_base)
         self.font_size_spin.setSuffix(" pt")
+        self.font_size_spin.valueChanged.connect(self.on_font_size_changed)
         font_size_layout.addWidget(self.font_size_spin)
 
         font_size_layout.addStretch()
-        typo_layout.addLayout(font_size_layout)
+        typography_layout.addLayout(font_size_layout)
 
-        # UI Scale
-        scale_layout = QHBoxLayout()
-        scale_label = QLabel("UI Scale:")
-        scale_layout.addWidget(scale_label)
+        typography_group.setLayout(typography_layout)
+        layout.addWidget(typography_group)
 
-        self.scale_combo = QComboBox()
-        for scale in UIScale:
-            self.scale_combo.addItem(scale.value.title(), scale.value)
+        # Spacing & Layout Section
+        spacing_group = QGroupBox("Spacing & Layout")
+        spacing_layout = QVBoxLayout()
 
-        current_index = self.scale_combo.findData(self.current_theme.ui_scale)
-        if current_index >= 0:
-            self.scale_combo.setCurrentIndex(current_index)
+        # Base Spacing
+        base_spacing_layout = QHBoxLayout()
+        base_spacing_label = QLabel("Base Spacing:")
+        base_spacing_layout.addWidget(base_spacing_label)
 
-        scale_layout.addWidget(self.scale_combo)
+        self.base_spacing_spin = QSpinBox()
+        self.base_spacing_spin.setRange(8, 32)
+        self.base_spacing_spin.setValue(self.theme_manager.tokens.spacing.base)
+        self.base_spacing_spin.setSuffix(" px")
+        self.base_spacing_spin.valueChanged.connect(self.on_base_spacing_changed)
+        base_spacing_layout.addWidget(self.base_spacing_spin)
 
-        scale_layout.addStretch()
-        typo_layout.addLayout(scale_layout)
+        base_spacing_layout.addStretch()
+        spacing_layout.addLayout(base_spacing_layout)
 
-        typo_group.setLayout(typo_layout)
-        layout.addWidget(typo_group)
+        # Border Radius
+        border_radius_layout = QHBoxLayout()
+        border_radius_label = QLabel("Border Radius:")
+        border_radius_layout.addWidget(border_radius_label)
 
-        # Layout
-        layout_group = QGroupBox("Layout")
-        layout_layout = QVBoxLayout()
+        self.border_radius_spin = QSpinBox()
+        self.border_radius_spin.setRange(0, 20)
+        self.border_radius_spin.setValue(self.theme_manager.tokens.radius.base)
+        self.border_radius_spin.setSuffix(" px")
+        self.border_radius_spin.valueChanged.connect(self.on_border_radius_changed)
+        border_radius_layout.addWidget(self.border_radius_spin)
 
-        # Layout mode
-        layout_mode_layout = QHBoxLayout()
-        layout_mode_label = QLabel("Density:")
-        layout_mode_layout.addWidget(layout_mode_label)
+        border_radius_layout.addStretch()
+        spacing_layout.addLayout(border_radius_layout)
 
-        self.layout_mode_combo = QComboBox()
-        for mode in LayoutMode:
-            self.layout_mode_combo.addItem(mode.value.title(), mode.value)
+        spacing_group.setLayout(spacing_layout)
+        layout.addWidget(spacing_group)
 
-        current_index = self.layout_mode_combo.findData(self.current_theme.layout_mode)
-        if current_index >= 0:
-            self.layout_mode_combo.setCurrentIndex(current_index)
-
-        layout_mode_layout.addWidget(self.layout_mode_combo)
-
-        layout_mode_layout.addStretch()
-        layout_layout.addLayout(layout_mode_layout)
-
-        # Transparency
-        transparency_layout = QHBoxLayout()
-        transparency_label = QLabel("Window Transparency:")
-        transparency_layout.addWidget(transparency_label)
-
-        self.transparency_slider = QSlider(Qt.Orientation.Horizontal)
-        self.transparency_slider.setRange(50, 100)
-        self.transparency_slider.setValue(int(self.current_theme.transparency * 100))
-        self.transparency_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
-        self.transparency_slider.setTickInterval(10)
-        transparency_layout.addWidget(self.transparency_slider)
-
-        self.transparency_value_label = QLabel(f"{int(self.current_theme.transparency * 100)}%")
-        self.transparency_slider.valueChanged.connect(
-            lambda v: self.transparency_value_label.setText(f"{v}%")
-        )
-        transparency_layout.addWidget(self.transparency_value_label)
-
-        layout_layout.addLayout(transparency_layout)
-
-        layout_group.setLayout(layout_layout)
-        layout.addWidget(layout_group)
-
-        # Buttons
+        # Action Buttons
         button_layout = QHBoxLayout()
 
-        restore_button = QPushButton("Restore Defaults")
-        restore_button.clicked.connect(self.restore_defaults)
-        button_layout.addWidget(restore_button)
+        reset_button = QPushButton("Reset to Defaults")
+        reset_button.clicked.connect(self.restore_defaults)
+        button_layout.addWidget(reset_button)
 
-        preview_button = QPushButton("Preview Changes")
-        preview_button.clicked.connect(self.preview_theme)
+        preview_button = QPushButton("Apply Changes")
+        preview_button.clicked.connect(self.apply_theme)
         button_layout.addWidget(preview_button)
+
+        save_button = QPushButton("Save Theme")
+        save_button.clicked.connect(self.save_theme)
+        button_layout.addWidget(save_button)
 
         button_layout.addStretch()
         layout.addLayout(button_layout)
 
+        # Customization Info
+        info_layout = QHBoxLayout()
+        customizations_count = len(self.theme_manager._customized_tokens)
+        info_label = QLabel(f"Customizations: {customizations_count} tokens modified")
+        info_label.setStyleSheet(f"color: {self.theme_manager.tokens.colors.text_muted}; font-size: 10pt;")
+        info_layout.addWidget(info_label)
+        info_layout.addStretch()
+        layout.addLayout(info_layout)
+
         layout.addStretch()
         self.setLayout(layout)
 
-    def on_theme_mode_changed(self, button):
-        """Handle theme mode change"""
-        if button == self.dark_radio:
-            self.current_theme.mode = ThemeMode.DARK.value
-            # Load dark theme defaults
-            self.current_theme.background_color = DEFAULT_DARK_THEME.background_color
-            self.current_theme.surface_color = DEFAULT_DARK_THEME.surface_color
-            self.current_theme.text_color = DEFAULT_DARK_THEME.text_color
-            self.current_theme.text_secondary_color = DEFAULT_DARK_THEME.text_secondary_color
-        elif button == self.light_radio:
-            self.current_theme.mode = ThemeMode.LIGHT.value
-            # Load light theme defaults
-            self.current_theme.background_color = DEFAULT_LIGHT_THEME.background_color
-            self.current_theme.surface_color = DEFAULT_LIGHT_THEME.surface_color
-            self.current_theme.text_color = DEFAULT_LIGHT_THEME.text_color
-            self.current_theme.text_secondary_color = DEFAULT_LIGHT_THEME.text_secondary_color
-        else:
-            self.current_theme.mode = ThemeMode.AUTO.value
+    def _add_color_picker(self, layout: QVBoxLayout, label: str, token_key: str, description: str):
+        """
+        Add a color picker control.
 
-    def choose_color(self, color_type: str):
-        """Open color picker dialog"""
-        if color_type == 'primary':
-            current_color = QColor(self.current_theme.primary_color)
-            button = self.primary_button
-        elif color_type == 'secondary':
-            current_color = QColor(self.current_theme.secondary_color)
-            button = self.secondary_button
-        else:
-            return
+        Args:
+            layout: Layout to add to
+            label: Display label
+            token_key: Token key in colors palette
+            description: Tooltip description
+        """
+        row_layout = QHBoxLayout()
 
-        color = QColorDialog.getColor(current_color, self, f"Choose {color_type.title()} Color")
+        # Label
+        label_widget = QLabel(f"{label}:")
+        label_widget.setMinimumWidth(150)
+        label_widget.setToolTip(description)
+        row_layout.addWidget(label_widget)
+
+        # Color button
+        color_button = QPushButton()
+        color_button.setFixedSize(100, 30)
+        current_color = getattr(self.theme_manager.tokens.colors, token_key)
+        self._update_color_button(color_button, current_color)
+        color_button.clicked.connect(lambda: self._choose_color(token_key, color_button))
+        color_button.setToolTip(description)
+        row_layout.addWidget(color_button)
+
+        # Reset individual token button
+        reset_btn = QPushButton("Reset")
+        reset_btn.setMaximumWidth(60)
+        reset_btn.clicked.connect(lambda: self._reset_token('colors', token_key, color_button))
+        row_layout.addWidget(reset_btn)
+
+        # Customization indicator
+        is_customized = self.theme_manager.is_customized('colors', token_key)
+        indicator = QLabel("●" if is_customized else "○")
+        indicator.setStyleSheet(f"color: {self.theme_manager.tokens.colors.accent_primary}; font-size: 12pt;")
+        indicator.setToolTip("Modified" if is_customized else "Default")
+        row_layout.addWidget(indicator)
+
+        row_layout.addStretch()
+        layout.addLayout(row_layout)
+
+    def _choose_color(self, token_key: str, button: QPushButton):
+        """Open color picker and update token."""
+        current_color = getattr(self.theme_manager.tokens.colors, token_key)
+        qcolor = QColor(current_color)
+
+        color = QColorDialog.getColor(qcolor, self, f"Choose {token_key} Color")
 
         if color.isValid():
             hex_color = color.name()
-            if color_type == 'primary':
-                self.current_theme.primary_color = hex_color
-            elif color_type == 'secondary':
-                self.current_theme.secondary_color = hex_color
+            self.theme_manager.update_color(token_key, hex_color)
+            self._update_color_button(button, hex_color)
+            self.theme_changed.emit()
 
-            self.update_color_button(button, hex_color)
-
-    def update_color_button(self, button: QPushButton, color: str):
-        """Update button with color"""
+    def _update_color_button(self, button: QPushButton, color: str):
+        """Update button to show color."""
         button.setStyleSheet(f"""
             QPushButton {{
                 background-color: {color};
                 border: 2px solid #3a3a3a;
                 border-radius: 5px;
+                color: #ffffff;
+                font-weight: bold;
             }}
             QPushButton:hover {{
-                border-color: #14b8a6;
+                border-color: #00BFFF;
             }}
         """)
-        button.setText(color)
+        button.setText(color.upper())
 
-    def preview_theme(self):
-        """Preview theme changes"""
-        self.apply_theme_settings()
-        QMessageBox.information(
-            self,
-            "Preview",
-            "Theme preview applied! Changes will be saved when you click 'Save Settings'."
-        )
+    def _reset_token(self, category: str, key: str, button: QPushButton = None):
+        """Reset a specific token to default."""
+        self.theme_manager.reset_token(category, key)
+
+        if button and category == 'colors':
+            new_color = getattr(self.theme_manager.tokens.colors, key)
+            self._update_color_button(button, new_color)
+
+        self.theme_changed.emit()
+        QMessageBox.information(self, "Token Reset", f"Reset {category}.{key} to default value")
+
+    def on_font_family_changed(self, text: str):
+        """Handle font family change."""
+        if text.strip():
+            self.theme_manager.update_typography('font_primary', text)
+            self.theme_changed.emit()
+
+    def on_font_size_changed(self, value: int):
+        """Handle font size change."""
+        self.theme_manager.update_typography('size_base', value)
+        self.theme_changed.emit()
+
+    def on_base_spacing_changed(self, value: int):
+        """Handle base spacing change."""
+        self.theme_manager.update_spacing('base', value)
+        self.theme_changed.emit()
+
+    def on_border_radius_changed(self, value: int):
+        """Handle border radius change."""
+        self.theme_manager.update_radius('base', value)
+        self.theme_changed.emit()
+
+    def on_theme_updated(self):
+        """Callback when theme is updated externally."""
+        # Could refresh UI here if needed
+        pass
 
     def restore_defaults(self):
-        """Restore default theme"""
+        """Restore all defaults."""
         reply = QMessageBox.question(
             self,
             "Restore Defaults",
-            "Are you sure you want to restore default appearance settings?",
+            "Are you sure you want to restore all default theme settings? This will reset all customizations.",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
 
         if reply == QMessageBox.StandardButton.Yes:
-            self.current_theme = Theme() if self.dark_radio.isChecked() else DEFAULT_DARK_THEME
-            self.init_ui()  # Reload UI with defaults
-            QMessageBox.information(self, "Defaults Restored", "Default appearance settings have been restored.")
+            self.theme_manager.reset_to_defaults()
+            # Rebuild UI with defaults - need to clear and recreate
+            while self.layout().count():
+                child = self.layout().takeAt(0)
+                if child.widget():
+                    child.widget().deleteLater()
 
-    def apply_theme_settings(self):
-        """Apply current theme settings to the theme object"""
-        self.current_theme.font_size = self.font_size_spin.value()
-        self.current_theme.ui_scale = self.scale_combo.currentData()
-        self.current_theme.layout_mode = self.layout_mode_combo.currentData()
-        self.current_theme.transparency = self.transparency_slider.value() / 100.0
+            self.init_ui()  # Rebuild UI with defaults
+            self.theme_changed.emit()
+            QMessageBox.information(self, "Defaults Restored", "All theme settings have been restored to defaults.")
 
-        self.theme_manager.set_theme(self.current_theme)
+    def apply_theme(self):
+        """Apply current theme (triggers UI update)."""
+        self.theme_changed.emit()
+        QMessageBox.information(
+            self,
+            "Theme Applied",
+            "Theme changes applied! Restart the application for all changes to take effect."
+        )
 
-    def emit_theme(self):
-        """Emit theme changed signal"""
-        self.apply_theme_settings()
-        theme_dict = self.theme_manager.save_to_dict()
-        self.theme_changed.emit(theme_dict)
-
-    def get_theme(self) -> dict:
-        """Get current theme as dictionary"""
-        self.apply_theme_settings()
-        return self.theme_manager.save_to_dict()
+    def save_theme(self):
+        """Save theme to file."""
+        self.theme_manager.save_theme()
+        QMessageBox.information(
+            self,
+            "Theme Saved",
+            f"Theme saved successfully!\n\nCustomizations: {len(self.theme_manager._customized_tokens)} tokens"
+        )
 
 
 class OverlayAppearanceTab(QWidget):
-    """Tab for configuring overlay appearance"""
+    """Tab for configuring overlay-specific appearance"""
 
-    overlay_appearance_changed = pyqtSignal(dict)  # Emits overlay appearance dict
+    overlay_changed = pyqtSignal()
 
-    def __init__(self, theme_manager: ThemeManager, parent=None):
+    def __init__(self, theme_manager: OmnixThemeManager, config, parent=None):
         super().__init__(parent)
         self.theme_manager = theme_manager
-        self.overlay_appearance = theme_manager.overlay_appearance
+        self.config = config
         self.init_ui()
 
     def init_ui(self):
@@ -322,244 +338,129 @@ class OverlayAppearanceTab(QWidget):
         layout = QVBoxLayout()
 
         # Header
-        header = QLabel("In-Game Overlay Appearance")
-        header.setStyleSheet("font-size: 14pt; font-weight: bold; color: #14b8a6; padding: 10px;")
+        header = QLabel("Overlay Window Appearance")
+        header.setStyleSheet(f"font-size: 14pt; font-weight: bold; color: {self.theme_manager.tokens.colors.accent_primary}; padding: 10px;")
         layout.addWidget(header)
 
-        # Position
-        position_group = QGroupBox("Position")
-        position_layout = QVBoxLayout()
+        # Overlay Opacity
+        opacity_group = QGroupBox("Overlay Opacity")
+        opacity_layout = QVBoxLayout()
 
-        # Position preset
-        preset_layout = QHBoxLayout()
-        preset_label = QLabel("Position Preset:")
-        preset_layout.addWidget(preset_label)
-
-        self.position_combo = QComboBox()
-        for position in OverlayPosition:
-            self.position_combo.addItem(position.value.replace('_', ' ').title(), position.value)
-
-        current_index = self.position_combo.findData(self.overlay_appearance.position_preset)
-        if current_index >= 0:
-            self.position_combo.setCurrentIndex(current_index)
-
-        self.position_combo.currentIndexChanged.connect(self.on_position_changed)
-        preset_layout.addWidget(self.position_combo)
-
-        preset_layout.addStretch()
-        position_layout.addLayout(preset_layout)
-
-        # Custom position (only enabled for CUSTOM preset)
-        custom_layout = QHBoxLayout()
-
-        x_label = QLabel("X:")
-        custom_layout.addWidget(x_label)
-
-        self.x_spin = QSpinBox()
-        self.x_spin.setRange(0, 10000)
-        self.x_spin.setValue(self.overlay_appearance.custom_x)
-        custom_layout.addWidget(self.x_spin)
-
-        y_label = QLabel("Y:")
-        custom_layout.addWidget(y_label)
-
-        self.y_spin = QSpinBox()
-        self.y_spin.setRange(0, 10000)
-        self.y_spin.setValue(self.overlay_appearance.custom_y)
-        custom_layout.addWidget(self.y_spin)
-
-        custom_layout.addStretch()
-        position_layout.addLayout(custom_layout)
-
-        position_group.setLayout(position_layout)
-        layout.addWidget(position_group)
-
-        # Size
-        size_group = QGroupBox("Size")
-        size_layout = QVBoxLayout()
-
-        size_input_layout = QHBoxLayout()
-
-        width_label = QLabel("Width:")
-        size_input_layout.addWidget(width_label)
-
-        self.width_spin = QSpinBox()
-        self.width_spin.setRange(400, 3840)
-        self.width_spin.setValue(self.overlay_appearance.width)
-        self.width_spin.setSuffix(" px")
-        size_input_layout.addWidget(self.width_spin)
-
-        height_label = QLabel("Height:")
-        size_input_layout.addWidget(height_label)
-
-        self.height_spin = QSpinBox()
-        self.height_spin.setRange(300, 2160)
-        self.height_spin.setValue(self.overlay_appearance.height)
-        self.height_spin.setSuffix(" px")
-        size_input_layout.addWidget(self.height_spin)
-
-        size_input_layout.addStretch()
-        size_layout.addLayout(size_input_layout)
-
-        # Scale
-        scale_layout = QHBoxLayout()
-        scale_label = QLabel("Scale:")
-        scale_layout.addWidget(scale_label)
-
-        self.scale_slider = QSlider(Qt.Orientation.Horizontal)
-        self.scale_slider.setRange(50, 150)
-        self.scale_slider.setValue(int(self.overlay_appearance.scale * 100))
-        self.scale_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
-        self.scale_slider.setTickInterval(10)
-        scale_layout.addWidget(self.scale_slider)
-
-        self.scale_value_label = QLabel(f"{int(self.overlay_appearance.scale * 100)}%")
-        self.scale_slider.valueChanged.connect(
-            lambda v: self.scale_value_label.setText(f"{v}%")
-        )
-        scale_layout.addWidget(self.scale_value_label)
-
-        size_layout.addLayout(scale_layout)
-
-        size_group.setLayout(size_layout)
-        layout.addWidget(size_group)
-
-        # Opacity
-        opacity_group = QGroupBox("Opacity")
-        opacity_layout = QHBoxLayout()
+        opacity_slider_layout = QHBoxLayout()
+        opacity_label = QLabel("Background Opacity:")
+        opacity_slider_layout.addWidget(opacity_label)
 
         self.opacity_slider = QSlider(Qt.Orientation.Horizontal)
-        self.opacity_slider.setRange(10, 100)
-        self.opacity_slider.setValue(int(self.overlay_appearance.opacity * 100))
+        self.opacity_slider.setRange(50, 100)
+        self.opacity_slider.setValue(int(getattr(self.config, 'overlay_opacity', 0.95) * 100))
         self.opacity_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
         self.opacity_slider.setTickInterval(10)
-        opacity_layout.addWidget(self.opacity_slider)
+        opacity_slider_layout.addWidget(self.opacity_slider)
 
-        self.opacity_value_label = QLabel(f"{int(self.overlay_appearance.opacity * 100)}%")
-        self.opacity_slider.valueChanged.connect(
-            lambda v: self.opacity_value_label.setText(f"{v}%")
-        )
-        opacity_layout.addWidget(self.opacity_value_label)
+        self.opacity_value_label = QLabel(f"{self.opacity_slider.value()}%")
+        self.opacity_value_label.setMinimumWidth(50)
+        opacity_slider_layout.addWidget(self.opacity_value_label)
 
+        self.opacity_slider.valueChanged.connect(self.on_opacity_changed)
+
+        opacity_layout.addLayout(opacity_slider_layout)
         opacity_group.setLayout(opacity_layout)
         layout.addWidget(opacity_group)
 
-        # Behavior
-        behavior_group = QGroupBox("Behavior")
-        behavior_layout = QVBoxLayout()
+        # Window Settings
+        window_group = QGroupBox("Window Settings")
+        window_layout = QVBoxLayout()
 
+        # Stay on Top
+        self.stay_on_top_check = QCheckBox("Always Stay on Top")
+        self.stay_on_top_check.setChecked(getattr(self.config, 'overlay_stay_on_top', True))
+        self.stay_on_top_check.setToolTip("Keep overlay window above other applications")
+        window_layout.addWidget(self.stay_on_top_check)
+
+        # Edge Snapping
         self.edge_snapping_check = QCheckBox("Enable Edge Snapping")
-        self.edge_snapping_check.setChecked(self.overlay_appearance.edge_snapping)
-        behavior_layout.addWidget(self.edge_snapping_check)
+        self.edge_snapping_check.setChecked(getattr(self.config, 'overlay_edge_snapping', True))
+        self.edge_snapping_check.setToolTip("Automatically snap window to screen edges")
+        window_layout.addWidget(self.edge_snapping_check)
 
-        snap_layout = QHBoxLayout()
-        snap_label = QLabel("Snap Threshold:")
-        snap_layout.addWidget(snap_label)
-
-        self.snap_threshold_spin = QSpinBox()
-        self.snap_threshold_spin.setRange(5, 100)
-        self.snap_threshold_spin.setValue(self.overlay_appearance.snap_threshold)
-        self.snap_threshold_spin.setSuffix(" px")
-        snap_layout.addWidget(self.snap_threshold_spin)
-
-        snap_layout.addStretch()
-        behavior_layout.addLayout(snap_layout)
-
-        self.stay_on_top_check = QCheckBox("Always Stay On Top")
-        self.stay_on_top_check.setChecked(self.overlay_appearance.stay_on_top)
-        behavior_layout.addWidget(self.stay_on_top_check)
-
-        behavior_group.setLayout(behavior_layout)
-        layout.addWidget(behavior_group)
-
-        # Visible Panels
-        panels_group = QGroupBox("Visible Panels")
-        panels_layout = QVBoxLayout()
-
-        self.show_header_check = QCheckBox("Show Header")
-        self.show_header_check.setChecked(self.overlay_appearance.show_header)
-        panels_layout.addWidget(self.show_header_check)
-
+        # Show Minimize Button
         self.show_minimize_check = QCheckBox("Show Minimize Button")
-        self.show_minimize_check.setChecked(self.overlay_appearance.show_minimize_button)
-        panels_layout.addWidget(self.show_minimize_check)
+        self.show_minimize_check.setChecked(getattr(self.config, 'overlay_show_minimize', True))
+        self.show_minimize_check.setToolTip("Display minimize button in overlay header")
+        window_layout.addWidget(self.show_minimize_check)
 
-        self.show_chat_check = QCheckBox("Show Chat Panel")
-        self.show_chat_check.setChecked(self.overlay_appearance.show_chat)
-        panels_layout.addWidget(self.show_chat_check)
+        window_group.setLayout(window_layout)
+        layout.addWidget(window_group)
 
-        self.show_game_info_check = QCheckBox("Show Game Info")
-        self.show_game_info_check.setChecked(self.overlay_appearance.show_game_info)
-        panels_layout.addWidget(self.show_game_info_check)
+        # Preview Section
+        preview_group = QGroupBox("Preview")
+        preview_layout = QVBoxLayout()
 
-        panels_group.setLayout(panels_layout)
-        layout.addWidget(panels_group)
+        preview_label = QLabel("Overlay uses the same color theme as the main application.")
+        preview_label.setWordWrap(True)
+        preview_label.setStyleSheet(f"color: {self.theme_manager.tokens.colors.text_secondary};")
+        preview_layout.addWidget(preview_label)
 
-        # Buttons
+        preview_button = QPushButton("Preview Overlay Stylesheet")
+        preview_button.clicked.connect(self.preview_overlay_stylesheet)
+        preview_layout.addWidget(preview_button)
+
+        preview_group.setLayout(preview_layout)
+        layout.addWidget(preview_group)
+
+        # Apply Button
         button_layout = QHBoxLayout()
-
-        restore_button = QPushButton("Restore Defaults")
-        restore_button.clicked.connect(self.restore_defaults)
-        button_layout.addWidget(restore_button)
-
+        apply_button = QPushButton("Apply Overlay Settings")
+        apply_button.clicked.connect(self.apply_overlay_settings)
+        button_layout.addWidget(apply_button)
         button_layout.addStretch()
         layout.addLayout(button_layout)
 
         layout.addStretch()
         self.setLayout(layout)
 
-        # Set initial enabled state for custom position
-        self.on_position_changed(self.position_combo.currentIndex())
+    def on_opacity_changed(self, value: int):
+        """Handle opacity slider change."""
+        self.opacity_value_label.setText(f"{value}%")
 
-    def on_position_changed(self, index):
-        """Handle position preset change"""
-        position = self.position_combo.currentData()
-        is_custom = (position == OverlayPosition.CUSTOM.value)
+    def preview_overlay_stylesheet(self):
+        """Show preview of overlay stylesheet."""
+        opacity = self.opacity_slider.value() / 100.0
+        stylesheet = self.theme_manager.get_overlay_stylesheet(opacity)
 
-        self.x_spin.setEnabled(is_custom)
-        self.y_spin.setEnabled(is_custom)
+        # Show first 500 characters in a message box
+        preview_text = stylesheet[:500] + "\n\n... (truncated)"
 
-    def restore_defaults(self):
-        """Restore default overlay appearance"""
-        reply = QMessageBox.question(
+        QMessageBox.information(
             self,
-            "Restore Defaults",
-            "Are you sure you want to restore default overlay appearance settings?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            "Overlay Stylesheet Preview",
+            f"Opacity: {opacity:.2f}\n\n{preview_text}"
         )
 
-        if reply == QMessageBox.StandardButton.Yes:
-            self.overlay_appearance = OverlayAppearance()
-            self.theme_manager.set_overlay_appearance(self.overlay_appearance)
-            self.init_ui()  # Reload UI with defaults
-            QMessageBox.information(self, "Defaults Restored", "Default overlay appearance settings have been restored.")
-
     def apply_overlay_settings(self):
-        """Apply current overlay settings to the overlay appearance object"""
-        self.overlay_appearance.position_preset = self.position_combo.currentData()
-        self.overlay_appearance.custom_x = self.x_spin.value()
-        self.overlay_appearance.custom_y = self.y_spin.value()
-        self.overlay_appearance.width = self.width_spin.value()
-        self.overlay_appearance.height = self.height_spin.value()
-        self.overlay_appearance.scale = self.scale_slider.value() / 100.0
-        self.overlay_appearance.opacity = self.opacity_slider.value() / 100.0
-        self.overlay_appearance.edge_snapping = self.edge_snapping_check.isChecked()
-        self.overlay_appearance.snap_threshold = self.snap_threshold_spin.value()
-        self.overlay_appearance.stay_on_top = self.stay_on_top_check.isChecked()
-        self.overlay_appearance.show_header = self.show_header_check.isChecked()
-        self.overlay_appearance.show_minimize_button = self.show_minimize_check.isChecked()
-        self.overlay_appearance.show_chat = self.show_chat_check.isChecked()
-        self.overlay_appearance.show_game_info = self.show_game_info_check.isChecked()
+        """Apply overlay settings."""
+        # Update config
+        self.config.overlay_opacity = self.opacity_slider.value() / 100.0
+        self.config.overlay_stay_on_top = self.stay_on_top_check.isChecked()
+        self.config.overlay_edge_snapping = self.edge_snapping_check.isChecked()
+        self.config.overlay_show_minimize = self.show_minimize_check.isChecked()
 
-        self.theme_manager.set_overlay_appearance(self.overlay_appearance)
+        # Save config
+        self.config.save()
 
-    def emit_overlay_appearance(self):
-        """Emit overlay appearance changed signal"""
-        self.apply_overlay_settings()
-        appearance_dict = self.theme_manager.save_to_dict()
-        self.overlay_appearance_changed.emit(appearance_dict)
+        self.overlay_changed.emit()
 
-    def get_overlay_appearance(self) -> dict:
-        """Get current overlay appearance as dictionary"""
-        self.apply_overlay_settings()
-        return self.theme_manager.save_to_dict()
+        QMessageBox.information(
+            self,
+            "Settings Applied",
+            "Overlay settings applied! Restart the application for changes to take effect."
+        )
+
+    def get_overlay_settings(self) -> dict:
+        """Get current overlay settings as dict."""
+        return {
+            'opacity': self.opacity_slider.value() / 100.0,
+            'stay_on_top': self.stay_on_top_check.isChecked(),
+            'edge_snapping': self.edge_snapping_check.isChecked(),
+            'show_minimize': self.show_minimize_check.isChecked(),
+        }

@@ -23,7 +23,7 @@ from config import Config
 from keybind_manager import KeybindManager, Keybind, DEFAULT_KEYBINDS
 from macro_manager import MacroManager, MacroActionType
 from macro_runner import MacroRunner
-from theme_manager import ThemeManager, DEFAULT_DARK_THEME
+from theme_compat import ThemeManager, DEFAULT_DARK_THEME
 from settings_dialog import TabbedSettingsDialog
 from session_recap_dialog import SessionRecapDialog
 from game_watcher import get_game_watcher

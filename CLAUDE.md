@@ -1935,38 +1935,65 @@ stats.sort_stats('cumulative')
 stats.print_stats(10)  # Top 10 slowest
 ```
 
-### Known Issues and Technical Debt
+### Theme System (Unified as of 2025-11-17) ✅
 
-#### ⚠️ Dual Theme Systems
+**Migration Completed:** Omnix now uses a **unified token-based design system** with full backward compatibility.
 
-**Issue:** Omnix currently has **two separate theming systems** that are not fully integrated:
+#### Current Architecture
 
-1. **Legacy System** (`src/theme_manager.py`):
-   - Uses `Theme` dataclass with basic color/font settings
-   - Modified through Appearance Settings UI (`src/appearance_tabs.py`)
-   - Saved to `~/.gaming_ai_assistant/theme.json`
+1. **Modern System** (`src/ui/theme_manager.py`):
+   - `OmnixThemeManager` - Main theme management class
+   - Direct manipulation of design tokens
+   - Real-time UI updates via observer pattern
+   - Automatic theme.json v1 → v2 migration
+   - Full customization tracking
 
-2. **New Design System** (`src/ui/design_system.py`, `src/ui/tokens.py`):
-   - Modern token-based design system
-   - Used by all new UI components in `src/ui/components/`
-   - Generates comprehensive QSS stylesheets
+2. **Design Tokens** (`src/ui/tokens.py`):
+   - `OmnixDesignTokens` - Color, typography, spacing, radius tokens
+   - Single source of truth for all styling
+   - Extensible and maintainable
 
-**Current Problems:**
-- Users changing settings in Appearance tab may not see full effects on new components
-- Two sources of truth for styling creates confusion
-- Settings don't fully propagate between systems
-- `src/ui/theme_bridge.py` attempts to bridge them but it's a temporary solution
+3. **Compatibility Layer** (`src/theme_compat.py`):
+   - `ThemeManagerCompat` - Wrapper providing legacy API
+   - Allows existing code to work unchanged
+   - Automatic bidirectional translation
+   - Zero breaking changes
 
-**Workaround:**
-For now, the bridge ensures basic compatibility. New components use the design system tokens.
+4. **Deprecated Files** (kept for reference):
+   - `src/theme_manager.py` - Legacy theme manager (deprecated)
+   - `src/ui/theme_bridge.py` - Old compatibility bridge (deprecated)
 
-**Recommended Fix:**
-1. Refactor `src/appearance_tabs.py` to directly modify `src/ui/tokens.py`
-2. Deprecate legacy `Theme` system in favor of `OmnixDesignTokens`
-3. Update all components to use the new design system exclusively
-4. Remove the bridge once migration is complete
+#### Using the Theme System
 
-See `src/ui/theme_bridge.py` for detailed documentation of this issue.
+**For New Code:**
+```python
+from ui.theme_manager import get_theme_manager
+
+theme_mgr = get_theme_manager()
+
+# Update colors
+theme_mgr.update_color('accent_primary', '#00FFFF')
+
+# Update typography
+theme_mgr.update_typography('size_base', 12)
+
+# Save changes
+theme_mgr.save_theme()
+
+# Get stylesheet
+stylesheet = theme_mgr.get_stylesheet()
+```
+
+**For Legacy Code:**
+```python
+from theme_compat import ThemeManager
+
+theme_mgr = ThemeManager()
+# Works exactly like old ThemeManager
+# Automatically uses OmnixThemeManager backend
+```
+
+**Migration Details:** See `THEME_MIGRATION_PLAN.md`
 
 #### ✅ Recently Removed Features
 

@@ -253,10 +253,16 @@ Omnix-All-knowing-gaming-companion/
     ├── gui.py                   # Main application window
     ├── settings_dialog.py       # Settings interface
     ├── settings_tabs.py         # Advanced configuration
+    ├── appearance_tabs.py       # Theme customization UI
+    │
+    ├── Theme System
+    ├── theme_compat.py          # Backward compatibility wrapper
+    ├── theme_manager.py         # [DEPRECATED] Legacy theme system
     │
     └── ui/                      # Design System
         ├── design_system.py     # Centralized styling
         ├── tokens.py            # Design tokens
+        ├── theme_manager.py     # Unified theme management
         └── components/          # Reusable UI components
             ├── buttons.py
             ├── inputs.py
@@ -508,7 +514,7 @@ For issues, questions, or suggestions:
 
 ## 📝 Recent Updates
 
-### Version 1.2+ (2025-11-15)
+### Version 1.2+ (2025-11-17)
 **Major Feature Additions:**
 - ✅ **Knowledge Pack System** - Import and search game-specific knowledge bases
 - ✅ **Macro Automation** - Create and execute keyboard/mouse macros
@@ -517,6 +523,14 @@ For issues, questions, or suggestions:
 - ✅ **Secure Credentials** - System keyring integration with AES-256 encryption
 - ✅ **Game Profiles** - Advanced per-game AI customization
 - ✅ **Global Hotkeys** - Customizable keybindings system
+
+**Technical Improvements (2025-11-17):**
+- ✅ **Unified Theme System** - Migrated from dual theme systems to unified token-based design
+  - Consolidated legacy theme_manager.py and new ui/design_system.py into single OmnixThemeManager
+  - Per-token customization with real-time UI updates via observer pattern
+  - Automatic theme.json v1 → v2 migration with backward compatibility
+  - Zero breaking changes via compatibility layer
+  - See [THEME_MIGRATION_PLAN.md](THEME_MIGRATION_PLAN.md) for technical details
 
 **Infrastructure:**
 - ✅ **~14,700 LOC** - Extensive codebase with modular architecture

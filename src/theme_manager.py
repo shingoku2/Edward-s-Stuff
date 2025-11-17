@@ -1,6 +1,25 @@
 """
-Theme Manager Module
-Handles UI theming and appearance customization
+Theme Manager Module (DEPRECATED)
+==================================
+
+⚠️  DEPRECATION WARNING ⚠️
+This module is deprecated and will be removed in a future version.
+
+**Migration Path:**
+- For new code: Use `ui.theme_manager.OmnixThemeManager`
+- For legacy code: Use `theme_compat.ThemeManagerCompat`
+
+**Why Deprecated:**
+This legacy theme system has been replaced with a modern token-based design system
+that provides better customization, real-time updates, and cleaner architecture.
+
+**New System:**
+- `src/ui/theme_manager.py` - Modern OmnixThemeManager
+- `src/ui/tokens.py` - Design tokens
+- `src/ui/design_system.py` - Stylesheet generator
+- `src/theme_compat.py` - Compatibility layer for migration
+
+See THEME_MIGRATION_PLAN.md for full migration details.
 """
 
 import logging
