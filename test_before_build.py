@@ -105,20 +105,8 @@ except Exception as e:
 
 print()
 
-# Test 5: Import info scraper
-print("[5/8] Testing info_scraper module...")
-try:
-    from info_scraper import InfoScraper
-    scraper = InfoScraper()
-    print(f"  ✓ Info scraper works")
-except Exception as e:
-    errors.append(f"Info scraper import failed: {e}")
-    print(f"  ❌ Info scraper error: {e}")
-
-print()
-
-# Test 6: Import GUI (without starting it)
-print("[6/8] Testing gui module...")
+# Test 5: Import GUI (without starting it)
+print("[5/7] Testing gui module...")
 try:
     from gui import run_gui
     print(f"  ✓ GUI module imports successfully")
@@ -133,8 +121,8 @@ except Exception as e:
 
 print()
 
-# Test 7: Check PyQt6
-print("[7/8] Testing PyQt6...")
+# Test 6: Check PyQt6
+print("[6/7] Testing PyQt6...")
 try:
     from PyQt6.QtWidgets import QApplication
     from PyQt6.QtCore import Qt
@@ -151,8 +139,8 @@ except Exception as e:
 
 print()
 
-# Test 8: Check all dependencies
-print("[8/8] Checking dependencies...")
+# Test 7: Check all dependencies
+print("[7/7] Checking dependencies...")
 missing_deps = []
 required = ['psutil', 'requests', 'bs4', 'anthropic', 'openai', 'dotenv']
 

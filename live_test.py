@@ -21,7 +21,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 from config import Config
 from ai_assistant import AIAssistant
 from game_detector import GameDetector
-from info_scraper import InfoScraper
 
 print("=" * 70)
 print("GAMING AI ASSISTANT - LIVE API TEST")
@@ -56,18 +55,8 @@ except Exception as e:
     print(f"✗ Game detector error: {e}")
     sys.exit(1)
 
-# Test 3: Initialize Info Scraper
-print("\n[3/6] Initializing info scraper...")
-try:
-    info_scraper = InfoScraper()
-    print(f"✓ Info scraper initialized")
-    print(f"  - Wiki sources configured: {len(info_scraper.wiki_urls)}")
-except Exception as e:
-    print(f"✗ Info scraper error: {e}")
-    sys.exit(1)
-
-# Test 4: Initialize AI Assistant (using AIRouter)
-print("\n[4/6] Initializing AI Assistant (using provider from config)...")
+# Test 3: Initialize AI Assistant (using AIRouter)
+print("\n[3/5] Initializing AI Assistant (using provider from config)...")
 try:
     # AIAssistant will use the provider from config via the router
     ai_anthropic = AIAssistant(config=config)
@@ -81,9 +70,9 @@ except Exception as e:
     print(f"✗ AI assistant initialization error: {e}")
     ai_anthropic = None
 
-# Test 5: Make a real API call
+# Test 4: Make a real API call
 if ai_anthropic:
-    print(f"\n[5/6] Testing real API call with {config.ai_provider}...")
+    print(f"\n[4/5] Testing real API call with {config.ai_provider}...")
     print("  Question: 'What are the main roles in League of Legends?'")
 
     try:
@@ -107,10 +96,10 @@ if ai_anthropic:
     except Exception as e:
         print(f"✗ API call error: {e}")
 else:
-    print("\n[5/6] Skipping API test (initialization failed)")
+    print("\n[4/5] Skipping API test (initialization failed)")
 
-# Test 6: Test with different game context
-print("\n[6/6] Testing with different game context...")
+# Test 5: Test with different game context
+print("\n[5/5] Testing with different game context...")
 try:
     # This test will use the *default* provider, just with a different game.
     ai_test2 = AIAssistant(config=config)

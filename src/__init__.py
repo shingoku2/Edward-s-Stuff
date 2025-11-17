@@ -20,12 +20,10 @@ if _SRC_DIR not in _sys.path:
 
 from .game_detector import GameDetector
 from .ai_assistant import AIAssistant
-from .info_scraper import InfoScraper
 from .config import Config
 
 __all__ = [
     'GameDetector',
     'AIAssistant',
-    'InfoScraper',
     'Config',
 ]
