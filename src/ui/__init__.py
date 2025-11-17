@@ -21,6 +21,7 @@ from .tokens import (
     Z_INDEX,
 )
 from .design_system import OmnixDesignSystem, design_system
+from .theme_manager import OmnixThemeManager, get_theme_manager, initialize_theme_manager
 
 __all__ = [
     "OmnixDesignTokens",
@@ -34,4 +35,7 @@ __all__ = [
     "Z_INDEX",
     "OmnixDesignSystem",
     "design_system",
+    "OmnixThemeManager",
+    "get_theme_manager",
+    "initialize_theme_manager",
 ]
