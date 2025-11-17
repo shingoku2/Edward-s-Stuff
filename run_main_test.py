@@ -98,7 +98,6 @@ def test_module_integration():
         print("✓ config")
         print("✓ game_detector")
         print("✓ ai_assistant")
-        print("✓ info_scraper")
         print("✓ gui")
         print("✓ ai_router")
         print("✓ providers")
@@ -196,9 +195,6 @@ def main():
 
     # Test game detector
     detector = test_game_detector()
-
-    # Test info scraper
-    scraper = test_info_scraper()
 
     # Show example usage
     show_example_usage()

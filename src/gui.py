@@ -525,14 +525,12 @@ class MainWindow(QMainWindow):
     def __init__(
         self,
         ai_assistant,
-        info_scraper,
         config,
         credential_store,
         design_system,
     ):
         super().__init__()
         self.ai_assistant = ai_assistant  # Can be None if no API keys configured
-        self.info_scraper = info_scraper
         self.config = config
         self.credential_store = credential_store
         self.design_system = design_system
@@ -1435,7 +1433,6 @@ def run_gui(ai_assistant, config, credential_store, design_system_instance):
             logger.info("Creating MainWindow...")
             window = MainWindow(
                 ai_assistant,
-                info_scraper,
                 config,
                 credential_store,
                 design_system_instance,
