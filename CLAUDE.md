@@ -35,7 +35,7 @@ Omnix is a sophisticated desktop AI gaming companion that:
 
 ### Key Features
 
-- 🎯 **Automatic Game Detection** - 50+ pre-configured games with custom profile support
+- 🎯 **Automatic Game Detection** - 15 pre-configured games with custom profile support
 - 🤖 **Multi-Provider AI** - OpenAI, Anthropic, Google Gemini with easy switching
 - 📚 **Knowledge System** - Per-game knowledge packs with semantic search (TF-IDF)
 - ⌨️ **Macro System** - Record, create, and execute keyboard/mouse macros
@@ -53,7 +53,6 @@ gaming-ai-assistant/
 ├── .env.example                 # Configuration template
 ├── CLAUDE.md                    # This file - AI assistant guide
 ├── README.md                    # User-facing documentation
-├── setup.py                     # Setup script
 ├── GamingAIAssistant.spec       # PyInstaller build spec
 ├── build_windows_exe.py         # Windows build automation
 │
@@ -332,7 +331,7 @@ common_games = {
     "League of Legends": ["LeagueClient.exe", "League of Legends.exe"],
     "Elden Ring": ["eldenring.exe"],
     "Cyberpunk 2077": ["Cyberpunk2077.exe"],
-    # ... 50+ more games
+    # ... more games (15 built-in profiles total)
 }
 ```
 
@@ -388,7 +387,7 @@ class GameProfile:
     is_builtin: bool                  # Built-in vs user-created
 ```
 
-**Built-in Profiles:** 50+ games with optimized system prompts
+**Built-in Profiles:** 15 games with optimized system prompts
 
 **Creating Custom Profiles:**
 ```python

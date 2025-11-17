@@ -10,7 +10,7 @@ A sophisticated desktop AI gaming companion that automatically detects what game
 ## ✨ Features
 
 ### Core Features
-- **🎯 Automatic Game Detection** - Monitors 50+ pre-configured games with custom profile support
+- **🎯 Automatic Game Detection** - Monitors 15 pre-configured games with custom profile support
 - **🤖 Multi-Provider AI** - Seamlessly switch between OpenAI, Anthropic, and Google Gemini
 - **📚 Knowledge System** - Per-game knowledge packs with semantic search (TF-IDF)
 - **⌨️ Macro & Automation** - Record and execute keyboard/mouse macros with hotkey support
@@ -128,7 +128,7 @@ AI_PROVIDER=gemini
 
 ## 🎮 Supported Games
 
-The assistant has built-in support for 50+ popular games including:
+The assistant has built-in support for 15 popular games including:
 
 ### MOBA & Competitive
 - League of Legends
@@ -414,7 +414,6 @@ See [CLAUDE.md](CLAUDE.md) for detailed architecture documentation.
 ### Data Processing
 - **beautifulsoup4** 4.12.0+ - HTML/XML parsing
 - **lxml** 4.9.0+ - Fast XML/HTML processing
-- **scikit-learn** - TF-IDF embeddings (optional, for knowledge system)
 
 ### Configuration
 - **python-dotenv** 1.0.0+ - Environment configuration
