@@ -202,13 +202,20 @@ class KnowledgeIndex:
     Supports adding packs, removing packs, and semantic search.
     """
 
-    def __init__(self, config_dir: Optional[str] = None, embedding_provider: Optional[EmbeddingProvider] = None):
+    def __init__(
+        self,
+        config_dir: Optional[str] = None,
+        embedding_provider: Optional[EmbeddingProvider] = None,
+        knowledge_store=None,
+    ):
         """
         Initialize knowledge index
 
         Args:
             config_dir: Directory to store index (defaults to ~/.gaming_ai_assistant)
             embedding_provider: Provider for generating embeddings (defaults to SimpleTFIDFEmbedding)
+            knowledge_store: KnowledgePackStore instance (defaults to global singleton)
+                            Injecting this dependency makes testing much easier.
         """
         if config_dir is None:
             config_dir = Path.home() / '.gaming_ai_assistant'
@@ -223,6 +230,14 @@ class KnowledgeIndex:
 
         # Embedding provider
         self.embedding_provider = embedding_provider or SimpleTFIDFEmbedding()
+
+        # Knowledge store (with dependency injection for better testability)
+        if knowledge_store is None:
+            # Use global singleton as default
+            self.knowledge_store = get_knowledge_pack_store()
+        else:
+            # Use injected store (useful for testing)
+            self.knowledge_store = knowledge_store
 
         # Index data structures
         # {game_profile_id: {chunk_id: (text, source_id, pack_id, embedding, meta)}}
@@ -312,10 +327,8 @@ class KnowledgeIndex:
         """
         logger.info(f"Rebuilding index for game profile: {game_profile_id}")
 
-        # Get all packs for this game
-        from knowledge_store import get_knowledge_pack_store
-        pack_store = get_knowledge_pack_store()
-        all_packs = pack_store.get_packs_for_game(game_profile_id)
+        # Get all packs for this game using injected dependency
+        all_packs = self.knowledge_store.get_packs_for_game(game_profile_id)
 
         if not all_packs:
             logger.warning(f"No packs found for game profile: {game_profile_id}")

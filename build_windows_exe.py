@@ -57,13 +57,10 @@ cmd = [
     "--hidden-import=PyQt6.QtCore",
     "--hidden-import=PyQt6.QtGui",
     "--hidden-import=PyQt6.QtWidgets",
-    "--hidden-import=PyQt6.QtWebEngineCore",
-    "--hidden-import=PyQt6.QtWebEngineWidgets",
     # Core modules
     "--hidden-import=config",
     "--hidden-import=game_detector",
     "--hidden-import=ai_assistant",
-    "--hidden-import=info_scraper",
     "--hidden-import=gui",
     # Secure modules
     "--hidden-import=credential_store",
@@ -76,7 +73,6 @@ cmd = [
     "--hidden-import=settings_dialog",
     "--hidden-import=settings_tabs",
     "--hidden-import=appearance_tabs",
-    "--hidden-import=login_dialog",
     # Game profiles and macros
     "--hidden-import=game_profile",
     "--hidden-import=game_profiles_tab",

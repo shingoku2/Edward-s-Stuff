@@ -18,7 +18,8 @@ from game_profiles_tab import GameProfilesTab
 from knowledge_packs_tab import KnowledgePacksTab
 from keybind_manager import KeybindManager
 from macro_manager import MacroManager
-from theme_compat import ThemeManager
+from theme_compat import ThemeManager as LegacyThemeManager
+from ui.theme_manager import get_theme_manager
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +49,7 @@ class TabbedSettingsDialog(QDialog):
         config,
         keybind_manager: KeybindManager,
         macro_manager: MacroManager,
-        theme_manager: ThemeManager,
+        theme_manager: LegacyThemeManager,
         # Keep reference to original SettingsDialog for General tab
         original_settings_widget=None
     ):
@@ -56,8 +57,11 @@ class TabbedSettingsDialog(QDialog):
         self.config = config
         self.keybind_manager = keybind_manager
         self.macro_manager = macro_manager
-        self.theme_manager = theme_manager
+        self.theme_manager = theme_manager  # Legacy compat wrapper
         self.original_settings_widget = original_settings_widget
+
+        # Get the new theme manager for appearance tabs
+        self.omnix_theme_manager = get_theme_manager()
 
         self.init_ui()
 
@@ -166,13 +170,13 @@ class TabbedSettingsDialog(QDialog):
         self.macros_tab.macros_changed.connect(self.on_macros_changed)
         self.tab_widget.addTab(self.macros_tab, "⚡ Macros")
 
-        # App Appearance tab
-        self.app_appearance_tab = AppAppearanceTab(self.theme_manager)
+        # App Appearance tab (uses new design system)
+        self.app_appearance_tab = AppAppearanceTab(self.omnix_theme_manager)
         self.app_appearance_tab.theme_changed.connect(self.on_theme_changed)
         self.tab_widget.addTab(self.app_appearance_tab, "🎨 App Appearance")
 
-        # Overlay Appearance tab
-        self.overlay_appearance_tab = OverlayAppearanceTab(self.theme_manager)
+        # Overlay Appearance tab (uses new design system)
+        self.overlay_appearance_tab = OverlayAppearanceTab(self.omnix_theme_manager, self.config)
         self.overlay_appearance_tab.overlay_appearance_changed.connect(self.on_overlay_appearance_changed)
         self.tab_widget.addTab(self.overlay_appearance_tab, "🪟 Overlay Appearance")
 
@@ -186,10 +190,11 @@ class TabbedSettingsDialog(QDialog):
         logger.info(f"Macros changed: {len(macros_dict)} macros")
         self.macros_changed.emit(macros_dict)
 
-    def on_theme_changed(self, theme_dict: dict):
-        """Handle theme changed"""
-        logger.info("Theme changed")
-        self.theme_changed.emit(theme_dict)
+    def on_theme_changed(self):
+        """Handle theme changed (from new design system)"""
+        logger.info("Theme changed (from new design system)")
+        # Emit empty dict for backward compatibility
+        self.theme_changed.emit({})
 
     def on_overlay_appearance_changed(self, appearance_dict: dict):
         """Handle overlay appearance changed"""
@@ -216,7 +221,11 @@ class TabbedSettingsDialog(QDialog):
             # Get all settings
             keybinds = self.keybindings_tab.get_keybinds()
             macros = self.macros_tab.get_macros()
-            theme = self.app_appearance_tab.get_theme()
+
+            # Theme is now managed by OmnixThemeManager and saves itself
+            self.omnix_theme_manager.save_theme()
+            theme = {}  # Empty dict for backward compatibility
+
             overlay_appearance = self.overlay_appearance_tab.get_overlay_appearance()
 
             # Save provider configuration
@@ -231,7 +240,7 @@ class TabbedSettingsDialog(QDialog):
             # Save to config
             self.config.save_keybinds(keybinds)
             self.config.save_macros(macros)
-            self.config.save_theme(theme)
+            # Theme is saved via omnix_theme_manager above
 
             # Save provider to .env
             if default_provider:
