@@ -8,13 +8,13 @@ a = Analysis(
     datas=[],
     hiddenimports=[
         # PyQt6
-        'PyQt6.QtCore', 'PyQt6.QtGui', 'PyQt6.QtWidgets', 'PyQt6.QtWebEngineCore', 'PyQt6.QtWebEngineWidgets',
+        'PyQt6.QtCore', 'PyQt6.QtGui', 'PyQt6.QtWidgets',
         # Core modules
-        'config', 'game_detector', 'ai_assistant', 'info_scraper', 'gui',
+        'config', 'game_detector', 'ai_assistant', 'gui',
         # New secure modules
         'credential_store', 'provider_tester', 'providers', 'ai_router', 'setup_wizard',
         # Settings and UI
-        'providers_tab', 'settings_dialog', 'settings_tabs', 'appearance_tabs', 'login_dialog',
+        'providers_tab', 'settings_dialog', 'settings_tabs', 'appearance_tabs',
         # Game profiles and macros
         'game_profile', 'game_profiles_tab', 'game_watcher', 'overlay_modes',
         'macro_store', 'macro_runner', 'macro_ai_generator',

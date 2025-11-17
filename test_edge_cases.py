@@ -131,58 +131,6 @@ def test_game_detector_edge_cases():
         return False
 
 
-def test_info_scraper_edge_cases():
-    """Test InfoScraper edge cases"""
-    print("\n" + "="*60)
-    print("TEST: InfoScraper Edge Cases")
-    print("="*60)
-    
-    try:
-        from src.info_scraper import InfoScraper
-        
-        # Test with short timeout
-        scraper = InfoScraper(timeout=2)
-        print("✓ InfoScraper with short timeout created")
-        
-        # Test search with empty string
-        result = scraper.search_game_info("")
-        assert result is None
-        print("✓ Empty game name search handled")
-        
-        # Test search with special characters
-        result = scraper.search_game_info("!@#$%^&*()")
-        assert result is None or isinstance(result, dict)
-        print("✓ Special character game name handled")
-        
-        # Test get guides with empty string
-        guides = scraper.get_game_guides("")
-        assert isinstance(guides, list)
-        print("✓ Empty game name guides search handled")
-        
-        # Test get guides with long game name
-        long_name = "A" * 200
-        guides = scraper.get_game_guides(long_name)
-        assert isinstance(guides, list)
-        print("✓ Long game name guides search handled")
-        
-        # Test close
-        scraper.close()
-        print("✓ InfoScraper close works")
-        
-        # Test close twice (should not error)
-        scraper.close()
-        print("✓ Double close handled gracefully")
-        
-        print("\n✓ InfoScraper edge case tests passed!")
-        return True
-        
-    except Exception as e:
-        print(f"✗ InfoScraper edge case test failed: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
-
-
 def test_ai_assistant_edge_cases():
     """Test AIAssistant edge cases"""
     print("\n" + "="*60)
@@ -323,22 +271,8 @@ def test_error_recovery():
     print("="*60)
     
     try:
-        from src.info_scraper import InfoScraper
         from src.config import Config
-        
-        # Test InfoScraper recovery from network errors
-        scraper = InfoScraper(timeout=1)
-        
-        # Try multiple searches that might fail
-        for i in range(3):
-            try:
-                result = scraper.search_game_info(f"TestGame{i}")
-                print(f"✓ Search attempt {i+1} handled (result: {result is not None})")
-            except Exception as e:
-                print(f"⚠ Search attempt {i+1} error: {str(e)[:50]}...")
-        
-        scraper.close()
-        
+
         # Test Config recovery from corrupted state
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path = os.path.join(tmpdir, "bad_config.json")
@@ -374,7 +308,6 @@ def run_all_edge_case_tests():
     tests = [
         ("Config Edge Cases", test_config_edge_cases),
         ("GameDetector Edge Cases", test_game_detector_edge_cases),
-        ("InfoScraper Edge Cases", test_info_scraper_edge_cases),
         ("AIAssistant Edge Cases", test_ai_assistant_edge_cases),
         ("Concurrent Operations", test_concurrent_operations),
         ("Error Recovery", test_error_recovery),

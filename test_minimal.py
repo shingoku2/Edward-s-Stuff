@@ -40,11 +40,6 @@ try:
     ai = AIAssistant(config=config)
     print(f"   ✓ AI assistant loaded (using router)")
 
-    print("\n4. Testing info scraper...")
-    from info_scraper import InfoScraper
-    scraper = InfoScraper()
-    print(f"   ✓ Info scraper loaded")
-
     print("\n" + "=" * 50)
     print("✅ ALL CORE MODULES WORKING!")
     print("=" * 50)

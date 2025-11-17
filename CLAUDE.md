@@ -103,11 +103,7 @@ gaming-ai-assistant/
 │   ├── appearance_tabs.py       # Theme & appearance
 │   ├── knowledge_packs_tab.py   # Knowledge pack UI
 │   ├── setup_wizard.py          # First-run setup
-│   ├── login_dialog.py          # Provider authentication
 │   ├── theme_manager.py         # Visual theming
-│   │
-│   ├── Web Scraping
-│   ├── info_scraper.py          # Game wiki/guide scraping
 │   │
 │   └── ui/                      # UI Design System
 │       ├── design_system.py     # Design system manager
@@ -165,7 +161,7 @@ Omnix follows a **layered architecture** with clear separation of concerns:
 ┌─────────────────────────────────────────────────────────────┐
 │               Data/Integration Layer                         │
 │  providers.py, ai_router.py, game_detector.py,              │
-│  knowledge_index.py, info_scraper.py                         │
+│  knowledge_index.py                                          │
 └─────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────┐
@@ -959,7 +955,6 @@ from ui.components.dashboard_button import OmnixDashboardButton
 |----------|-----------|---------|---------|
 | **Language** | Python | 3.8+ | Core language |
 | **GUI Framework** | PyQt6 | 6.6.0+ | Desktop application |
-| **Web Engine** | PyQt6-WebEngine | 6.6.0+ | Web content embedding |
 
 ### AI Integration
 
@@ -1400,15 +1395,6 @@ profile = GameProfile(
     is_builtin=False
 )
 profile_store.save_profile(profile)
-```
-
-**3. (Optional) Add wiki source:**
-```python
-# src/info_scraper.py
-wiki_urls = {
-    "Your Game Name": "https://yourgame.fandom.com/wiki/",
-    # ... existing wikis
-}
 ```
 
 ### Adding a New AI Provider
@@ -1981,6 +1967,32 @@ For now, the bridge ensures basic compatibility. New components use the design s
 4. Remove the bridge once migration is complete
 
 See `src/ui/theme_bridge.py` for detailed documentation of this issue.
+
+#### ✅ Recently Removed Features
+
+**Status:** Completed in 2025-11-17
+
+The following features were removed to streamline the codebase and reduce complexity:
+
+1. **info_scraper.py** - Web scraping module for game wikis
+   - **Reason:** Unstable and fragile; broke when websites changed HTML
+   - **Replacement:** Knowledge System (knowledge_packs) provides more robust, user-controlled solution
+   - **Impact:** Users can add specific wiki/guide URLs to Knowledge Packs instead
+
+2. **login_dialog.py** - Embedded web browser for OAuth authentication
+   - **Reason:** Redundant with secure API key management; insecure session cookie capture
+   - **Replacement:** Setup Wizard and Providers Tab for API key management
+   - **Impact:** No impact; embedded login was unused in production code
+
+3. **PyQt6-WebEngine** dependency
+   - **Reason:** Massive dependency only needed for removed login_dialog
+   - **Impact:** Significantly reduced application size and build complexity
+
+**Benefits:**
+- Reduced codebase complexity (~350 LOC removed)
+- Smaller application binary size (no WebEngine)
+- More stable knowledge system (user-controlled vs. fragile web scraping)
+- Single, secure authentication method (API keys via credential store)
 
 #### ✅ Dependencies Clarification
 

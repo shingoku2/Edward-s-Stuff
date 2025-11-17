@@ -100,9 +100,6 @@ try:
     from ai_assistant import AIAssistant
     logger.info("  [OK] ai_assistant imported")
 
-    from info_scraper import InfoScraper
-    logger.info("  [OK] info_scraper imported")
-
     from gui import run_gui
     logger.info("  [OK] gui imported")
 
@@ -197,20 +194,8 @@ def main():
             print("[INFO] AI assistant will be initialized after you configure credentials")
             print()
 
-        # Initialize info scraper
-        logger.info("Step 4: Initializing information scraper...")
-        print("Initializing information scraper...")
-
-        info_scraper = InfoScraper()
-
-        logger.info(f"Info scraper initialized")
-        logger.info(f"  Wiki sources: {len(info_scraper.wiki_urls)}")
-
-        print("[OK] Info scraper ready")
-        print()
-
         # Test game detection
-        logger.info("Step 5: Scanning for running games...")
+        logger.info("Step 4: Scanning for running games...")
         print("Scanning for running games...")
 
         game = game_detector.detect_running_game()
@@ -239,7 +224,7 @@ def main():
 
         # Run the GUI
         logger.info("Calling run_gui()...")
-        run_gui(ai_assistant, info_scraper, config, credential_store, design_system)
+        run_gui(ai_assistant, config, credential_store, design_system)
 
         logger.info("GUI exited normally")
 

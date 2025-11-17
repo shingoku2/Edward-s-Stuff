@@ -40,13 +40,6 @@ def test_imports():
         return False
 
     try:
-        from src.info_scraper import InfoScraper
-        print("✓ InfoScraper module imported successfully")
-    except Exception as e:
-        print(f"✗ InfoScraper import failed: {e}")
-        return False
-
-    try:
         from src.ai_router import AIRouter
         print("✓ AIRouter module imported successfully")
     except Exception as e:
@@ -164,53 +157,6 @@ def test_game_detector():
         return False
 
 
-def test_info_scraper():
-    """Test InfoScraper module functionality"""
-    print("\n" + "="*60)
-    print("TEST 4: InfoScraper Module")
-    print("="*60)
-    
-    try:
-        from src.info_scraper import InfoScraper
-        
-        # Create scraper instance
-        scraper = InfoScraper(timeout=5)
-        print("✓ InfoScraper instance created")
-        
-        # Test search_game_info (may return None due to network/parsing)
-        try:
-            info = scraper.search_game_info("Minecraft")
-            if info:
-                print(f"✓ search_game_info() returned: {info.get('name', 'Unknown')}")
-            else:
-                print("✓ search_game_info() returned None (may be network issue)")
-        except Exception as e:
-            print(f"⚠ search_game_info() network error: {e}")
-        
-        # Test get_game_guides
-        try:
-            guides = scraper.get_game_guides("Minecraft")
-            print(f"✓ get_game_guides() returned {len(guides)} guides")
-            if guides:
-                for guide in guides[:2]:
-                    print(f"  - {guide.get('title', 'Unknown')}")
-        except Exception as e:
-            print(f"⚠ get_game_guides() error: {e}")
-        
-        # Test close
-        scraper.close()
-        print("✓ InfoScraper.close() works")
-        
-        print("\n✓ InfoScraper module tests passed!")
-        return True
-        
-    except Exception as e:
-        print(f"✗ InfoScraper test failed: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
-
-
 def test_ai_assistant():
     """Test AIRouter and AIAssistant module functionality"""
     print("\n" + "="*60)
@@ -321,7 +267,6 @@ def test_integration():
     try:
         from src.config import Config
         from src.game_detector import GameDetector
-        from src.info_scraper import InfoScraper
         from src.ai_router import AIRouter
         from src.ai_assistant import AIAssistant
         import os
@@ -332,9 +277,6 @@ def test_integration():
 
         detector = GameDetector()
         print("✓ GameDetector initialized")
-
-        scraper = InfoScraper()
-        print("✓ InfoScraper initialized")
 
         # Initialize AIRouter
         router = AIRouter(config)
@@ -358,9 +300,6 @@ def test_integration():
         else:
             print("✓ No running game (expected in test environment)")
 
-        scraper.close()
-        print("✓ Scraper closed")
-
         print("\n✓ Integration tests passed!")
         return True
 
@@ -381,7 +320,6 @@ def run_all_tests():
         ("Module Imports", test_imports),
         ("Config Module", test_config),
         ("GameDetector Module", test_game_detector),
-        ("InfoScraper Module", test_info_scraper),
         ("AIAssistant Module", test_ai_assistant),
         ("GUI Components", test_gui_components),
         ("Module Integration", test_integration),

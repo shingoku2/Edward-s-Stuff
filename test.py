@@ -19,7 +19,6 @@ src_path = Path(__file__).parent / 'src'
 sys.path.insert(0, str(src_path))
 
 from game_detector import GameDetector
-from info_scraper import InfoScraper
 import psutil
 
 
@@ -80,30 +79,6 @@ def test_game_detector():
     return detector
 
 
-def test_info_scraper():
-    """Test web scraping functionality"""
-    print_header("Testing Information Scraper")
-
-    scraper = InfoScraper()
-
-    print(f"✓ Info scraper initialized")
-    print(f"✓ Configured for {len(scraper.wiki_urls)} game wikis")
-    print(f"\nSupported game wikis:")
-    for i, game in enumerate(list(scraper.wiki_urls.keys())[:8], 1):
-        print(f"  {i}. {game}")
-    print(f"  ... and {len(scraper.wiki_urls) - 8} more!")
-
-    print(f"\n{'─' * 60}")
-    print("Web scraping capabilities:")
-    print(f"{'─' * 60}\n")
-    print("  ✓ Game wikis (Fandom, Fextralife)")
-    print("  ✓ Reddit communities")
-    print("  ✓ Gaming guides and tips")
-    print("  ✓ Character builds and strategies")
-
-    return scraper
-
-
 def test_module_integration():
     """Test that all modules work together"""
     print_header("Testing Module Integration")
@@ -112,7 +87,6 @@ def test_module_integration():
         from config import Config
         from game_detector import GameDetector
         from ai_assistant import AIAssistant
-        from info_scraper import InfoScraper
         from gui import MainWindow
         from ai_router import AIRouter
         from providers import AIProvider

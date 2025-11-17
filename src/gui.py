@@ -20,7 +20,6 @@ import webbrowser
 
 from credential_store import CredentialStore, CredentialStoreError
 from config import Config
-from login_dialog import LoginDialog
 from keybind_manager import KeybindManager, Keybind, DEFAULT_KEYBINDS
 from macro_manager import MacroManager, MacroActionType
 from macro_runner import MacroRunner
@@ -1362,13 +1361,12 @@ class MainWindow(QMainWindow):
         logger.info("Window close event - minimized to tray")
 
 
-def run_gui(ai_assistant, info_scraper, config, credential_store, design_system_instance):
+def run_gui(ai_assistant, config, credential_store, design_system_instance):
     """
     Initialize and run the GUI application
 
     Args:
         ai_assistant: AI assistant service instance (can be None if no credentials)
-        info_scraper: Information scraper service instance
         config: Configuration instance
         credential_store: Credential store instance
         design_system_instance: Design system instance for styling
