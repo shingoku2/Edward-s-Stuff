@@ -263,6 +263,13 @@ class OverlayWindow(QWidget):
         self.is_minimized = config.overlay_minimized
         self.normal_height = config.overlay_height
 
+        # Debounce timer for saving window state
+        # This prevents excessive disk I/O during window move/resize
+        self.save_timer = QTimer(self)
+        self.save_timer.setSingleShot(True)
+        self.save_timer.timeout.connect(self._do_save_window_state)
+        self.save_timer.setInterval(500)  # Wait 500ms after user stops moving/resizing
+
         self.init_ui()
 
     def init_ui(self):
@@ -481,7 +488,15 @@ class OverlayWindow(QWidget):
         super().mouseReleaseEvent(event)
 
     def save_window_state(self):
-        """Save current window position and size to .env file"""
+        """
+        Debounced save - schedules a save after user stops moving/resizing.
+        This prevents excessive disk I/O during window manipulation.
+        """
+        # Restart the timer - if user is still moving/resizing, this delays the save
+        self.save_timer.start()
+
+    def _do_save_window_state(self):
+        """Internal method: Actually save current window position and size to .env file"""
         geometry = self.geometry()
         Config.save_to_env(
             provider=self.config.ai_provider,
@@ -509,11 +524,14 @@ class OverlayWindow(QWidget):
             self.resize(self.width(), 50)  # Minimize to title bar height
             self.is_minimized = True
 
-        self.save_window_state()
+        # Save immediately for explicit minimize/restore actions
+        self._do_save_window_state()
 
     def closeEvent(self, event):
         """Handle close event by hiding instead of destroying"""
-        self.save_window_state()
+        # Stop debounce timer and save immediately on close
+        self.save_timer.stop()
+        self._do_save_window_state()
         self.hide()
         event.ignore()
 
