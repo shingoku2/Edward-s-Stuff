@@ -493,9 +493,9 @@ class Config:
             f.write(f"AI_PROVIDER={existing_content['AI_PROVIDER']}\n\n")
 
             f.write("# API Keys are stored securely using the encrypted credential store\n")
-            f.write("OPENAI_API_KEY=\n")
-            f.write("ANTHROPIC_API_KEY=\n")
-            f.write("GEMINI_API_KEY=\n\n")
+            f.write(f"OPENAI_API_KEY={existing_content.get('OPENAI_API_KEY', '')}\n")
+            f.write(f"ANTHROPIC_API_KEY={existing_content.get('ANTHROPIC_API_KEY', '')}\n")
+            f.write(f"GEMINI_API_KEY={existing_content.get('GEMINI_API_KEY', '')}\n\n")
 
             f.write("# Session Tokens\n")
             f.write(f"OPENAI_SESSION_DATA='{existing_content['OPENAI_SESSION_DATA']}'\n")

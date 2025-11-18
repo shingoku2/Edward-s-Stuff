@@ -80,9 +80,9 @@ class KnowledgeIntegration:
             top_k = extra_settings.get('knowledge_context_depth', 5)
 
             # Query the index
-            chunks = self.knowledge_index.search(
-                query_text=question,
+            chunks = self.knowledge_index.query(
                 game_profile_id=game_profile_id,
+                question=question,
                 top_k=top_k
             )
 
