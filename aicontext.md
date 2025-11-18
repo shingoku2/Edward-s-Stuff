@@ -4438,3 +4438,15 @@ Deferred to runtime testing - compatibility layer ensures zero breaking changes.
 - Branch: `claude/migrate-to-refractor-01EEx3HspZzAfFx4vUYBtZ7n`
 - Commits: 011c986, b754dc1, 93ecee8, 5941a41, 6dc7c0e
 
+
+---
+Update 2024-11-18:
+- Attempted to install Pillow via pip to generate the new hero artwork; blocked by proxy (403) so generated the asset manually with a Python script instead.
+- Created src/ui/assets/hero_banner.png to match the requested circuit-style hero image and wired it into OmnixAvatarDisplay.
+- Rebuilt OmnixAvatarDisplay as a responsive banner with status/game labels replacing the old animated avatar widget on the dashboard.
+- Validation: python -m compileall src (pass).
+
+Update 2025-11-18 (follow-up):
+- Removed src/ui/assets/hero_banner.png to keep the dashboard hero binary-free and replaced it with a painted gradient/circuit canvas inside OmnixAvatarDisplay.
+- Resolved compile errors from unescaped stylesheet braces and a duplicated docstring introduced during the refactor; component now relies solely on design tokens and Qt painting primitives.
+- Validation: python -m compileall src (initial failure on avatar_display.py due to stylesheet braces/docstring; corrected and passing after fixes).
