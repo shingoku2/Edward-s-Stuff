@@ -3,10 +3,8 @@ Game Detection Module
 Detects running games on the system
 """
 
-import os
 import logging
-from typing import Dict, List, Optional, Set
-
+from typing import Optional, Dict
 import psutil
 
 from src.types import GameInfo
@@ -33,8 +31,8 @@ class GameDetector:
         "dota2.exe": "Dota 2",
         "Wow.exe": "World of Warcraft",
         "WowClassic.exe": "World of Warcraft",
-        "javaw.exe": "Minecraft",
         "Minecraft.exe": "Minecraft",
+        "MinecraftLauncher.exe": "Minecraft",
         "FortniteClient-Win64-Shipping.exe": "Fortnite",
         "TslGame.exe": "PUBG",
         "eldenring.exe": "Elden Ring",
@@ -53,7 +51,7 @@ class GameDetector:
             "Counter-Strike 2": ["cs2.exe", "csgo.exe"],
             "Dota 2": ["dota2.exe"],
             "World of Warcraft": ["Wow.exe", "WowClassic.exe"],
-            "Minecraft": ["javaw.exe", "Minecraft.exe"],
+            "Minecraft": ["Minecraft.exe", "MinecraftLauncher.exe"],
             "Fortnite": ["FortniteClient-Win64-Shipping.exe"],
             "PUBG": ["TslGame.exe"],
             "Elden Ring": ["eldenring.exe"],
