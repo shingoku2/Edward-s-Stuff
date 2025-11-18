@@ -11,7 +11,7 @@ from datetime import datetime
 
 # Import modules to test
 from src.knowledge_pack import KnowledgeSource, KnowledgePack, RetrievedChunk
-from src.knowledge_store import KnowledgePackStore
+from src.knowledge_store import KnowledgePackStore, get_knowledge_pack_store
 from src.knowledge_index import KnowledgeIndex, SimpleTFIDFEmbedding
 from src.knowledge_ingestion import IngestionPipeline, FileIngestor, NoteIngestor
 from src.session_logger import SessionLogger, SessionEvent
@@ -239,6 +239,10 @@ class TestKnowledgeIndex(unittest.TestCase):
             game_profile_id="elden_ring",
             sources=[source]
         )
+
+        # Save pack to store first (required before indexing)
+        store = get_knowledge_pack_store()
+        store.save_pack(pack)
 
         # Add to index
         self.index.add_pack(pack)

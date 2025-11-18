@@ -83,25 +83,27 @@ def test_config():
         # Create config instance
         config = Config()
         print("✓ Config instance created")
+
+        # Test accessing values via attributes
+        provider = config.ai_provider
+        print(f"✓ Config.ai_provider attribute access works: {provider}")
+
+        # Test checking if configured
+        is_configured = config.is_configured()
+        print(f"✓ Config.is_configured() works: {is_configured}")
+
+        # Test overlay settings
+        assert hasattr(config, 'overlay_x')
+        assert hasattr(config, 'overlay_y')
+        print("✓ Config overlay settings present")
         
-        # Test getting values
-        provider = config.get("ai_provider")
-        print(f"✓ Config.get() works: ai_provider = {provider}")
-        
-        # Test setting values
-        config.set("test_key", "test_value")
-        assert config.get("test_key") == "test_value"
-        print("✓ Config.set() works")
-        
-        # Test get_all
-        all_config = config.get_all()
-        assert isinstance(all_config, dict)
-        print(f"✓ Config.get_all() works: {len(all_config)} keys")
-        
-        # Test validation
-        validation = config.validate_api_keys()
-        assert isinstance(validation, dict)
-        print(f"✓ Config.validate_api_keys() works: {validation}")
+        # Test provider key checking
+        has_key = config.has_provider_key()
+        print(f"✓ Config.has_provider_key() works: {has_key}")
+
+        # Test get_effective_provider
+        effective = config.get_effective_provider()
+        print(f"✓ Config.get_effective_provider() works: {effective}")
         
         print("\n✓ Config module tests passed!")
         return True
@@ -234,7 +236,7 @@ def test_gui_components():
     print("="*60)
 
     try:
-        from src.gui import ChatWidget, GameDetectionThread
+        from src.gui import AIWorkerThread
         from src.ai_router import AIRouter
         from src.ai_assistant import AIAssistant
         import os

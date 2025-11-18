@@ -341,7 +341,7 @@ class KnowledgeIndex:
 
         # Collect all texts from all packs for corpus-wide TF-IDF
         all_texts = []
-        for pack in all_packs:
+        for pack in all_packs.values():
             if not pack.enabled:
                 continue
             for source in pack.sources:
@@ -356,7 +356,7 @@ class KnowledgeIndex:
             self.embedding_provider.fit(all_texts)
 
         # Now index each pack
-        for pack in all_packs:
+        for pack in all_packs.values():
             if not pack.enabled:
                 logger.info(f"Skipping disabled pack: {pack.name}")
                 continue
