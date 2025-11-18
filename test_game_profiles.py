@@ -153,18 +153,29 @@ class TestGameProfileStore(unittest.TestCase):
     def test_create_custom_profile(self):
         """Test creating a custom profile"""
         store = GameProfileStore()
+
+        # Use unique ID to avoid conflicts with other tests
+        test_id = "test_custom_game_001"
+
+        # Clean up if it exists from a previous test
+        if store.get_profile(test_id):
+            store.delete_profile(test_id)
+
         profile = GameProfile(
-            id="my_game",
+            id=test_id,
             display_name="My Game",
-            exe_names=["mygame.exe"],
+            exe_names=["mygame001.exe"],
             system_prompt="Custom prompt",
             is_builtin=False
         )
         success = store.create_profile(profile)
         self.assertTrue(success)
-        retrieved = store.get_profile_by_id("my_game")
+        retrieved = store.get_profile_by_id(test_id)
         self.assertIsNotNone(retrieved)
         self.assertEqual(retrieved.display_name, "My Game")
+
+        # Clean up
+        store.delete_profile(test_id)
 
     def test_create_duplicate_profile_fails(self):
         """Test that creating duplicate profile fails"""
@@ -382,6 +393,19 @@ class TestOverlayModes(unittest.TestCase):
 class TestProfileIntegration(unittest.TestCase):
     """Integration tests for game profiles"""
 
+    def setUp(self):
+        """Set up test fixtures"""
+        self.store = GameProfileStore()
+        # Clean up any existing test profile
+        if self.store.get_profile("my_game_test"):
+            self.store.delete_profile("my_game_test")
+
+    def tearDown(self):
+        """Clean up after tests"""
+        # Remove test profile if it exists
+        if self.store.get_profile("my_game_test"):
+            self.store.delete_profile("my_game_test")
+
     def test_profile_to_game_integration(self):
         """Test profile integration with game detection"""
         detector = GameDetector()
@@ -394,20 +418,18 @@ class TestProfileIntegration(unittest.TestCase):
 
     def test_custom_profile_resolution(self):
         """Test that custom profiles can be resolved"""
-        store = GameProfileStore()
-
-        # Create custom profile
+        # Create custom profile with unique ID
         profile = GameProfile(
-            id="my_game",
-            display_name="My Game",
-            exe_names=["mygame.exe"],
+            id="my_game_test",
+            display_name="My Game Test",
+            exe_names=["mygame_test.exe"],
             system_prompt="Custom AI behavior"
         )
-        store.create_profile(profile)
+        self.store.create_profile(profile)
 
         # Resolve it by executable
-        resolved = store.get_profile_by_executable("mygame.exe")
-        self.assertEqual(resolved.id, "my_game")
+        resolved = self.store.get_profile_by_executable("mygame_test.exe")
+        self.assertEqual(resolved.id, "my_game_test")
         self.assertEqual(resolved.system_prompt, "Custom AI behavior")
 
     def test_profile_executable_matching_case_insensitive(self):
