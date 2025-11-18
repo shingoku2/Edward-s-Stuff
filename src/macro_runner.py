@@ -207,6 +207,22 @@ class MacroRunner:
             if self.on_error:
                 self.on_error(f"Macro execution error: {str(e)}")
 
+    def _interruptible_sleep(self, duration_sec: float):
+        """
+        Sleep for duration, but wake up immediately if stopped.
+
+        Args:
+            duration_sec: Duration to sleep in seconds
+        """
+        end_time = time.time() + duration_sec
+        while time.time() < end_time:
+            if self.state == MacroExecutionState.STOPPED:
+                return
+            # Sleep in small increments to remain responsive
+            sleep_chunk = min(0.1, end_time - time.time())
+            if sleep_chunk > 0:
+                time.sleep(sleep_chunk)
+
     def _execute_step(self, step: MacroStep):
         """
         Execute a single macro step
@@ -224,12 +240,12 @@ class MacroRunner:
             if step.type == MacroStepType.KEY_PRESS.value:
                 self._press_key(step.key)
                 if delay > 0:
-                    time.sleep(delay / 1000.0)
+                    self._interruptible_sleep(delay / 1000.0)
 
             elif step.type == MacroStepType.KEY_DOWN.value:
                 self._key_down(step.key)
                 if step.duration_ms > 0:
-                    time.sleep(step.duration_ms / 1000.0)
+                    self._interruptible_sleep(step.duration_ms / 1000.0)
                     self._key_up(step.key)
 
             elif step.type == MacroStepType.KEY_UP.value:
@@ -238,25 +254,25 @@ class MacroRunner:
             elif step.type == MacroStepType.KEY_SEQUENCE.value:
                 self._type_sequence(step.key)
                 if delay > 0:
-                    time.sleep(delay / 1000.0)
+                    self._interruptible_sleep(delay / 1000.0)
 
             elif step.type == MacroStepType.MOUSE_MOVE.value:
                 self._move_mouse(step.x, step.y)
                 if delay > 0:
-                    time.sleep(delay / 1000.0)
+                    self._interruptible_sleep(delay / 1000.0)
 
             elif step.type == MacroStepType.MOUSE_CLICK.value:
                 self._click_mouse(step.button, step.x, step.y)
                 if delay > 0:
-                    time.sleep(delay / 1000.0)
+                    self._interruptible_sleep(delay / 1000.0)
 
             elif step.type == MacroStepType.MOUSE_SCROLL.value:
                 self._scroll_mouse(step.x, step.y, step.scroll_amount)
                 if delay > 0:
-                    time.sleep(delay / 1000.0)
+                    self._interruptible_sleep(delay / 1000.0)
 
             elif step.type == MacroStepType.DELAY.value:
-                time.sleep(delay / 1000.0)
+                self._interruptible_sleep(delay / 1000.0)
 
             # Handle UI/legacy actions via the MacroManager
             elif self.macro_manager and step.type in self.macro_manager.action_handlers:
@@ -274,7 +290,7 @@ class MacroRunner:
 
                 # Apply delay if specified
                 if delay > 0:
-                    time.sleep(delay / 1000.0)
+                    self._interruptible_sleep(delay / 1000.0)
 
             # Handle unknown/unhandled step types
             elif step.type in [e.value for e in MacroStepType]:
