@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import List, Dict, Optional
 from datetime import datetime
 
-from src.knowledge_pack import KnowledgePack, KnowledgeSource
+from knowledge_pack import KnowledgePack, KnowledgeSource
 
 logger = logging.getLogger(__name__)
 

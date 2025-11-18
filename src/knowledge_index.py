@@ -12,8 +12,8 @@ from typing import List, Dict, Optional, Tuple
 from datetime import datetime
 import math
 
-from src.knowledge_pack import KnowledgePack, KnowledgeSource, RetrievedChunk
-from src.knowledge_store import get_knowledge_pack_store
+from knowledge_pack import KnowledgePack, KnowledgeSource, RetrievedChunk
+from knowledge_store import get_knowledge_pack_store
 
 logger = logging.getLogger(__name__)
 
