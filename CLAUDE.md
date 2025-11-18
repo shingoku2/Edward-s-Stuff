@@ -1283,6 +1283,8 @@ test_game_profiles.py     # Game profile management
 test_edge_cases.py        # Error handling
 test_before_build.py      # Pre-build validation
 test_minimal.py           # Quick smoke test
+test_gui_minimal.py       # Minimal GUI test (PyQt6 environment)
+test_gui.sh               # Full GUI test with virtual display
 live_test.py              # Live API testing (requires API keys)
 api_key_test.py           # Provider credentials testing
 ui/test_design_system.py  # UI design system
@@ -1365,6 +1367,78 @@ python -m pytest -v
 3. **Verify error handling** (exception types, error messages)
 4. **Test thread safety** for Qt components
 5. **Clean up resources** after tests (temp files, threads)
+
+### GUI Testing (Headless Environment)
+
+**Overview:** The application can be tested in headless/CLI environments using Qt's offscreen platform or Xvfb (X Virtual Framebuffer).
+
+**Quick Start:**
+```bash
+# Method 1: Offscreen Platform (Recommended)
+export QT_QPA_PLATFORM=offscreen
+python main.py
+
+# Method 2: Virtual Display (Xvfb)
+Xvfb :99 -screen 0 1920x1080x24 &
+export DISPLAY=:99
+python main.py
+```
+
+**Test Files:**
+- `test_gui_minimal.py` - Minimal PyQt6 test (verifies GUI environment)
+- `test_gui.sh` - Full application test with virtual display
+- `GUI_TESTING.md` - Comprehensive GUI testing documentation
+
+**Environment Setup:**
+```bash
+# Install Qt dependencies (already done in this environment)
+apt-get install -y libegl1 libegl-mesa0 libxcb-cursor0 libxkbcommon-x11-0
+
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Test minimal GUI
+export QT_QPA_PLATFORM=offscreen
+python test_gui_minimal.py
+```
+
+**Available Qt Platforms:**
+- `offscreen` - Memory-only rendering (fastest, recommended for CI/CD)
+- `xcb` - X11 display (requires Xvfb or X server)
+- `minimal` - Minimal platform plugin
+- `vnc` - VNC remote display
+- `wayland` - Wayland compositor
+
+**Common Issues:**
+
+1. **Missing EGL libraries**
+   ```bash
+   # Error: libEGL.so.1: cannot open shared object file
+   apt-get install -y libegl1 libegl-mesa0
+   ```
+
+2. **Qt platform plugin errors**
+   ```bash
+   # Use offscreen platform
+   export QT_QPA_PLATFORM=offscreen
+   ```
+
+3. **Application hangs**
+   ```python
+   # Add timeout for automated testing
+   QTimer.singleShot(5000, app.quit)
+   ```
+
+**CI/CD Integration:**
+```yaml
+# GitHub Actions example
+- name: Test GUI
+  env:
+    QT_QPA_PLATFORM: offscreen
+  run: python test_gui_minimal.py
+```
+
+**See:** `GUI_TESTING.md` for comprehensive documentation.
 
 ---
 
