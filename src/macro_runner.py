@@ -11,7 +11,7 @@ import random
 from typing import Optional, Callable
 from enum import Enum
 
-from macro_manager import Macro, MacroStep, MacroStepType, MacroManager
+from src.macro_manager import Macro, MacroStep, MacroStepType, MacroManager
 
 logger = logging.getLogger(__name__)
 
