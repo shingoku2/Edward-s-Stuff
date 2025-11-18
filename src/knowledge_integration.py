@@ -9,7 +9,7 @@ from typing import Optional, List, Dict
 from src.knowledge_pack import RetrievedChunk
 from src.knowledge_index import get_knowledge_index, KnowledgeIndex
 from src.knowledge_store import get_knowledge_pack_store, KnowledgePackStore
-from session_logger import get_session_logger, SessionLogger
+from src.session_logger import get_session_logger, SessionLogger
 
 logger = logging.getLogger(__name__)
 
