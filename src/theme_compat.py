@@ -83,6 +83,36 @@ class LegacyOverlayAppearance:
     show_tips_panel: bool = False
     show_stats_panel: bool = False
 
+    def get_position_preset_coords(self, screen_width: int, screen_height: int) -> tuple:
+        """
+        Get coordinates for position preset.
+
+        Args:
+            screen_width: Screen width in pixels
+            screen_height: Screen height in pixels
+
+        Returns:
+            Tuple of (x, y) coordinates
+        """
+        margin = 20  # Margin from edges
+
+        preset_map = {
+            "top_left": (margin, margin),
+            "top_right": (screen_width - self.width - margin, margin),
+            "bottom_left": (margin, screen_height - self.height - margin),
+            "bottom_right": (
+                screen_width - self.width - margin,
+                screen_height - self.height - margin
+            ),
+            "center": (
+                (screen_width - self.width) // 2,
+                (screen_height - self.height) // 2
+            ),
+            "custom": (self.custom_x, self.custom_y),
+        }
+
+        return preset_map.get(self.position_preset, (self.custom_x, self.custom_y))
+
     def to_dict(self) -> dict:
         return asdict(self)
 
