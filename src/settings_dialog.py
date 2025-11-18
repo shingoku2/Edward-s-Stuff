@@ -180,6 +180,14 @@ class TabbedSettingsDialog(QDialog):
         self.overlay_appearance_tab.overlay_appearance_changed.connect(self.on_overlay_appearance_changed)
         self.tab_widget.addTab(self.overlay_appearance_tab, "🪟 Overlay Appearance")
 
+    def set_current_tab(self, tab_index: int):
+        """Set the current tab by index"""
+        if 0 <= tab_index < self.tab_widget.count():
+            self.tab_widget.setCurrentIndex(tab_index)
+            logger.info(f"Switched to tab {tab_index}")
+        else:
+            logger.warning(f"Invalid tab index: {tab_index} (max: {self.tab_widget.count() - 1})")
+
     def on_keybinds_changed(self, keybinds_dict: dict):
         """Handle keybinds changed"""
         logger.info(f"Keybinds changed: {len(keybinds_dict)} keybinds")

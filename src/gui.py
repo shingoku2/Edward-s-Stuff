@@ -881,8 +881,28 @@ class MainWindow(QMainWindow):
     def open_settings_tab(self, tab_index: int):
         """Open advanced settings dialog at a specific tab"""
         logger.info(f"Opening settings dialog at tab {tab_index}")
-        self.open_advanced_settings()
-        # TODO: Add method to TabbedSettingsDialog to switch to specific tab
+
+        # Create the settings dialog
+        dialog = TabbedSettingsDialog(
+            parent=self,
+            config=self.config,
+            keybind_manager=self.keybind_manager,
+            macro_manager=self.macro_manager,
+            theme_manager=self.theme_manager
+        )
+
+        # Connect signals
+        dialog.keybinds_changed.connect(self.on_keybinds_updated)
+        dialog.macros_changed.connect(self.on_macros_updated)
+        dialog.theme_changed.connect(self.on_theme_updated)
+        dialog.overlay_appearance_changed.connect(self.on_overlay_appearance_updated)
+        dialog.provider_config_changed.connect(self.on_provider_config_updated)
+
+        # Set the current tab to the requested one
+        dialog.set_current_tab(tab_index)
+
+        # Show the dialog
+        dialog.exec()
 
     def create_system_tray(self):
         """Create system tray icon with context menu"""
