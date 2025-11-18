@@ -3,14 +3,9 @@ Overlay Modes Module
 Defines compact and full panel modes for the in-game overlay
 """
 
-from enum import Enum
-from typing import Dict, Any
+from typing import Any, Dict
 
-
-class OverlayMode(Enum):
-    """Enumeration of overlay display modes"""
-    COMPACT = "compact"
-    FULL = "full"
+from src.types import OverlayMode
 
 
 class OverlayModeConfig:
