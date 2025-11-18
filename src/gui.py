@@ -482,7 +482,6 @@ class OverlayWindow(QWidget):
 
     def save_window_state(self):
         """Save current window position and size to .env file"""
-        from src.config import Config
         geometry = self.geometry()
         Config.save_to_env(
             provider=self.config.ai_provider,

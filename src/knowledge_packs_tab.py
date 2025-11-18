@@ -15,11 +15,11 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import pyqtSignal, Qt, QThread
 from PyQt6.QtGui import QFont
 
-from knowledge_pack import KnowledgePack, KnowledgeSource
-from knowledge_store import get_knowledge_pack_store
-from knowledge_index import get_knowledge_index
-from knowledge_ingestion import get_ingestion_pipeline, IngestionError
-from game_profile import get_profile_store
+from src.knowledge_pack import KnowledgePack, KnowledgeSource
+from src.knowledge_store import get_knowledge_pack_store
+from src.knowledge_index import get_knowledge_index
+from src.knowledge_ingestion import get_ingestion_pipeline, IngestionError
+from src.game_profile import get_profile_store
 import uuid
 from datetime import datetime
 

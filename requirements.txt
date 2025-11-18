@@ -20,3 +20,7 @@ pywin32>=306; platform_system=="Windows"
 cryptography>=41.0.0
 keyring>=24.2.0
 pynput>=1.7.6
+
+# PDF processing (optional but recommended for knowledge packs)
+PyPDF2>=3.0.0
+pdfplumber>=0.9.0
