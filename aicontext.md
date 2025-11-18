@@ -4497,3 +4497,7 @@ Update 2025-11-18 (follow-up):
 - Removed src/ui/assets/hero_banner.png to keep the dashboard hero binary-free and replaced it with a painted gradient/circuit canvas inside OmnixAvatarDisplay.
 - Resolved compile errors from unescaped stylesheet braces and a duplicated docstring introduced during the refactor; component now relies solely on design tokens and Qt painting primitives.
 - Validation: python -m compileall src (initial failure on avatar_display.py due to stylesheet braces/docstring; corrected and passing after fixes).
+
+Update 2025-11-18 (config initialization fix):
+- Resolved TypeError in main startup by calling `Config.load(require_keys=False)` instead of instantiating `Config` with an unsupported parameter.
+- No automated tests were executed for this small configuration-loading fix.

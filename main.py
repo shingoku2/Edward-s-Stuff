@@ -130,7 +130,7 @@ def main():
         logger.info("Step 1: Loading configuration...")
         print("Loading configuration...")
 
-        config = Config(require_keys=False)
+        config = Config.load(require_keys=False)
 
         logger.info(f"Configuration loaded")
         logger.info(f"  AI Provider: {config.ai_provider}")
