@@ -325,7 +325,7 @@ class AppAppearanceTab(QWidget):
 class OverlayAppearanceTab(QWidget):
     """Tab for configuring overlay-specific appearance"""
 
-    overlay_changed = pyqtSignal()
+    overlay_appearance_changed = pyqtSignal(dict)
 
     def __init__(self, theme_manager: OmnixThemeManager, config, parent=None):
         super().__init__(parent)
@@ -448,7 +448,7 @@ class OverlayAppearanceTab(QWidget):
         # Save config
         self.config.save()
 
-        self.overlay_changed.emit()
+        self.overlay_appearance_changed.emit(self.get_overlay_settings())
 
         QMessageBox.information(
             self,
