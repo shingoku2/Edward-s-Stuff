@@ -206,7 +206,6 @@ QPushButton {{
 
 QPushButton:hover {{
     background-color: {self.tokens.colors.accent_primary_bright};
-    box-shadow: 0 0 8px {self.tokens.colors.accent_primary};
 }}
 
 QPushButton:pressed {{
@@ -364,7 +363,6 @@ QComboBox::down-arrow {{
     border-right: none;
     width: 6px;
     height: 6px;
-    transform: rotate(-45deg);
 }}
 
 QComboBox QAbstractItemView {{
@@ -505,7 +503,6 @@ QSlider::handle:horizontal {{
 
 QSlider::handle:horizontal:hover {{
     background-color: {self.tokens.colors.accent_primary_bright};
-    box-shadow: 0 0 8px {self.tokens.colors.accent_primary};
 }}
 
 QSlider::add-page:horizontal {{
@@ -802,7 +799,6 @@ QPushButton {{
 
 QPushButton:hover {{
     background-color: {self.tokens.colors.accent_primary};
-    box-shadow: 0 0 8px {self.tokens.colors.accent_primary};
 }}
 
 /* Chat Display */
@@ -825,7 +821,6 @@ QLineEdit {{
 
 QLineEdit:focus {{
     border: 2px solid {self.tokens.colors.accent_primary_bright};
-    box-shadow: 0 0 8px {self.tokens.colors.accent_primary};
 }}
 
 /* Scrollbar */
