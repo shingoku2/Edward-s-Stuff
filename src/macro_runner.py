@@ -45,16 +45,18 @@ class MacroRunner:
     Runs in background thread to keep UI responsive
     """
 
-    def __init__(self, enabled: bool = False, macro_manager: Optional[MacroManager] = None):
+    def __init__(self, enabled: bool = False, macro_manager: Optional[MacroManager] = None, config=None):
         """
         Initialize the macro runner
 
         Args:
             enabled: Whether macros are enabled (respects anti-cheat awareness)
             macro_manager: The MacroManager instance with UI action handlers
+            config: Configuration object with timeout settings
         """
         self.enabled = enabled
         self.macro_manager = macro_manager
+        self.config = config
         self.state = MacroExecutionState.IDLE
         self.current_macro: Optional[Macro] = None
         self.execution_thread: Optional[threading.Thread] = None
@@ -96,6 +98,18 @@ class MacroRunner:
             logger.warning("Macro already executing")
             return False
 
+        # Validate repeat count against configured maximum
+        max_repeat = 100  # Default safety limit
+        if self.config and hasattr(self.config, 'max_macro_repeat'):
+            max_repeat = self.config.max_macro_repeat
+
+        if macro.repeat > max_repeat:
+            error_msg = f"Macro repeat count ({macro.repeat}) exceeds maximum allowed ({max_repeat})"
+            logger.error(error_msg)
+            if self.on_error:
+                self.on_error(error_msg)
+            return False
+
         # Validate macro
         is_valid, errors = self._validate_macro(macro)
         if not is_valid:
@@ -125,8 +139,26 @@ class MacroRunner:
             if not macro:
                 return
 
+            # Get timeout setting (default: 30 seconds)
+            timeout_seconds = 30
+            if self.config and hasattr(self.config, 'macro_execution_timeout'):
+                timeout_seconds = self.config.macro_execution_timeout
+
+            # Track start time for timeout enforcement
+            start_time = time.time()
+
             # Execute macro 'repeat' times
             for repeat_count in range(macro.repeat):
+                # Check for timeout
+                elapsed_time = time.time() - start_time
+                if elapsed_time > timeout_seconds:
+                    error_msg = f"Macro exceeded {timeout_seconds}s timeout (elapsed: {elapsed_time:.1f}s)"
+                    logger.error(error_msg)
+                    if self.on_error:
+                        self.on_error(error_msg)
+                    self.state = MacroExecutionState.ERROR
+                    return
+
                 if self.state == MacroExecutionState.STOPPED:
                     logger.info("Macro execution stopped by user")
                     break
@@ -135,6 +167,16 @@ class MacroRunner:
 
                 # Execute each step
                 for step_idx, step in enumerate(macro.steps):
+                    # Check for timeout in inner loop too
+                    elapsed_time = time.time() - start_time
+                    if elapsed_time > timeout_seconds:
+                        error_msg = f"Macro exceeded {timeout_seconds}s timeout (elapsed: {elapsed_time:.1f}s)"
+                        logger.error(error_msg)
+                        if self.on_error:
+                            self.on_error(error_msg)
+                        self.state = MacroExecutionState.ERROR
+                        return
+
                     if self.state == MacroExecutionState.STOPPED:
                         logger.info("Macro execution stopped by user")
                         break

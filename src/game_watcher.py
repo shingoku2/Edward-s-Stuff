@@ -134,7 +134,12 @@ class GameWatcher(QObject):
 
                 try:
                     proc = psutil.Process(pid.value)
-                    return proc.name()
+                    # Process might terminate between creation and name() call
+                    try:
+                        return proc.name()
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        # Process terminated or access denied
+                        return None
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
                     return None
 

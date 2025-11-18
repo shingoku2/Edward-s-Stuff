@@ -83,7 +83,9 @@ class Config:
         self.overlay_width = int(os.getenv('OVERLAY_WIDTH', '900'))
         self.overlay_height = int(os.getenv('OVERLAY_HEIGHT', '700'))
         self.overlay_minimized = os.getenv('OVERLAY_MINIMIZED', 'false').lower() == 'true'
-        self.overlay_opacity = float(os.getenv('OVERLAY_OPACITY', '0.95'))
+        # Validate opacity is in valid range [0.0, 1.0]
+        opacity = float(os.getenv('OVERLAY_OPACITY', '0.95'))
+        self.overlay_opacity = max(0.0, min(1.0, opacity))
 
         # Macro & Keybind Settings
         self.macros_enabled = os.getenv('MACROS_ENABLED', 'false').lower() == 'true'
@@ -452,9 +454,14 @@ class Config:
 
         # Update with new values
         existing_content['AI_PROVIDER'] = provider
-        existing_content['OPENAI_API_KEY'] = ''
-        existing_content['ANTHROPIC_API_KEY'] = ''
-        existing_content['GEMINI_API_KEY'] = ''
+        # Preserve existing API keys if present, otherwise leave empty
+        # (API keys are now stored in encrypted credential store)
+        if 'OPENAI_API_KEY' not in existing_content:
+            existing_content['OPENAI_API_KEY'] = ''
+        if 'ANTHROPIC_API_KEY' not in existing_content:
+            existing_content['ANTHROPIC_API_KEY'] = ''
+        if 'GEMINI_API_KEY' not in existing_content:
+            existing_content['GEMINI_API_KEY'] = ''
         existing_content['OVERLAY_HOTKEY'] = overlay_hotkey
         existing_content['CHECK_INTERVAL'] = str(check_interval)
 
@@ -486,9 +493,9 @@ class Config:
             f.write(f"AI_PROVIDER={existing_content['AI_PROVIDER']}\n\n")
 
             f.write("# API Keys are stored securely using the encrypted credential store\n")
-            f.write("OPENAI_API_KEY=\n")
-            f.write("ANTHROPIC_API_KEY=\n")
-            f.write("GEMINI_API_KEY=\n\n")
+            f.write(f"OPENAI_API_KEY={existing_content.get('OPENAI_API_KEY', '')}\n")
+            f.write(f"ANTHROPIC_API_KEY={existing_content.get('ANTHROPIC_API_KEY', '')}\n")
+            f.write(f"GEMINI_API_KEY={existing_content.get('GEMINI_API_KEY', '')}\n\n")
 
             f.write("# Session Tokens\n")
             f.write(f"OPENAI_SESSION_DATA='{existing_content['OPENAI_SESSION_DATA']}'\n")

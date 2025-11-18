@@ -208,6 +208,10 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
             system_messages = [msg for msg in self.conversation_history if msg["role"] == "system"]
             recent_messages = [msg for msg in self.conversation_history if msg["role"] != "system"]
 
+            # Limit system messages to prevent unbounded growth (keep most recent 3)
+            if len(system_messages) > 3:
+                system_messages = system_messages[-3:]
+
             # Keep system message and most recent messages
             recent_messages = recent_messages[-(self.MAX_CONVERSATION_MESSAGES - len(system_messages)):]
             self.conversation_history = system_messages + recent_messages

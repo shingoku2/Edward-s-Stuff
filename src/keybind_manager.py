@@ -172,10 +172,18 @@ class KeybindManager:
         """
         normalized_keys = self._normalize_keys(keys)
 
+        # Check regular keybinds
         for action, keybind in self.keybinds.items():
             if action == exclude_action:
                 continue
             if self._normalize_keys(keybind.keys) == normalized_keys:
+                return True
+
+        # Also check macro keybinds for conflicts
+        for macro_id, macro_keybind in self.macro_keybinds.items():
+            if macro_id == exclude_action:
+                continue
+            if self._normalize_keys(macro_keybind.keys) == normalized_keys:
                 return True
 
         return False

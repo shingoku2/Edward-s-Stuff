@@ -220,7 +220,7 @@ class GameProfileStore:
         GameProfile(
             id="minecraft",
             display_name="Minecraft",
-            exe_names=["javaw.exe", "Minecraft.exe"],
+            exe_names=["Minecraft.exe", "MinecraftLauncher.exe"],
             system_prompt=(
                 "You are a master Minecraft builder. Provide crafting recipes, redstone ideas, "
                 "survival progression routes, and mob farming tips."

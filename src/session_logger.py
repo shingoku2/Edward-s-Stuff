@@ -6,6 +6,7 @@ Tracks user interactions and AI responses per game profile for coaching and reca
 import logging
 import json
 import os
+import threading
 from pathlib import Path
 from typing import List, Dict, Optional
 from datetime import datetime, timedelta
@@ -89,6 +90,9 @@ class SessionLogger:
 
         # Last event timestamps: {game_profile_id: datetime}
         self.last_event_time: Dict[str, datetime] = {}
+
+        # File write lock to prevent concurrent write corruption
+        self._save_lock = threading.Lock()
 
         logger.info(f"SessionLogger initialized at {self.logs_dir}")
 
@@ -183,13 +187,14 @@ class SessionLogger:
             if len(events_data) > self.MAX_EVENTS_ON_DISK:
                 events_data = events_data[-self.MAX_EVENTS_ON_DISK:]
 
-            # Save to file
-            with open(session_file, 'w') as f:
-                json.dump({
-                    'game_profile_id': game_profile_id,
-                    'session_id': session_id,
-                    'events': events_data
-                }, f, indent=2)
+            # Save to file with lock protection to prevent concurrent write corruption
+            with self._save_lock:
+                with open(session_file, 'w') as f:
+                    json.dump({
+                        'game_profile_id': game_profile_id,
+                        'session_id': session_id,
+                        'events': events_data
+                    }, f, indent=2)
 
             logger.debug(f"Saved session {session_id} for {game_profile_id}")
 
