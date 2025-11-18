@@ -5,9 +5,11 @@ Detects running games on the system
 
 import os
 import logging
-from typing import Optional, Dict
-import subprocess
+from typing import Dict, List, Optional, Set
+
 import psutil
+
+from .types import GameInfo
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -101,23 +103,18 @@ class GameDetector:
                 process_index.setdefault(normalized, game_name)
         self._process_index = process_index
 
-    def detect_running_game(self) -> Optional[Dict[str, str]]:
-        """
-        Detect if any known game is currently running
-
-        Returns:
-            Dictionary with game info if found, None otherwise
-        """
+    def detect_running_game(self) -> Optional[GameInfo]:
+        """Detect if any known game is currently running."""
         try:
-            for game_name, process_names in self.common_games.items():
-                for process_name in process_names:
-                    if self._is_process_running(process_name):
-                        logger.info(f"Game detected: {game_name}")
-                        return {
-                            "name": game_name,
-                            "process": process_name,
-                            "detected_at": str(self._get_current_time())
-                        }
+            running_games = self._scan_running_games()
+            if running_games:
+                detected_game = running_games[0]
+                logger.info(
+                    "Game detected: %s (pid=%s)",
+                    detected_game["name"],
+                    detected_game.get("pid"),
+                )
+                return detected_game
             return None
 
         except Exception as e:
@@ -155,30 +152,62 @@ class GameDetector:
         from datetime import datetime
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    def get_running_games(self) -> list:
-        """
-        Get all running games from the common games list
-
-        Returns:
-            List of running games
-        """
-        running_games = []
+    def get_running_games(self) -> List[GameInfo]:
+        """Get all running games from the common games list."""
         try:
-            for game_name, process_names in self.common_games.items():
-                for process_name in process_names:
-                    if self._is_process_running(process_name):
-                        running_games.append({
-                            "name": game_name,
-                            "process": process_name
-                        })
-                        break
-            return running_games
-
+            return self._scan_running_games()
         except Exception as e:
             logger.error(f"Error getting running games: {e}", exc_info=True)
             return []
 
-    def add_custom_game(self, game_name: str, process_names: list) -> bool:
+    def _scan_running_games(self) -> List[GameInfo]:
+        """Scan running processes and return matching games with metadata."""
+        running_games: List[GameInfo] = []
+        seen_games: Set[str] = set()
+
+        for proc in psutil.process_iter(["pid", "name", "exe"]):
+            try:
+                process_name = proc.info.get("name") or ""
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+
+            normalized_name = self._normalize_process_name(process_name)
+            if not normalized_name:
+                continue
+
+            game_name = self._process_index.get(normalized_name)
+            if not game_name or game_name in seen_games:
+                continue
+
+            running_games.append(self._build_game_info(proc, game_name))
+            seen_games.add(game_name)
+
+        return running_games
+
+    def _build_game_info(self, process: psutil.Process, game_name: str) -> GameInfo:
+        """Build a structured game info object for a detected process."""
+        try:
+            proc_info: Dict[str, Optional[str]] = process.as_dict(
+                attrs=["pid", "name", "exe"]
+            )
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            proc_info = {"pid": process.pid, "name": process.name(), "exe": None}
+
+        exe_path = proc_info.get("exe") or ""
+        process_name = proc_info.get("name") or ""
+        pid = int(proc_info.get("pid") or process.pid)
+
+        return {
+            "name": game_name,
+            "exe": exe_path,
+            "process_name": process_name,
+            "pid": pid,
+            "path": os.path.dirname(exe_path) if exe_path else "",
+        }
+
+    def add_custom_game(
+        self, game_name: Optional[str], process_names: Optional[List[str]]
+    ) -> bool:
         """
         Add a custom game to the detection list
 
