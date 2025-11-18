@@ -88,7 +88,7 @@ def main():
         logger.info("Step 1: Loading configuration...")
         print("Loading configuration...")
 
-        config = Config.load(require_keys=False)
+        config = Config(require_keys=False)
 
         logger.info("Configuration loaded")
         logger.info("  AI Provider: %s", config.ai_provider)
