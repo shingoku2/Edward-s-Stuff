@@ -270,12 +270,12 @@ class KnowledgeIndex:
 
     def _chunk_text(self, text: str, chunk_size: int = 500, overlap: int = 50) -> List[str]:
         """
-        Split text into overlapping chunks
+        Split text into overlapping chunks respecting word boundaries.
 
         Args:
             text: Text to chunk
             chunk_size: Target chunk size in characters
-            overlap: Overlap between chunks
+            overlap: Overlap between chunks in characters
 
         Returns:
             List of text chunks
@@ -283,23 +283,42 @@ class KnowledgeIndex:
         if not text:
             return []
 
+        words = text.split()
         chunks = []
-        start = 0
+        current_chunk_words = []
+        current_length = 0
 
-        while start < len(text):
-            end = start + chunk_size
-            chunk = text[start:end]
+        # Helper to reconstruct string from words
+        def join_words(word_list):
+            return " ".join(word_list)
 
-            # Try to break at sentence boundary
-            if end < len(text):
-                # Look for period, question mark, or exclamation
-                last_period = max(chunk.rfind('.'), chunk.rfind('?'), chunk.rfind('!'))
-                if last_period > chunk_size // 2:  # Only break if in latter half
-                    chunk = chunk[:last_period + 1]
-                    end = start + last_period + 1
+        for word in words:
+            word_len = len(word) + 1  # +1 for space
 
-            chunks.append(chunk.strip())
-            start = end - overlap
+            if current_length + word_len > chunk_size and current_chunk_words:
+                # Chunk is full, save it
+                chunks.append(join_words(current_chunk_words))
+
+                # Calculate overlap (keep last N words that fit in overlap size)
+                overlap_words = []
+                overlap_len = 0
+                for w in reversed(current_chunk_words):
+                    if overlap_len + len(w) + 1 <= overlap:
+                        overlap_words.insert(0, w)
+                        overlap_len += len(w) + 1
+                    else:
+                        break
+
+                current_chunk_words = overlap_words
+                current_chunk_words.append(word)
+                current_length = overlap_len + word_len
+            else:
+                current_chunk_words.append(word)
+                current_length += word_len
+
+        # Add the final chunk
+        if current_chunk_words:
+            chunks.append(join_words(current_chunk_words))
 
         return chunks
 

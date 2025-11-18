@@ -9,6 +9,7 @@ while delegating actual API calls to the provider layer.
 
 import logging
 import os
+import threading
 from typing import Callable, Dict, List, Optional, TYPE_CHECKING
 
 from config import Config
@@ -57,6 +58,9 @@ class AIAssistant:
         self._session_refresh_handler: Optional[
             Callable[[str, str, Dict[str, str]], None]
         ] = None
+
+        # Thread safety for conversation history
+        self._history_lock = threading.Lock()
 
         # Initialize knowledge integration
         self.knowledge_integration = get_knowledge_integration()
@@ -122,11 +126,14 @@ class AIAssistant:
     def set_current_game(self, game_info: Dict[str, str]):
         """Set the current game context"""
         self.current_game = game_info
-        self.conversation_history = []
 
-        # Add system context
-        game_name = game_info.get('name', 'Unknown Game')
-        self._add_system_context(game_name)
+        with self._history_lock:
+            self.conversation_history = []
+
+            # Add system context
+            game_name = game_info.get('name', 'Unknown Game')
+            self._add_system_context(game_name)
+
         logger.info(f"Set current game context: {game_name}")
 
     def set_game_profile(self, profile: "GameProfile", override_provider: bool = True):
@@ -138,7 +145,6 @@ class AIAssistant:
             override_provider: If True, switch to profile's preferred provider
         """
         self.current_profile = profile
-        self.conversation_history = []
 
         # Update model from profile
         self.current_model = profile.default_model
@@ -152,11 +158,15 @@ class AIAssistant:
             # Just set the provider name. The router will handle which key/client to use.
             self.provider = profile.default_provider
 
-        # Add profile's system prompt as context
-        self.conversation_history.append({
-            "role": "system",
-            "content": profile.system_prompt
-        })
+        # Thread-safe history update
+        with self._history_lock:
+            self.conversation_history = []
+
+            # Add profile's system prompt as context
+            self.conversation_history.append({
+                "role": "system",
+                "content": profile.system_prompt
+            })
 
         logger.info(f"Set game profile: {profile.display_name} (id={profile.id})")
 
@@ -164,7 +174,9 @@ class AIAssistant:
         """Clear the current game profile and reset to global default provider"""
         self.current_profile = None
         self.current_model = None
-        self.conversation_history = []
+
+        with self._history_lock:
+            self.conversation_history = []
 
         # Reset provider to global default
         # This prevents the provider from staying "stuck" on a game-specific provider
@@ -263,16 +275,19 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
             if game_context:
                 user_message = f"{user_message}\n\nAdditional context from game resources:\n{game_context}"
 
-            # Add to conversation history
-            self.conversation_history.append({
-                "role": "user",
-                "content": user_message
-            })
+            # Thread-safe history modification
+            with self._history_lock:
+                # Add to conversation history
+                self.conversation_history.append({
+                    "role": "user",
+                    "content": user_message
+                })
 
-            # Trim history if needed
-            self._trim_conversation_history()
+                # Trim history if needed
+                self._trim_conversation_history()
 
             # Get response using the AI router
+            # (This is the slow network part, keep it OUTSIDE the lock to allow other reads)
             try:
                 response = self.router.chat(
                     self.conversation_history,
@@ -289,10 +304,11 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
 
                 # Add response to history only if it's not an error
                 if not content.startswith(('⚠️', '❌')):
-                    self.conversation_history.append({
-                        "role": "assistant",
-                        "content": content
-                    })
+                    with self._history_lock:
+                        self.conversation_history.append({
+                            "role": "assistant",
+                            "content": content
+                        })
 
                 # Log conversation to session logger
                 if self.current_profile:
@@ -336,8 +352,11 @@ Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
     def clear_history(self):
         """Clear conversation history"""
         game_name = self.current_game.get('name', 'Unknown Game') if self.current_game else 'Unknown Game'
-        self.conversation_history = []
-        self._add_system_context(game_name)
+
+        with self._history_lock:
+            self.conversation_history = []
+            self._add_system_context(game_name)
+
         logger.info("Conversation history cleared")
 
     def get_conversation_summary(self) -> List[Dict[str, str]]:
