@@ -67,11 +67,9 @@ class Config:
         self.anthropic_api_key = credentials.get('ANTHROPIC_API_KEY') or os.getenv('ANTHROPIC_API_KEY')
         self.gemini_api_key = credentials.get('GEMINI_API_KEY') or os.getenv('GEMINI_API_KEY')
 
-        # Session data captured via embedded login
+        # Session tokens - load from secure storage instead of .env
         self.session_tokens: Dict[str, dict] = {}
-        self._load_session_token('openai', os.getenv('OPENAI_SESSION_DATA'))
-        self._load_session_token('anthropic', os.getenv('ANTHROPIC_SESSION_DATA'))
-        self._load_session_token('gemini', os.getenv('GEMINI_SESSION_DATA'))
+        self._load_session_tokens_from_secure_storage(credentials)
 
         # Application Settings
         self.overlay_hotkey = os.getenv('OVERLAY_HOTKEY', 'ctrl+shift+g')
@@ -107,17 +105,35 @@ class Config:
         if require_keys:
             self._validate()
 
-    def _load_session_token(self, provider: str, raw_value: Optional[str]) -> None:
-        """Parse stored session information from .env."""
-        if not raw_value:
-            return
+    def _load_session_tokens_from_secure_storage(self, credentials: Dict) -> None:
+        """
+        Load session tokens from secure credential store.
 
-        try:
-            parsed = json.loads(raw_value.strip("'\""))
-            if isinstance(parsed, dict):
-                self.session_tokens[provider] = parsed
-        except json.JSONDecodeError:
-            self.session_tokens[provider] = {"raw": raw_value}
+        Args:
+            credentials: Dictionary of credentials from credential store
+        """
+        # Try to load consolidated session tokens JSON first
+        session_tokens_json = credentials.get('SESSION_TOKENS_JSON')
+        if session_tokens_json:
+            try:
+                self.session_tokens = json.loads(session_tokens_json)
+                logger.info("Loaded session tokens from secure storage")
+                return
+            except json.JSONDecodeError as e:
+                logger.warning(f"Failed to parse session tokens JSON: {e}")
+
+        # Fallback: Try loading individual provider tokens from .env (legacy support)
+        # This allows migration from old .env-based storage
+        for provider in ['openai', 'anthropic', 'gemini']:
+            env_key = f'{provider.upper()}_SESSION_DATA'
+            raw_value = os.getenv(env_key)
+            if raw_value:
+                try:
+                    parsed = json.loads(raw_value.strip("'\""))
+                    if isinstance(parsed, dict):
+                        self.session_tokens[provider] = parsed
+                except json.JSONDecodeError:
+                    self.session_tokens[provider] = {"raw": raw_value}
 
     def _validate(self):
         """Validate configuration - raises ValueError if invalid"""
@@ -334,6 +350,30 @@ class Config:
             # Clear the key
             self.clear_api_key(provider)
 
+    def save_session_tokens(self) -> bool:
+        """
+        Save session tokens to secure credential store.
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            if self.session_tokens:
+                session_tokens_json = json.dumps(self.session_tokens)
+                self.credential_store.save_credentials({'SESSION_TOKENS_JSON': session_tokens_json})
+                logger.info("Saved session tokens to secure storage")
+                return True
+            else:
+                # Clear session tokens if empty
+                try:
+                    self.credential_store.delete('SESSION_TOKENS_JSON')
+                except Exception:
+                    pass  # Ignore if doesn't exist
+                return True
+        except Exception as e:
+            logger.error(f"Failed to save session tokens: {e}")
+            return False
+
     def clear_api_key(self, provider: str) -> None:
         """
         Clear an API key for a provider.
@@ -416,8 +456,12 @@ class Config:
         """
         Save configuration to .env file
 
+        Note: Session tokens are now stored securely in credential store,
+              not in .env file. Use save_session_tokens() instead.
+
         Args:
             provider: AI provider ('openai', 'anthropic', or 'gemini')
+            session_tokens: Deprecated - session tokens are stored in credential store
             overlay_hotkey: Hotkey for overlay (default: 'ctrl+shift+g')
             check_interval: Game check interval in seconds (default: 5)
             overlay_x: Overlay window X position (optional)
@@ -465,10 +509,11 @@ class Config:
         existing_content['OVERLAY_HOTKEY'] = overlay_hotkey
         existing_content['CHECK_INTERVAL'] = str(check_interval)
 
-        session_tokens = session_tokens or {}
-        existing_content['OPENAI_SESSION_DATA'] = json.dumps(session_tokens.get('openai', {}))
-        existing_content['ANTHROPIC_SESSION_DATA'] = json.dumps(session_tokens.get('anthropic', {}))
-        existing_content['GEMINI_SESSION_DATA'] = json.dumps(session_tokens.get('gemini', {}))
+        # Session tokens are now stored in secure credential store, not .env
+        # Remove legacy session token entries if they exist
+        for key in ['OPENAI_SESSION_DATA', 'ANTHROPIC_SESSION_DATA', 'GEMINI_SESSION_DATA']:
+            if key in existing_content:
+                del existing_content[key]
 
         # Update overlay settings if provided
         if overlay_x is not None:
@@ -492,15 +537,10 @@ class Config:
             f.write("# AI Provider Selection\n")
             f.write(f"AI_PROVIDER={existing_content['AI_PROVIDER']}\n\n")
 
-            f.write("# API Keys are stored securely using the encrypted credential store\n")
+            f.write("# API Keys and Session Tokens are stored securely using the encrypted credential store\n")
             f.write(f"OPENAI_API_KEY={existing_content.get('OPENAI_API_KEY', '')}\n")
             f.write(f"ANTHROPIC_API_KEY={existing_content.get('ANTHROPIC_API_KEY', '')}\n")
             f.write(f"GEMINI_API_KEY={existing_content.get('GEMINI_API_KEY', '')}\n\n")
-
-            f.write("# Session Tokens\n")
-            f.write(f"OPENAI_SESSION_DATA='{existing_content['OPENAI_SESSION_DATA']}'\n")
-            f.write(f"ANTHROPIC_SESSION_DATA='{existing_content['ANTHROPIC_SESSION_DATA']}'\n")
-            f.write(f"GEMINI_SESSION_DATA='{existing_content['GEMINI_SESSION_DATA']}'\n\n")
 
             f.write("# Application Settings\n")
             f.write(f"OVERLAY_HOTKEY={existing_content['OVERLAY_HOTKEY']}\n")

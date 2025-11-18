@@ -103,6 +103,9 @@ class GameWatcher(QObject):
         """
         Get the executable name of the foreground window.
 
+        On Windows: Returns the foreground window's process name.
+        On Linux/macOS: Returns any running game process (fallback, not necessarily foreground).
+
         Returns:
             Executable filename (e.g., "eldenring.exe") or None if no game window
         """
@@ -110,10 +113,29 @@ class GameWatcher(QObject):
             import psutil
             import platform
 
-            if platform.system() != "Windows":
-                logger.warning("Game detection only supported on Windows currently")
+            system = platform.system()
+
+            if system != "Windows":
+                # Fallback for Linux/macOS:
+                # Just check if any known game process is running (not necessarily foreground)
+                # This is "good enough" for single-screen setups.
+                logger.debug("Using fallback game detection for non-Windows platform")
+
+                # Get all running processes
+                for proc in psutil.process_iter(['name']):
+                    try:
+                        exe_name = proc.info['name']
+                        # Check if this process matches any known game
+                        profile = self.profile_store.get_profile_by_executable(exe_name)
+                        if profile and profile.id != "generic_game":
+                            logger.debug(f"Found running game: {exe_name}")
+                            return exe_name
+                    except (psutil.NoSuchProcess, psutil.AccessDenied, KeyError):
+                        continue
+
                 return None
 
+            # Windows-specific foreground window detection
             try:
                 # Try using ctypes to get foreground window process
                 import ctypes
