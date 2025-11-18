@@ -445,8 +445,20 @@ class OverlayAppearanceTab(QWidget):
         self.config.overlay_edge_snapping = self.edge_snapping_check.isChecked()
         self.config.overlay_show_minimize = self.show_minimize_check.isChecked()
 
-        # Save config
-        self.config.save()
+        # Save config using Config.save_to_env()
+        from config import Config
+        Config.save_to_env(
+            provider=self.config.ai_provider,
+            session_tokens=self.config.session_tokens,
+            overlay_hotkey=self.config.overlay_hotkey,
+            check_interval=self.config.check_interval,
+            overlay_x=self.config.overlay_x,
+            overlay_y=self.config.overlay_y,
+            overlay_width=self.config.overlay_width,
+            overlay_height=self.config.overlay_height,
+            overlay_minimized=self.config.overlay_minimized,
+            overlay_opacity=self.config.overlay_opacity
+        )
 
         self.overlay_appearance_changed.emit(self.get_overlay_settings())
 

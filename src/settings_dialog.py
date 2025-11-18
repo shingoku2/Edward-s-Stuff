@@ -226,7 +226,7 @@ class TabbedSettingsDialog(QDialog):
             self.omnix_theme_manager.save_theme()
             theme = {}  # Empty dict for backward compatibility
 
-            overlay_appearance = self.overlay_appearance_tab.get_overlay_appearance()
+            overlay_appearance = self.overlay_appearance_tab.get_overlay_settings()
 
             # Save provider configuration
             provider_saved = self.providers_tab.save_provider_config()

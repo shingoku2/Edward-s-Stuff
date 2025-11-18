@@ -1280,12 +1280,19 @@ class MainWindow(QMainWindow):
         """Cleanup resources before closing"""
         logger.info("Cleaning up resources")
 
+        # The chat_widget is on the overlay_window, not MainWindow.
+        # We also add checks to ensure overlay_window and chat_widget exist.
+        chat_widget_to_clean = None
+        if hasattr(self, 'overlay_window') and hasattr(self.overlay_window, 'chat_widget'):
+            chat_widget_to_clean = self.overlay_window.chat_widget
+
         # Stop any active AI worker threads
-        if hasattr(self.chat_widget, 'ai_worker') and self.chat_widget.ai_worker:
-            if self.chat_widget.ai_worker.isRunning():
-                self.chat_widget.ai_worker.wait(2000)
-                if self.chat_widget.ai_worker.isRunning():
-                    self.chat_widget.ai_worker.terminate()
+        if chat_widget_to_clean and hasattr(chat_widget_to_clean, 'ai_worker') and chat_widget_to_clean.ai_worker:
+            if chat_widget_to_clean.ai_worker.isRunning():
+                chat_widget_to_clean.ai_worker.wait(2000)
+                if chat_widget_to_clean.ai_worker.isRunning():
+                    logger.warning("AI worker did not stop gracefully, terminating")
+                    chat_widget_to_clean.ai_worker.terminate()
 
         # Stop tips worker if running
         if self.tips_worker and self.tips_worker.isRunning():

@@ -26,7 +26,7 @@ class _CircuitCanvas(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
-        gradient = QLinearGradient(rect.topLeft(), rect.bottomRight())
+        gradient = QLinearGradient(QPointF(rect.topLeft()), QPointF(rect.bottomRight()))
         gradient.setColorAt(0, QColor(COLORS.bg_primary))
         gradient.setColorAt(1, QColor(COLORS.bg_secondary))
         painter.fillRect(rect, gradient)
