@@ -1,0 +1,65 @@
+# Coverage.py configuration for Omnix Gaming Companion
+# Additional configuration beyond pytest.ini
+
+[run]
+branch = True
+source = src
+parallel = True
+concurrency = multiprocessing,thread
+
+omit =
+    */tests/*
+    */test_*.py
+    */__pycache__/*
+    */venv/*
+    */build/*
+    */dist/*
+    */src/ui/examples/*
+    setup.py
+    build_*.py
+
+[report]
+precision = 2
+show_missing = True
+skip_covered = False
+skip_empty = True
+sort = Cover
+
+exclude_lines =
+    # Default pragma
+    pragma: no cover
+
+    # Don't complain about missing debug-only code
+    def __repr__
+    def __str__
+
+    # Don't complain if tests don't hit defensive assertion code
+    raise AssertionError
+    raise NotImplementedError
+
+    # Don't complain if non-runnable code isn't run
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    if typing.TYPE_CHECKING:
+
+    # Don't complain about abstract methods
+    @abstractmethod
+    @abc.abstractmethod
+
+    # Don't complain about pass or ellipsis
+    pass
+    \.\.\.
+
+    # Don't complain about Qt/GUI code that's hard to test
+    @pyqtSlot
+    @Slot
+
+[html]
+directory = htmlcov
+title = Omnix Gaming Companion - Test Coverage Report
+
+[xml]
+output = coverage.xml
+
+[json]
+output = coverage.json

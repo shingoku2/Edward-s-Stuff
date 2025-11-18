@@ -1,0 +1,39 @@
+# Development and Testing Dependencies for Omnix Gaming Companion
+# Install with: pip install -r requirements-dev.txt
+
+# Testing Framework
+pytest>=7.4.0
+pytest-cov>=4.1.0         # Code coverage
+pytest-mock>=3.11.0       # Mocking utilities
+pytest-asyncio>=0.21.0    # Async test support
+pytest-qt>=4.2.0          # PyQt6 testing utilities
+pytest-timeout>=2.1.0     # Test timeout enforcement
+pytest-xdist>=3.3.0       # Parallel test execution
+
+# Code Coverage
+coverage[toml]>=7.3.0
+
+# Code Quality
+flake8>=6.1.0             # Linting
+pylint>=2.17.0            # Advanced linting
+black>=23.7.0             # Code formatting
+isort>=5.12.0             # Import sorting
+mypy>=1.5.0               # Type checking
+
+# Security
+bandit>=1.7.5             # Security vulnerability scanning
+safety>=2.3.5             # Dependency vulnerability checking
+
+# Testing Utilities
+freezegun>=1.2.2          # Time mocking
+responses>=0.23.0         # HTTP request mocking
+faker>=19.3.0             # Fake data generation
+
+# Development Tools
+ipython>=8.14.0           # Enhanced REPL
+ipdb>=0.13.13             # Debugger
+pre-commit>=3.3.3         # Git hooks
+
+# Documentation (optional)
+sphinx>=7.1.0
+sphinx-rtd-theme>=1.3.0

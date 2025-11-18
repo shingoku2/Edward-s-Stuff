@@ -44,3 +44,17 @@ logs/
 
 # Cache
 game_cache.json
+
+# Testing
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+coverage.json
+htmlcov/
+.tox/
+.hypothesis/
+.pytest_tmp/
+
+# Pre-commit
+.pre-commit-cache/

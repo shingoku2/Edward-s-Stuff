@@ -4,8 +4,11 @@ This is a passion project of mine. I am using AI to fully help me code the entir
 
 A sophisticated desktop AI gaming companion that automatically detects what game you're playing and provides AI-powered assistance, knowledge integration, macro automation, and session coaching to enhance your gaming experience.
 
+[![Tests](https://github.com/shingoku2/Omnix-All-knowing-gaming-companion/actions/workflows/tests.yml/badge.svg)](https://github.com/shingoku2/Omnix-All-knowing-gaming-companion/actions/workflows/tests.yml)
+[![codecov](https://codecov.io/gh/shingoku2/Omnix-All-knowing-gaming-companion/branch/main/graph/badge.svg)](https://codecov.io/gh/shingoku2/Omnix-All-knowing-gaming-companion)
 ![Python](https://img.shields.io/badge/python-3.8+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
 
 ## ✨ Features
 
