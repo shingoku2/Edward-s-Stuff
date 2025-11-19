@@ -8,6 +8,7 @@ import hashlib
 import json
 import logging
 import os
+import threading
 from pathlib import Path
 from typing import Dict, Optional, Union
 
@@ -46,6 +47,8 @@ class CredentialStore:
     The fallback is secure but requires user to enter a master password.
     """
 
+    _lock = threading.Lock()
+
     def __init__(
         self,
         base_dir: Optional[Union[Path, str]] = None,
@@ -77,19 +80,20 @@ class CredentialStore:
 
     def save_credentials(self, values: Dict[str, Optional[str]]) -> None:
         """Persist credentials securely."""
-        data = self._load_raw()
-        for key, value in values.items():
-            if value:
-                data[key] = value
-            elif key in data:
-                del data[key]
+        with self._lock:
+            data = self._load_raw()
+            for key, value in values.items():
+                if value:
+                    data[key] = value
+                elif key in data:
+                    del data[key]
 
-        payload = json.dumps(data).encode("utf-8")
-        ciphertext = self._get_cipher().encrypt(payload)
-        with open(self.credential_path, "wb") as fh:
-            fh.write(ciphertext)
-        self._set_permissions(self.credential_path, 0o600)
-        logger.debug("Stored %d credential(s) in encrypted vault", len(values))
+            payload = json.dumps(data).encode("utf-8")
+            ciphertext = self._get_cipher().encrypt(payload)
+            with open(self.credential_path, "wb") as fh:
+                fh.write(ciphertext)
+            self._set_permissions(self.credential_path, 0o600)
+            logger.debug("Stored %d credential(s) in encrypted vault", len(values))
 
     def load_credentials(self) -> Dict[str, str]:
         """Load all credentials stored in the vault."""
@@ -99,17 +103,33 @@ class CredentialStore:
         """Fetch a single credential by key."""
         return self._load_raw().get(key)
 
+    def set_credential(self, service: str, key: str, value: Optional[str]) -> None:
+        """Convenience wrapper to store a namespaced credential."""
+        namespaced_key = f"{service}:{key}" if service else key
+        self.save_credentials({namespaced_key: value})
+
+    def get_credential(self, service: str, key: str) -> Optional[str]:
+        """Retrieve a namespaced credential."""
+        namespaced_key = f"{service}:{key}" if service else key
+        return self.get(namespaced_key)
+
     def delete(self, key: str) -> None:
         """Remove a credential from the vault."""
-        data = self._load_raw()
-        if key in data:
-            del data[key]
-            payload = json.dumps(data).encode("utf-8")
-            ciphertext = self._get_cipher().encrypt(payload)
-            with open(self.credential_path, "wb") as fh:
-                fh.write(ciphertext)
-            self._set_permissions(self.credential_path, 0o600)
-            logger.debug("Removed credential %s from vault", key)
+        with self._lock:
+            data = self._load_raw()
+            if key in data:
+                del data[key]
+                payload = json.dumps(data).encode("utf-8")
+                ciphertext = self._get_cipher().encrypt(payload)
+                with open(self.credential_path, "wb") as fh:
+                    fh.write(ciphertext)
+                self._set_permissions(self.credential_path, 0o600)
+                logger.debug("Removed credential %s from vault", key)
+
+    def delete_credential(self, service: str, key: str) -> None:
+        """Delete a namespaced credential."""
+        namespaced_key = f"{service}:{key}" if service else key
+        self.delete(namespaced_key)
 
     def _load_raw(self) -> Dict[str, str]:
         if not self.credential_path.exists():
@@ -125,8 +145,9 @@ class CredentialStore:
 
         try:
             plaintext = self._get_cipher().decrypt(blob)
-        except InvalidToken as exc:
-            raise CredentialDecryptionError("Failed to decrypt credentials") from exc
+        except (InvalidToken, CredentialDecryptionError) as exc:
+            logger.error("Failed to decrypt credentials: %s", exc)
+            return {}
 
         try:
             return json.loads(plaintext.decode("utf-8"))

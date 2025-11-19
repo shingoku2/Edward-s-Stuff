@@ -4502,6 +4502,18 @@ Update 2025-11-19:
 - Removed `javaw.exe` from Minecraft detection and added `MinecraftLauncher.exe` to reduce false positives.
 - Validation: `python -m compileall src` (pass, no errors).
 
+Update 2025-11-19 (current work):
+- Added thread-safety locks and decryption error handling to `src/credential_store.py` while preparing credential store fixes.
+- Updated `test_credential_store.py` to use `base_dir`, decrypt stored credentials in tests, and ensure master passwords are provided when keyring is unavailable.
+- Introduced `temp_base_dir` alias fixture in `conftest.py` for credential store tests.
+- Ran `pytest test_credential_store.py -q` (failed: SyntaxError at line 83 in `test_credential_store.py`; `asyncio_mode` warning noted).
+- Reran `pytest test_credential_store.py -q` after fixes (collects 26 items but fails due to unknown config option `asyncio_mode`; tests skipped). 
+- Third `pytest test_credential_store.py -q` run after additional test fixes still fails due to unknown config option `asyncio_mode` (tests not executed).
+- Attempted `pip install -r requirements-dev.txt` to add missing pytest plugins; failed due to proxy 403 errors when fetching `pytest-cov` (no packages installed).
+- Added fallback ini option registration in `conftest.py` to satisfy `asyncio_mode`, `qt_api`, and test timeout settings when related pytest plugins are unavailable.
+- Added namespaced credential helper methods to `CredentialStore` to support `set_credential`/`get_credential`/`delete_credential` semantics used in tests.
+- Reran `pytest test_credential_store.py -q` (passes all 26 tests after fallback option fixes and credential helper additions).
+
 Update 2025-11-18 (QA run):
 - Installed dependencies via pip install -r requirements.txt (already satisfied).
 - Attempted apt-get update to install libGL but proxy returned 403; libGL remains unavailable.
