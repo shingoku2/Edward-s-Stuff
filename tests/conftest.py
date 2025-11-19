@@ -53,3 +53,95 @@ def mock_game_profile():
         system_prompt="You are a test assistant",
         default_provider="anthropic"
     )
+
+
+@pytest.fixture
+def game_detector():
+    """Provide a GameDetector instance"""
+    from game_detector import GameDetector
+    return GameDetector()
+
+
+@pytest.fixture
+def game_profile_store():
+    """Provide a GameProfileStore instance"""
+    from game_profile import GameProfileStore
+    return GameProfileStore()
+
+
+@pytest.fixture
+def config(temp_dir):
+    """Provide a test Config instance"""
+    from config import Config
+    config_path = Path(temp_dir) / "test_config.json"
+    return Config(config_path=str(config_path), require_keys=False)
+
+
+@pytest.fixture
+def macro_store(temp_dir):
+    """Provide a MacroStore instance"""
+    from macro_store import MacroStore
+    return MacroStore(temp_dir)
+
+
+@pytest.fixture
+def knowledge_pack_store(temp_dir):
+    """Provide a KnowledgePackStore instance"""
+    from knowledge_store import KnowledgePackStore
+    return KnowledgePackStore(config_dir=temp_dir)
+
+
+@pytest.fixture
+def knowledge_index(temp_dir):
+    """Provide a KnowledgeIndex instance"""
+    from knowledge_index import KnowledgeIndex, SimpleTFIDFEmbedding
+    embedding_provider = SimpleTFIDFEmbedding()
+    return KnowledgeIndex(
+        config_dir=temp_dir,
+        embedding_provider=embedding_provider
+    )
+
+
+@pytest.fixture
+def session_logger(temp_dir):
+    """Provide a SessionLogger instance"""
+    from session_logger import SessionLogger
+    return SessionLogger(config_dir=temp_dir)
+
+
+@pytest.fixture
+def sample_knowledge_pack():
+    """Provide a sample knowledge pack for testing"""
+    from knowledge_pack import KnowledgePack, KnowledgeSource
+
+    source = KnowledgeSource(
+        id="sample_source",
+        type="note",
+        title="Sample Note",
+        content="This is sample content for testing knowledge packs."
+    )
+
+    return KnowledgePack(
+        id="sample_pack",
+        name="Sample Pack",
+        description="A sample knowledge pack for testing",
+        game_profile_id="test_game",
+        sources=[source]
+    )
+
+
+@pytest.fixture
+def sample_macro():
+    """Provide a sample macro for testing"""
+    from macro_manager import Macro, MacroStep, MacroStepType
+
+    return Macro(
+        id="sample_macro",
+        name="Sample Macro",
+        description="A sample macro for testing",
+        steps=[
+            MacroStep(type=MacroStepType.KEY_PRESS.value, key="a"),
+            MacroStep(type=MacroStepType.DELAY.value, duration_ms=100),
+            MacroStep(type=MacroStepType.KEY_PRESS.value, key="b")
+        ]
+    )
