@@ -19,6 +19,18 @@ import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 
+def pytest_addoption(parser):
+    """Provide fallback for asyncio_mode when pytest-asyncio is unavailable."""
+    if "asyncio_mode" not in parser._inidict:  # type: ignore[attr-defined]
+        parser.addini("asyncio_mode", "Default asyncio mode", default="auto")
+    if "qt_api" not in parser._inidict:  # type: ignore[attr-defined]
+        parser.addini("qt_api", "Preferred Qt binding", default="pyqt6")
+    if "timeout" not in parser._inidict:  # type: ignore[attr-defined]
+        parser.addini("timeout", "Global per-test timeout", default="300")
+    if "timeout_method" not in parser._inidict:  # type: ignore[attr-defined]
+        parser.addini("timeout_method", "Timeout enforcement strategy", default="thread")
+
+
 # ============================================================================
 # Session-scoped fixtures (run once per test session)
 # ============================================================================
@@ -56,6 +68,12 @@ def temp_config_dir(temp_dir) -> Path:
     config_dir = temp_dir / ".gaming_ai_assistant"
     config_dir.mkdir(parents=True, exist_ok=True)
     return config_dir
+
+
+@pytest.fixture
+def temp_base_dir(temp_config_dir) -> Path:
+    """Alias fixture for backward compatibility with credential store tests."""
+    return temp_config_dir
 
 
 @pytest.fixture

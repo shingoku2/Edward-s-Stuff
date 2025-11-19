@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 from src.providers import (
     OpenAIProvider,
     AnthropicProvider,
-    GoogleGeminiProvider,
+    GeminiProvider,
     ProviderError,
     ProviderAuthError,
     ProviderQuotaError,
@@ -194,28 +194,28 @@ class TestAnthropicProvider:
 
 
 @pytest.mark.unit
-class TestGoogleGeminiProvider:
+class TestGeminiProvider:
     """Test Google Gemini provider implementation"""
 
     def test_initialization(self):
         """Test Gemini provider initialization"""
-        provider = GoogleGeminiProvider(api_key="AIza-test-key-123")
+        provider = GeminiProvider(api_key="AIza-test-key-123")
 
         assert provider.name == "gemini"
         assert provider.api_key == "AIza-test-key-123"
 
     def test_is_configured(self):
         """Test is_configured"""
-        provider = GoogleGeminiProvider(api_key="AIza-test-key-123")
+        provider = GeminiProvider(api_key="AIza-test-key-123")
         assert provider.is_configured() is True
 
-        provider_empty = GoogleGeminiProvider(api_key="")
+        provider_empty = GeminiProvider(api_key="")
         assert provider_empty.is_configured() is False
 
     @pytest.mark.asyncio
     async def test_chat_basic(self):
         """Test basic chat with Gemini"""
-        provider = GoogleGeminiProvider(api_key="AIza-test-key-123")
+        provider = GeminiProvider(api_key="AIza-test-key-123")
 
         with patch.object(provider, 'model') as mock_model:
             mock_response = MagicMock()
@@ -461,7 +461,7 @@ class TestProviderConfiguration:
 
     def test_gemini_with_custom_parameters(self):
         """Test Gemini provider with custom parameters"""
-        provider = GoogleGeminiProvider(
+        provider = GeminiProvider(
             api_key="AIza-test-key",
             default_model="gemini-pro-vision"
         )
@@ -479,7 +479,7 @@ class TestProviderIntegration:
         providers = {
             "openai": OpenAIProvider(api_key="sk-test-openai"),
             "anthropic": AnthropicProvider(api_key="sk-ant-test"),
-            "gemini": GoogleGeminiProvider(api_key="AIza-test")
+            "gemini": GeminiProvider(api_key="AIza-test")
         }
 
         for name, provider in providers.items():
@@ -491,7 +491,7 @@ class TestProviderIntegration:
         providers = [
             OpenAIProvider(api_key="sk-test"),
             AnthropicProvider(api_key="sk-ant-test"),
-            GoogleGeminiProvider(api_key="AIza-test")
+            GeminiProvider(api_key="AIza-test")
         ]
 
         required_methods = ['chat', 'is_configured', 'test_connection']

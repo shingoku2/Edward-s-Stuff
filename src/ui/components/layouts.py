@@ -8,7 +8,7 @@ Layout helper components for organizing widgets.
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGridLayout
 from PyQt6.QtCore import Qt
 from typing import Optional, List, Tuple
-from ..tokens import SPACING
+from ..tokens import COLORS, SPACING
 
 
 class OmnixVBox(QWidget):
