@@ -4509,3 +4509,8 @@ Update 2025-11-18 (QA run):
 - Pytest rerun with --ignore test_gui_minimal.py: 2 failures (PyQt6 import in src/ui/test_design_system.py::test_imports requiring libGL, custom profile resolution mismatch expecting "Custom AI behavior" vs stored "Custom prompt"); 84 tests passed, warnings about tests returning non-None values.
 - Environment limitation: GUI/Qt tests blocked until libGL can be installed or PyQt6 dependency mocked for CI.
 
+
+Update 2025-02-06:
+- Hardened credential_store to store encrypted payloads inside a JSON envelope with locking and graceful error handling for corrupted files and keyring failures.
+- Initial pytest run failed due to missing pytest-asyncio from pytest.ini; proxy errors blocked installation attempts (403).
+- Executed PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest -q test_credential_store.py -c /dev/null to bypass plugin autoload; all credential store tests passed with security mark warnings.
