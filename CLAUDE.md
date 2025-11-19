@@ -1965,6 +1965,36 @@ pyinstaller GamingAIAssistant_DEBUG.spec
 dist/GamingAIAssistant/GamingAIAssistant.exe
 ```
 
+#### PyInstaller --dry-run Error
+
+**Symptoms:** `pyinstaller: error: unrecognized arguments: --dry-run` (exit code 1)
+
+**Diagnosis:**
+PyInstaller does not recognize `--dry-run` as a valid command-line option. This argument is not supported by PyInstaller.
+
+**Solution:**
+Remove the `--dry-run` argument from the PyInstaller command in your workflow or build script.
+
+```bash
+# BAD: Causes error
+pyinstaller --noconfirm --log-level=DEBUG --clean --dry-run GamingAIAssistant.spec
+
+# GOOD: Valid PyInstaller command
+pyinstaller --noconfirm --log-level=DEBUG --clean GamingAIAssistant.spec
+```
+
+**Alternative for Testing:**
+If you need to test your build steps without creating a full executable, consider:
+- Using `--log-level=DEBUG` for diagnostic output (already included)
+- Running a quick syntax validation of the spec file with Python:
+  ```bash
+  python -c "exec(open('GamingAIAssistant.spec').read())"
+  ```
+- Using PyInstaller's `--onefile` mode which is faster than `--onedir`
+
+**Resolution History:**
+- **2025-11-19:** Removed `--dry-run` argument from `.github/workflows/tests.yml` as PyInstaller does not support this option
+
 #### Circular Import Errors
 
 **Symptoms:** Application fails to start with `ImportError: cannot import name 'X' from partially initialized module 'Y' (most likely due to a circular import)`
