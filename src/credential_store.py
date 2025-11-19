@@ -57,7 +57,6 @@ class CredentialStore:
         credential_filename: str = _DEFAULT_CREDENTIAL_FILE,
         master_password: Optional[str] = None,
         allow_password_prompt: bool = True,
-        config_dir: Optional[Union[Path, str]] = None,
     ) -> None:
         """Initialize the credential store with robust defaults."""
 
