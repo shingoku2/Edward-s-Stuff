@@ -71,7 +71,7 @@ class TestOpenAIProvider:
         provider = OpenAIProvider(api_key=None)
         assert provider.is_configured() is False
 
-    def test_openai_chat_basic(self):
+    async def test_openai_chat_basic(self):
         """Test basic OpenAI chat"""
         # Mock the client
         mock_client = MagicMock()
@@ -88,7 +88,7 @@ class TestOpenAIProvider:
         provider.client = mock_client
 
         messages = [{"role": "user", "content": "Test"}]
-        result = provider.chat(messages)
+        result = await provider.chat(messages)
 
         assert result["content"] == "Test response"
         assert result["model"] == "gpt-4"
@@ -112,7 +112,7 @@ class TestAnthropicProvider:
         provider_no_key = AnthropicProvider(api_key=None)
         assert provider_no_key.is_configured() is False
 
-    def test_anthropic_chat_basic(self):
+    async def test_anthropic_chat_basic(self):
         """Test basic Anthropic chat"""
         # Mock the client
         mock_client = MagicMock()
@@ -129,7 +129,7 @@ class TestAnthropicProvider:
         provider.client = mock_client
 
         messages = [{"role": "user", "content": "Test"}]
-        result = provider.chat(messages)
+        result = await provider.chat(messages)
 
         assert result["content"] == "Test response from Claude"
         assert result["model"] == "claude-3-sonnet"
