@@ -9,6 +9,7 @@ import logging
 import os
 import threading
 from pathlib import Path
+import threading
 from typing import Dict, Optional, Union
 
 from cryptography.fernet import Fernet, InvalidToken
@@ -268,6 +269,18 @@ class CredentialStore:
             if isinstance(values, dict):
                 normalized[service] = {k: v for k, v in values.items() if v is not None}
         return normalized
+
+        if not isinstance(data, dict):
+            return {}
+
+        return data
+
+    def _write_data(self, data: Dict[str, Optional[str]]) -> None:
+        payload = json.dumps(data).encode("utf-8")
+        ciphertext = self._get_cipher().encrypt(payload)
+        with open(self.credential_path, "wb") as fh:
+            fh.write(ciphertext)
+        self._set_permissions(self.credential_path, 0o600)
 
     def _ensure_directories(self) -> None:
         self.config_dir.mkdir(parents=True, exist_ok=True)

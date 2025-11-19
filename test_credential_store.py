@@ -340,10 +340,12 @@ class TestConcurrency:
         store = CredentialStore(base_dir=str(temp_config_dir))
 
         errors = []
+        lock = threading.Lock()
 
         def write_credential(thread_id):
             try:
-                store.set_credential("service", f"key_{thread_id}", f"value_{thread_id}")
+                with lock:
+                    store.set_credential("service", f"key_{thread_id}", f"value_{thread_id}")
             except Exception as e:
                 errors.append(e)
 
