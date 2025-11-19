@@ -111,6 +111,22 @@ class CredentialStore:
             self._set_permissions(self.credential_path, 0o600)
             logger.debug("Removed credential %s from vault", key)
 
+    # Legacy API wrappers for backward compatibility with tests
+    def set_credential(self, service: str, key: str, value: str) -> None:
+        """Store a single credential (legacy API wrapper)."""
+        full_key = f"{service}:{key}"
+        self.save_credentials({full_key: value})
+
+    def get_credential(self, service: str, key: str) -> Optional[str]:
+        """Retrieve a single credential (legacy API wrapper)."""
+        full_key = f"{service}:{key}"
+        return self.get(full_key)
+
+    def delete_credential(self, service: str, key: str) -> None:
+        """Delete a single credential (legacy API wrapper)."""
+        full_key = f"{service}:{key}"
+        self.delete(full_key)
+
     def _load_raw(self) -> Dict[str, str]:
         if not self.credential_path.exists():
             return {}
