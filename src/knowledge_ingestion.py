@@ -63,6 +63,7 @@ class FileIngestor:
             content = re.sub(r'`[^`]+`', '', content)
             # Remove headers (but keep the text)
             content = re.sub(r'^#+\s+', '', content, flags=re.MULTILINE)
+            content = re.sub(r'\n#+\s+', '\n', content)
             # Remove bold/italic markers
             content = re.sub(r'\*\*([^*]+)\*\*', r'\1', content)
             content = re.sub(r'\*([^*]+)\*', r'\1', content)

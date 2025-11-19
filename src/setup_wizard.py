@@ -3,9 +3,11 @@ First-Run Setup Wizard
 Guides users through initial API key configuration
 """
 
+import concurrent.futures
 import logging
+import threading
 import webbrowser
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QLineEdit, QCheckBox, QWidget, QTextEdit, QMessageBox,
@@ -32,7 +34,7 @@ class TestConnectionThread(QThread):
         self.timeout = timeout
 
     def run(self):
-        """Run connection test in background"""
+        """Run connection test in background with timeout and cancellation support."""
         try:
             if self.isInterruptionRequested():
                 return
@@ -49,7 +51,8 @@ class TestConnectionThread(QThread):
             self.test_complete.emit(success, message)
         except Exception as e:
             logger.error(f"Connection test thread error: {e}", exc_info=True)
-            self.test_complete.emit(False, f"Test failed: {str(e)}")
+            if not self._cancel_event.is_set():
+                self.test_complete.emit(False, f"Test failed: {str(e)}")
 
 
 class SetupWizard(QDialog):
@@ -93,6 +96,9 @@ class SetupWizard(QDialog):
         self.setWindowTitle("Gaming AI Assistant - Setup Wizard")
         self.setMinimumSize(700, 600)
         self.setModal(True)
+
+        # Ensure any running test thread is cleaned up when the dialog closes
+        self.finished.connect(self._cancel_test_thread)
 
         layout = QVBoxLayout()
 
@@ -554,6 +560,24 @@ class SetupWizard(QDialog):
     def on_base_url_changed(self, provider_id: str, text: str):
         """Handle base URL text change"""
         self.provider_base_urls[provider_id] = text.strip()
+
+    def _cancel_test_thread(self, *args):
+        """Cancel and clean up any running test thread."""
+        if not self.test_thread:
+            return
+
+        try:
+            if self.test_thread.isRunning():
+                self.test_thread.cancel()
+                self.test_thread.wait(1000)
+        finally:
+            self.test_thread.deleteLater()
+            self.test_thread = None
+
+    def _on_test_thread_finished(self):
+        if self.test_thread:
+            self.test_thread.deleteLater()
+            self.test_thread = None
 
     def test_provider_connection(self, provider_id: str):
         """Test connection for a specific provider"""

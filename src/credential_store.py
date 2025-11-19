@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import base64
+import concurrent.futures
 import getpass
 import json
 import logging
 import os
+import tempfile
 import threading
 from pathlib import Path
-import threading
 from typing import Dict, Optional, Union
 
 from cryptography.fernet import Fernet, InvalidToken
@@ -53,6 +54,7 @@ class CredentialStore:
     def __init__(
         self,
         config_dir: Optional[Union[Path, str]] = None,
+        base_dir: Optional[Union[Path, str]] = None,
         service_name: str = _DEFAULT_SERVICE_NAME,
         credential_filename: str = _DEFAULT_CREDENTIAL_FILE,
         master_password: Optional[str] = None,
@@ -61,7 +63,12 @@ class CredentialStore:
         """Initialize the credential store with robust defaults."""
 
         self.service_name = service_name
-        self.config_dir = Path(config_dir) if config_dir else Path.home() / ".gaming_ai_assistant"
+        resolved_dir = base_dir if base_dir is not None else config_dir
+        self.config_dir = (
+            Path(resolved_dir)
+            if resolved_dir is not None
+            else Path.home() / ".gaming_ai_assistant"
+        )
         self.credential_path = self.config_dir / credential_filename
         self._cipher: Optional[Fernet] = None
         self._master_password = master_password
@@ -103,58 +110,22 @@ class CredentialStore:
         """Load credentials for the default service."""
 
         with self._lock:
-            data = self._load_raw()
-            return data.get(self.service_name, {})
+            return self._load_raw()
 
     def get(self, key: str) -> Optional[str]:
         """Fetch a single credential by key for the default service."""
 
         with self._lock:
-            return self.load_credentials().get(key)
-
-    def set_credential(self, service: str, key: str, value: Optional[str]) -> None:
-        """Convenience wrapper to store a namespaced credential."""
-        namespaced_key = f"{service}:{key}" if service else key
-        self.save_credentials({namespaced_key: value})
-
-    def get_credential(self, service: str, key: str) -> Optional[str]:
-        """Retrieve a namespaced credential."""
-        namespaced_key = f"{service}:{key}" if service else key
-        return self.get(namespaced_key)
-
-    def delete(self, key: str) -> None:
-        """Remove a credential from the vault."""
-        with self._lock:
-            data = self._load_raw()
+            data = self.load_credentials()
             if key in data:
-                del data[key]
-                payload = json.dumps(data).encode("utf-8")
-                ciphertext = self._get_cipher().encrypt(payload)
-                with open(self.credential_path, "wb") as fh:
-                    fh.write(ciphertext)
-                self._set_permissions(self.credential_path, 0o600)
-                logger.debug("Removed credential %s from vault", key)
+                return data.get(key)
 
-    def delete_credential(self, service: str, key: str) -> None:
-        """Delete a namespaced credential."""
-        namespaced_key = f"{service}:{key}" if service else key
-        self.delete(namespaced_key)
+            # Fallback for namespaced keys stored as "service:key"
+            for stored_key, value in data.items():
+                if stored_key.endswith(f":{key}"):
+                    return value
 
-    # Legacy API wrappers for backward compatibility with tests
-    def set_credential(self, service: str, key: str, value: str) -> None:
-        """Store a single credential (legacy API wrapper)."""
-        full_key = f"{service}:{key}"
-        self.save_credentials({full_key: value})
-
-    def get_credential(self, service: str, key: str) -> Optional[str]:
-        """Retrieve a single credential (legacy API wrapper)."""
-        full_key = f"{service}:{key}"
-        return self.get(full_key)
-
-    def delete_credential(self, service: str, key: str) -> None:
-        """Delete a single credential (legacy API wrapper)."""
-        full_key = f"{service}:{key}"
-        self.delete(full_key)
+            return None
 
     # ------------------------------------------------------------------
     # Compatibility wrappers for legacy callers and tests
@@ -170,6 +141,19 @@ class CredentialStore:
             return data.get(composite_key)
         return data.get(key)
 
+    def delete(self, key: str) -> None:
+        """Remove a credential from the vault."""
+        with self._lock:
+            data = self._load_raw()
+            if key in data:
+                del data[key]
+                payload = json.dumps(data).encode("utf-8")
+                ciphertext = self._get_cipher().encrypt(payload)
+                with open(self.credential_path, "wb") as fh:
+                    fh.write(ciphertext)
+                self._set_permissions(self.credential_path, 0o600)
+                logger.debug("Removed credential %s from vault", key)
+
     def delete_credential(self, service: str, key: str) -> None:
         composite_key = self._compose_key(service, key)
         self.delete(composite_key)
@@ -183,23 +167,26 @@ class CredentialStore:
             return {}
 
         try:
-            raw_content = self.credential_path.read_text(encoding="utf-8")
+            raw_bytes = self.credential_path.read_bytes()
         except FileNotFoundError:
             return {}
         except OSError as exc:  # pragma: no cover - defensive
             logger.warning("Failed to read credential file: %s", exc)
             return {}
 
-        if not raw_content.strip():
+        if not raw_bytes:
             return {}
 
-        try:
-            plaintext = self._get_cipher().decrypt(blob)
-        except (InvalidToken, CredentialDecryptionError) as exc:
-            logger.error("Failed to decrypt credentials: %s", exc)
-            return {}
+        raw_text: Optional[str] = None
+        envelope: Optional[dict] = None
 
         try:
+            raw_text = raw_bytes.decode("utf-8")
+            envelope = json.loads(raw_text)
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            envelope = None
+
+        if envelope is not None:
             if envelope.get("encrypted"):
                 payload_b64 = envelope.get("payload", "")
                 if not payload_b64:
@@ -212,14 +199,8 @@ class CredentialStore:
                     return {}
 
                 try:
-                    cipher = self._get_cipher()
-                except CredentialStoreError as exc:
-                    logger.warning("Unable to access encryption key: %s", exc)
-                    return {}
-
-                try:
-                    plaintext = cipher.decrypt(token)
-                except InvalidToken as exc:
+                    plaintext = self._get_cipher().decrypt(token)
+                except (InvalidToken, CredentialStoreError) as exc:
                     logger.warning("Failed to decrypt credentials: %s", exc)
                     self._quarantine_file(".decryption_failed")
                     return {}
@@ -231,12 +212,31 @@ class CredentialStore:
                     return {}
                 return self._normalize_data(decoded)
 
-            return self._normalize_data(envelope.get("data", {}))
-        except Exception:  # pragma: no cover - defensive
-            logger.exception("Unexpected error loading credentials")
+            if "ciphertext" in envelope:
+                ciphertext = envelope.get("ciphertext", "")
+                if not ciphertext:
+                    return {}
+                try:
+                    plaintext = self._get_cipher().decrypt(ciphertext.encode("utf-8"))
+                    decoded = json.loads(plaintext.decode("utf-8"))
+                    return self._normalize_data(decoded)
+                except (InvalidToken, json.JSONDecodeError, CredentialStoreError) as exc:
+                    logger.warning("Failed to decrypt credential envelope: %s", exc)
+                    return {}
+
+            if "data" in envelope:
+                return self._normalize_data(envelope.get("data", {}))
+
+        # Legacy raw ciphertext stored directly in file
+        try:
+            plaintext = self._get_cipher().decrypt(raw_bytes)
+            decoded = json.loads(plaintext.decode("utf-8"))
+            return self._normalize_data(decoded)
+        except (InvalidToken, json.JSONDecodeError, CredentialStoreError) as exc:
+            logger.warning("Failed to decrypt legacy credential file: %s", exc)
             return {}
 
-    def _save_raw(self, raw_data: Dict[str, Dict[str, str]]) -> None:
+    def _save_raw(self, raw_data: Dict[str, str]) -> None:
         normalized = self._normalize_data(raw_data)
 
         cipher = self._get_cipher()
@@ -259,10 +259,12 @@ class CredentialStore:
                 "w", delete=False, dir=dirpath, encoding="utf-8"
             ) as temp:
                 temp_file = Path(temp.name)
+                self._set_permissions(temp_file, 0o600)
                 json.dump(data, temp, ensure_ascii=False, indent=2)
                 temp.flush()
                 os.fsync(temp.fileno())
             os.replace(temp_file, path)
+            self._set_permissions(path, 0o600)
         finally:
             if temp_file and temp_file.exists():
                 try:
@@ -280,23 +282,11 @@ class CredentialStore:
         except Exception:  # pragma: no cover - defensive
             logger.exception("Failed to quarantine corrupted credential file")
 
-    def _normalize_data(self, data: Dict) -> Dict[str, Dict[str, str]]:
+    def _normalize_data(self, data: Dict) -> Dict[str, str]:
         if not isinstance(data, dict):
             return {}
 
-        if any(not isinstance(value, dict) for value in data.values()):
-            return {self.service_name: {k: v for k, v in data.items() if v is not None}}
-
-        normalized: Dict[str, Dict[str, str]] = {}
-        for service, values in data.items():
-            if isinstance(values, dict):
-                normalized[service] = {k: v for k, v in values.items() if v is not None}
-        return normalized
-
-        if not isinstance(data, dict):
-            return {}
-
-        return data
+        return {k: v for k, v in data.items() if v is not None}
 
     def _write_data(self, data: Dict[str, Optional[str]]) -> None:
         payload = json.dumps(data).encode("utf-8")
