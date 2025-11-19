@@ -3,9 +3,11 @@ First-Run Setup Wizard
 Guides users through initial API key configuration
 """
 
+import concurrent.futures
 import logging
+import threading
 import webbrowser
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QLineEdit, QCheckBox, QWidget, QTextEdit, QMessageBox,
@@ -24,28 +26,56 @@ class TestConnectionThread(QThread):
     """Background thread for testing API connections"""
     test_complete = pyqtSignal(bool, str)  # success, message
 
-    def __init__(self, provider: str, api_key: str, base_url: Optional[str] = None):
+    def __init__(
+        self,
+        provider: str,
+        api_key: str,
+        base_url: Optional[str] = None,
+        timeout: float = 30.0,
+    ):
         super().__init__()
         self.provider = provider
         self.api_key = api_key
         self.base_url = base_url
+        self.timeout = timeout
+        self._cancel_event = threading.Event()
+
+    def cancel(self) -> None:
+        self._cancel_event.set()
+
+    def _execute_test(self) -> Tuple[bool, str]:
+        if self._cancel_event.is_set():
+            return False, "Test cancelled"
+
+        if self.provider == "openai":
+            return ProviderTester.test_openai(self.api_key, self.base_url)
+        if self.provider == "anthropic":
+            return ProviderTester.test_anthropic(self.api_key)
+        if self.provider == "gemini":
+            return ProviderTester.test_gemini(self.api_key)
+        return False, f"Unknown provider: {self.provider}"
 
     def run(self):
-        """Run connection test in background"""
+        """Run connection test in background with timeout and cancellation support."""
         try:
-            if self.provider == "openai":
-                success, message = ProviderTester.test_openai(self.api_key, self.base_url)
-            elif self.provider == "anthropic":
-                success, message = ProviderTester.test_anthropic(self.api_key)
-            elif self.provider == "gemini":
-                success, message = ProviderTester.test_gemini(self.api_key)
-            else:
-                success, message = False, f"Unknown provider: {self.provider}"
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(self._execute_test)
+                try:
+                    success, message = future.result(timeout=self.timeout)
+                except concurrent.futures.TimeoutError:
+                    self.test_complete.emit(
+                        False, f"Test timed out after {int(self.timeout)} seconds"
+                    )
+                    return
+
+            if self._cancel_event.is_set():
+                return
 
             self.test_complete.emit(success, message)
         except Exception as e:
             logger.error(f"Connection test thread error: {e}", exc_info=True)
-            self.test_complete.emit(False, f"Test failed: {str(e)}")
+            if not self._cancel_event.is_set():
+                self.test_complete.emit(False, f"Test failed: {str(e)}")
 
 
 class SetupWizard(QDialog):
@@ -88,6 +118,9 @@ class SetupWizard(QDialog):
         self.setWindowTitle("Gaming AI Assistant - Setup Wizard")
         self.setMinimumSize(700, 600)
         self.setModal(True)
+
+        # Ensure any running test thread is cleaned up when the dialog closes
+        self.finished.connect(self._cancel_test_thread)
 
         layout = QVBoxLayout()
 
@@ -550,6 +583,24 @@ class SetupWizard(QDialog):
         """Handle base URL text change"""
         self.provider_base_urls[provider_id] = text.strip()
 
+    def _cancel_test_thread(self, *args):
+        """Cancel and clean up any running test thread."""
+        if not self.test_thread:
+            return
+
+        try:
+            if self.test_thread.isRunning():
+                self.test_thread.cancel()
+                self.test_thread.wait(1000)
+        finally:
+            self.test_thread.deleteLater()
+            self.test_thread = None
+
+    def _on_test_thread_finished(self):
+        if self.test_thread:
+            self.test_thread.deleteLater()
+            self.test_thread = None
+
     def test_provider_connection(self, provider_id: str):
         """Test connection for a specific provider"""
         api_key = self.provider_keys.get(provider_id, '').strip()
@@ -574,10 +625,14 @@ class SetupWizard(QDialog):
         base_url = self.provider_base_urls.get(provider_id, '')
 
         # Start test thread
-        self.test_thread = TestConnectionThread(provider_id, api_key, base_url)
+        self._cancel_test_thread()
+        self.test_thread = TestConnectionThread(
+            provider_id, api_key, base_url, timeout=30.0
+        )
         self.test_thread.test_complete.connect(
             lambda success, message, p=provider_id: self.on_test_complete(p, success, message)
         )
+        self.test_thread.finished.connect(self._on_test_thread_finished)
         self.test_thread.start()
 
     def on_test_complete(self, provider_id: str, success: bool, message: str):

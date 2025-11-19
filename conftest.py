@@ -12,6 +12,7 @@ import shutil
 from pathlib import Path
 from typing import Dict, Generator
 from unittest.mock import Mock, MagicMock
+import builtins
 
 import pytest
 
@@ -74,6 +75,17 @@ def temp_config_dir(temp_dir) -> Path:
 def temp_base_dir(temp_config_dir) -> Path:
     """Alias fixture for backward compatibility with credential store tests."""
     return temp_config_dir
+
+
+@pytest.fixture(autouse=True)
+def _inject_temp_config_dir(temp_base_dir):
+    """Expose temp_config_dir in builtins for legacy tests."""
+    builtins.temp_config_dir = temp_base_dir
+    yield
+    try:
+        del builtins.temp_config_dir
+    except AttributeError:
+        pass
 
 
 @pytest.fixture

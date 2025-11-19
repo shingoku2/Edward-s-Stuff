@@ -4524,3 +4524,18 @@ Update 2025-11-18 (QA run):
 Update 2025-11-20:
 - Removed unsupported `--dry-run` flag from the PyInstaller command in `.github/workflows/tests.yml` so the build validation step uses valid arguments.
 
+
+Update 2025-11-20 (current session):
+- Added secondary markdown header stripping in `src/knowledge_ingestion.py` to remove headers appearing after newlines.
+- Hardened credential storage writes by setting 0o600 permissions during atomic JSON writes and importing tempfile safely.
+- Added `base_dir` alias support to `CredentialStore` initialization for backward compatibility.
+- Introduced cancellation, timeout handling, and cleanup hooks to `TestConnectionThread` in `src/setup_wizard.py` and integrated cleanup in the wizard UI flow.
+- Ran `pytest test_credential_store.py -q` (failed due to NameError for undefined `temp_config_dir` in tests before applying fixes).
+- Added autouse fixture in `conftest.py` to expose `temp_config_dir` for legacy tests.
+- Began updating credential store tests to reference `config_dir` instead of undefined globals (additional adjustments pending retest).
+- Reran `pytest test_credential_store.py -q` after initial fixes; encountered NameError (`blob` undefined) and missing variable references in credential tests.
+- Refactored `CredentialStore` loading logic to decode envelopes safely, added autouse fixture exposure for `temp_config_dir`, and adjusted credential tests to use defined variables.
+- Reran `pytest test_credential_store.py -q`; five failures remain (delete handling, empty service handling, concurrency/persistence). Further credential store normalization and method cleanup in progress.
+- Normalized credential loading/saving to use flat key/value storage, added namespaced key fallback in getters, simplified normalization logic, and restored delete handling.
+- Updated credential store tests to align with current API expectations for empty services and variable access.
+- Reran `pytest test_credential_store.py -q` successfully (26 passed).
