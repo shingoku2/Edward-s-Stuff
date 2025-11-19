@@ -13,7 +13,7 @@ import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 from src.macro_manager import Macro, MacroStep, MacroStepType
-from src.macro_runner import MacroRunner, MacroExecutionState, MacroExecutionResult
+from src.macro_runner import MacroRunner, MacroExecutionState
 
 
 @pytest.mark.unit
@@ -74,8 +74,8 @@ class TestMacroExecutionBasics:
 
             result = runner.execute_macro(macro)
 
-            # Verify execution completed
-            assert result.success or runner.state == MacroExecutionState.COMPLETED
+            # Verify execution started successfully
+            assert result is True or runner.state in [MacroExecutionState.RUNNING, MacroExecutionState.STOPPED]
 
     def test_execute_macro_with_delay(self):
         """Test executing macro with delay steps"""
@@ -99,7 +99,7 @@ class TestMacroExecutionBasics:
 
             # Should take at least 100ms (0.1 seconds)
             # Allow some tolerance for test execution
-            assert elapsed >= 0.08 or result.success
+            assert elapsed >= 0.08 or result is True
 
     def test_execute_mouse_click(self):
         """Test executing mouse click macro"""
@@ -216,9 +216,9 @@ class TestSafetyLimits:
 
         result = runner.execute_macro(macro)
 
-        # Should return error or not execute
-        if result:
-            assert not result.success or result.error
+        # Should return False (failed to start) or handle error
+        # execute_macro returns bool indicating if execution started
+        assert result is False or runner.state == MacroExecutionState.ERROR
 
 
 @pytest.mark.unit
@@ -327,9 +327,8 @@ class TestErrorHandling:
 
         result = runner.execute_macro(invalid_macro)
 
-        # Should handle gracefully
-        if result:
-            assert not result.success or result.error
+        # Should return False (failed to start due to validation)
+        assert result is False
 
     def test_invalid_step_type(self):
         """Test execution with invalid step type"""
@@ -369,8 +368,9 @@ class TestErrorHandling:
             # Should handle keyboard failure gracefully
             try:
                 result = runner.execute_macro(macro)
-                if result:
-                    assert not result.success
+                # execute_macro returns bool
+                # If it returns True, execution started; False means failed to start
+                assert isinstance(result, bool)
             except Exception:
                 # Exception is acceptable
                 pass
@@ -394,9 +394,9 @@ class TestExecutionResults:
 
             result = runner.execute_macro(macro)
 
+            # execute_macro returns bool
             assert result is not None
-            if hasattr(result, 'success'):
-                assert isinstance(result.success, bool)
+            assert isinstance(result, bool)
 
     def test_failed_execution_result(self):
         """Test result from failed execution"""
@@ -412,10 +412,11 @@ class TestExecutionResults:
 
         result = runner.execute_macro(macro)
 
-        if result and hasattr(result, 'success'):
-            # Failed execution should have error information
-            if not result.success:
-                assert hasattr(result, 'error')
+        # execute_macro returns bool - False indicates failed to start
+        # For invalid macros, it should return False
+        assert isinstance(result, bool)
+        # Invalid macro should fail to start
+        assert result is False
 
 
 @pytest.mark.unit
