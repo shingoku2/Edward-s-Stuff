@@ -25,14 +25,19 @@ THEME_FILE = CONFIG_DIR / 'theme.json'
 class Config:
     """Application configuration"""
 
-    def __init__(self, env_file: Optional[str] = None, require_keys: bool = False):
+    def __init__(self, env_file: Optional[str] = None, require_keys: bool = False,
+                 config_path: Optional[str] = None, config_dir: Optional[str] = None):
         """
         Initialize configuration
 
         Args:
             env_file: Path to .env file (optional)
             require_keys: If True, raise error if API keys are missing (default: False)
+            config_path: Optional path for persisted config data (kept for compatibility)
+            config_dir: Optional configuration directory override (kept for compatibility)
         """
+        self.config_path = config_path
+        self.config_dir = config_dir
         # Load environment variables
         if env_file and os.path.exists(env_file):
             load_dotenv(env_file, override=True)  # Override existing env vars
@@ -445,6 +450,10 @@ class Config:
             has_api_key = bool(self.gemini_api_key)
 
         return has_api_key or has_session
+
+    def set(self, key: str, value):
+        """Set a configuration attribute dynamically."""
+        setattr(self, key, value)
 
     @staticmethod
     def save_to_env(provider: str,

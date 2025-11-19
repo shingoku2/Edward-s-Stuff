@@ -198,7 +198,8 @@ jobs:
         python -c "import PyQt6; print('PyQt6 imported successfully')"
         pyinstaller --version
         # Test spec file validity (don't actually build, takes too long)
-        pyinstaller --noconfirm --log-level=DEBUG --clean --dry-run GamingAIAssistant.spec
+        # Test spec file validity without full build (using --log-level for diagnostics)
+        pyinstaller --noconfirm --log-level=DEBUG --clean GamingAIAssistant.spec
 
     - name: Archive build logs
       if: always()

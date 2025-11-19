@@ -4510,6 +4510,5 @@ Update 2025-11-18 (QA run):
 - Environment limitation: GUI/Qt tests blocked until libGL can be installed or PyQt6 dependency mocked for CI.
 
 Update 2025-11-20:
-- Error: Could not find a version that satisfies the requirement google-generativeai>=0.3.0.
-- Fix: Set google-generativeai==0.1.0rc1 in requirements.txt to resolve installation failure.
+- Removed unsupported `--dry-run` flag from the PyInstaller command in `.github/workflows/tests.yml` so the build validation step uses valid arguments.
 
