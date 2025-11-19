@@ -29,24 +29,24 @@ class TestCredentialStoreBasics:
 
     def test_initialization(self, temp_config_dir):
         """Test credential store initialization"""
-        store = CredentialStore(config_dir=str(temp_config_dir))
+        store = CredentialStore(base_dir=str(temp_config_dir))
         assert store is not None
-        assert store.config_dir == Path(temp_config_dir)
+        assert store.base_dir == Path(temp_config_dir)
 
     def test_store_and_retrieve_credential(self, temp_config_dir, mock_keyring):
         """Test storing and retrieving a credential"""
-        store = CredentialStore(config_dir=str(temp_config_dir))
+        store = CredentialStore(base_dir=str(temp_config_dir))
 
         # Store credential
-        store.set_credential("test_service", "test_key", "test_value_123")
+        store.save_credentials({"test_key": "test_value_123"})
 
         # Retrieve credential
-        value = store.get_credential("test_service", "test_key")
+        value = store.get("test_key")
         assert value == "test_value_123"
 
     def test_store_multiple_credentials(self, temp_config_dir, mock_keyring):
         """Test storing multiple credentials"""
-        store = CredentialStore(config_dir=str(temp_config_dir))
+        store = CredentialStore(base_dir=str(temp_config_dir))
 
         credentials = {
             "anthropic_key": "sk-ant-12345",
@@ -55,34 +55,33 @@ class TestCredentialStoreBasics:
         }
 
         # Store all credentials
-        for key, value in credentials.items():
-            store.set_credential("omnix", key, value)
+        store.save_credentials(credentials)
 
         # Verify all can be retrieved
         for key, expected_value in credentials.items():
-            value = store.get_credential("omnix", key)
+            value = store.get(key)
             assert value == expected_value
 
     def test_delete_credential(self, temp_config_dir, mock_keyring):
         """Test deleting a credential"""
-        store = CredentialStore(config_dir=str(temp_config_dir))
+        store = CredentialStore(base_dir=str(temp_config_dir))
 
         # Store credential
-        store.set_credential("test_service", "test_key", "test_value")
-        assert store.get_credential("test_service", "test_key") == "test_value"
+        store.save_credentials({"test_key": "test_value"})
+        assert store.get("test_key") == "test_value"
 
         # Delete credential
-        store.delete_credential("test_service", "test_key")
+        store.delete("test_key")
 
         # Verify deleted
-        value = store.get_credential("test_service", "test_key")
+        value = store.get("test_key")
         assert value is None
 
     def test_get_nonexistent_credential(self, temp_config_dir, mock_keyring):
         """Test retrieving a credential that doesn't exist"""
-        store = CredentialStore(config_dir=str(temp_config_dir))
+        store = CredentialStore(base_dir=str(temp_config_dir))
 
-        value = store.get_credential("nonexistent_service", "nonexistent_key")
+        value = store.get("nonexistent_key")
         assert value is None
 
 
@@ -92,67 +91,67 @@ class TestCredentialEncryption:
 
     def test_credentials_are_encrypted_on_disk(self, temp_config_dir, mock_keyring):
         """Test that credentials are encrypted when stored"""
-        store = CredentialStore(config_dir=str(temp_config_dir))
+        store = CredentialStore(base_dir=str(temp_config_dir))
 
         secret_value = "super_secret_api_key_12345"
-        store.set_credential("test_service", "test_key", secret_value)
+        store.save_credentials({"test_key": secret_value})
 
         # Check that the credential file exists
         cred_file = Path(temp_config_dir) / "credentials.enc"
         assert cred_file.exists()
 
-        # Read raw file content
-        raw_content = cred_file.read_text()
+        # Read raw file content as bytes (since it's encrypted)
+        raw_content = cred_file.read_bytes()
 
         # Secret should NOT appear in plaintext
-        assert secret_value not in raw_content
+        assert secret_value.encode() not in raw_content
 
-        # File should contain JSON (encrypted data)
-        try:
-            data = json.loads(raw_content)
-            assert isinstance(data, dict)
-        except json.JSONDecodeError:
-            pytest.fail("Credential file is not valid JSON")
+        # Verify the credential can be retrieved (CredentialStore handles decryption)
+        retrieved_value = store.get("test_key")
+        assert retrieved_value == secret_value
 
     def test_encryption_key_not_in_credential_file(self, temp_config_dir, mock_keyring):
         """Test that encryption key is not stored in credential file"""
-        store = CredentialStore(config_dir=str(temp_config_dir))
+        store = CredentialStore(base_dir=str(temp_config_dir))
 
-        store.set_credential("test_service", "test_key", "test_value")
+        store.save_credentials({"test_key": "test_value"})
 
-        # Read credential file
+        # Read credential file as bytes (it's encrypted binary data)
         cred_file = Path(temp_config_dir) / "credentials.enc"
-        content = cred_file.read_text()
+        content = cred_file.read_bytes()
+
+        # Convert to string for searching (encrypted data may contain readable characters)
+        content_str = content.decode('latin-1', errors='ignore').lower()
 
         # Should not contain obvious key patterns
-        assert "encryption_key" not in content.lower()
-        assert "master_key" not in content.lower()
-        assert "secret_key" not in content.lower()
+        assert "encryption_key" not in content_str
+        assert "master_key" not in content_str
+        assert "secret_key" not in content_str
 
     def test_different_values_produce_different_ciphertexts(self, temp_config_dir, mock_keyring):
         """Test that different values produce different encrypted outputs"""
-        store = CredentialStore(config_dir=str(temp_config_dir))
+        store = CredentialStore(base_dir=str(temp_config_dir))
 
-        store.set_credential("service", "key1", "value1")
+        store.save_credentials({"key1": "value1"})
         cred_file = Path(temp_config_dir) / "credentials.enc"
-        content1 = cred_file.read_text()
+        content1 = cred_file.read_bytes()
 
-        store.set_credential("service", "key2", "value2")
-        content2 = cred_file.read_text()
+        store.save_credentials({"key2": "value2"})
+        content2 = cred_file.read_bytes()
 
         # Different values should produce different encrypted files
         assert content1 != content2
 
     def test_same_value_retrieval_consistency(self, temp_config_dir, mock_keyring):
         """Test that the same value can be retrieved multiple times"""
-        store = CredentialStore(config_dir=str(temp_config_dir))
+        store = CredentialStore(base_dir=str(temp_config_dir))
 
         original_value = "consistent_value_123"
-        store.set_credential("service", "key", original_value)
+        store.save_credentials({"key": original_value})
 
         # Retrieve multiple times
         for _ in range(5):
-            retrieved = store.get_credential("service", "key")
+            retrieved = store.get("key")
             assert retrieved == original_value
 
 
@@ -178,45 +177,46 @@ class TestKeyringIntegration:
             mock_get.side_effect = get_password
 
             # Create store and set credential
-            store = CredentialStore(config_dir=str(temp_config_dir))
-            store.set_credential("test", "key", "value")
+            store = CredentialStore(base_dir=str(temp_config_dir))
+            store.save_credentials({"key": "value"})
 
             # Verify keyring was called
             assert mock_set.called or mock_get.called
 
     def test_fallback_when_keyring_unavailable(self, temp_config_dir):
         """Test fallback to file-based encryption when keyring unavailable"""
-        with patch('keyring.get_password', side_effect=Exception("Keyring unavailable")), \
-             patch('keyring.set_password', side_effect=Exception("Keyring unavailable")):
+        from keyring.errors import KeyringError
+
+        with patch('keyring.get_password', side_effect=KeyringError("Keyring unavailable")), \
+             patch('keyring.set_password', side_effect=KeyringError("Keyring unavailable")):
 
             # Should still work with file-based fallback
             store = CredentialStore(
-                config_dir=str(temp_config_dir),
+                base_dir=str(temp_config_dir),
                 master_password="test_password_123"
             )
 
-            store.set_credential("service", "key", "value")
-            retrieved = store.get_credential("service", "key")
+            store.save_credentials({"key": "value"})
+            retrieved = store.get("key")
 
             assert retrieved == "value"
 
     def test_master_password_required_without_keyring(self, temp_config_dir):
         """Test that master password is required when keyring unavailable"""
-        with patch('keyring.get_password', side_effect=Exception("Keyring unavailable")), \
-             patch('keyring.set_password', side_effect=Exception("Keyring unavailable")):
+        from keyring.errors import KeyringError
+
+        with patch('keyring.get_password', side_effect=KeyringError("Keyring unavailable")), \
+             patch('keyring.set_password', side_effect=KeyringError("Keyring unavailable")):
 
             # Without master password, should raise error
-            try:
-                store = CredentialStore(
-                    config_dir=str(temp_config_dir),
-                    master_password=None
-                )
-                # If initialization succeeds, trying to set a credential should fail
-                with pytest.raises((KeyringUnavailableError, CredentialStoreError)):
-                    store.set_credential("service", "key", "value")
-            except (KeyringUnavailableError, CredentialStoreError):
-                # Expected - can't initialize without password
-                pass
+            store = CredentialStore(
+                base_dir=str(temp_config_dir),
+                master_password=None,
+                allow_password_prompt=False  # Disable interactive prompt
+            )
+            # Trying to set a credential should fail without password
+            with pytest.raises((KeyringUnavailableError, CredentialStoreError)):
+                store.save_credentials({"key": "value"})
 
 
 @pytest.mark.security
@@ -225,67 +225,55 @@ class TestErrorHandling:
 
     def test_corrupted_credential_file_handling(self, temp_config_dir, mock_keyring):
         """Test handling of corrupted credential file"""
-        store = CredentialStore(config_dir=str(temp_config_dir))
+        store = CredentialStore(base_dir=str(temp_config_dir))
 
         # Create valid credential first
-        store.set_credential("service", "key", "value")
+        store.save_credentials({"key": "value"})
 
         # Corrupt the credential file
         cred_file = Path(temp_config_dir) / "credentials.enc"
-        cred_file.write_text("corrupted non-json content {{{")
+        cred_file.write_bytes(b"corrupted non-encrypted content {{{")
 
-        # Should handle corruption gracefully
-        value = store.get_credential("service", "key")
-        # Should return None or handle error gracefully
-        assert value is None or isinstance(value, str)
-
-    def test_empty_service_name(self, temp_config_dir, mock_keyring):
-        """Test handling of empty service name"""
-        store = CredentialStore(config_dir=str(temp_config_dir))
-
-        # Empty service name should be handled
-        store.set_credential("", "key", "value")
-        value = store.get_credential("", "key")
-
-        # Should work or return None
-        assert value is None or value == "value"
+        # Should handle corruption gracefully by raising an exception
+        with pytest.raises((CredentialDecryptionError, CredentialStoreError)):
+            value = store.get("key")
 
     def test_empty_key_name(self, temp_config_dir, mock_keyring):
         """Test handling of empty key name"""
-        store = CredentialStore(config_dir=str(temp_config_dir))
+        store = CredentialStore(base_dir=str(temp_config_dir))
 
         # Empty key name should be handled
-        store.set_credential("service", "", "value")
-        value = store.get_credential("service", "")
+        store.save_credentials({"": "value"})
+        value = store.get("")
 
-        # Should work or return None
-        assert value is None or value == "value"
+        # Should work
+        assert value == "value"
 
     def test_none_value(self, temp_config_dir, mock_keyring):
         """Test storing None value"""
-        store = CredentialStore(config_dir=str(temp_config_dir))
+        store = CredentialStore(base_dir=str(temp_config_dir))
 
-        # Setting None should delete or handle gracefully
-        store.set_credential("service", "key", None)
-        value = store.get_credential("service", "key")
+        # Setting None should delete the key
+        store.save_credentials({"key": None})
+        value = store.get("key")
 
         assert value is None
 
     def test_very_long_credential_value(self, temp_config_dir, mock_keyring):
         """Test storing very long credential"""
-        store = CredentialStore(config_dir=str(temp_config_dir))
+        store = CredentialStore(base_dir=str(temp_config_dir))
 
         # Very long API key (10KB)
         long_value = "x" * 10000
 
-        store.set_credential("service", "key", long_value)
-        retrieved = store.get_credential("service", "key")
+        store.save_credentials({"key": long_value})
+        retrieved = store.get("key")
 
         assert retrieved == long_value
 
     def test_special_characters_in_value(self, temp_config_dir, mock_keyring):
         """Test storing credentials with special characters"""
-        store = CredentialStore(config_dir=str(temp_config_dir))
+        store = CredentialStore(base_dir=str(temp_config_dir))
 
         special_values = [
             "key-with-dashes",
@@ -302,8 +290,8 @@ class TestErrorHandling:
 
         for i, value in enumerate(special_values):
             key = f"key_{i}"
-            store.set_credential("service", key, value)
-            retrieved = store.get_credential("service", key)
+            store.save_credentials({key: value})
+            retrieved = store.get(key)
             assert retrieved == value, f"Failed for value: {value}"
 
 
@@ -315,15 +303,15 @@ class TestConcurrency:
         """Test multiple concurrent reads"""
         import threading
 
-        store = CredentialStore(config_dir=str(temp_config_dir))
-        store.set_credential("service", "key", "value")
+        store = CredentialStore(base_dir=str(temp_config_dir))
+        store.save_credentials({"key": "value"})
 
         results = []
         errors = []
 
         def read_credential():
             try:
-                value = store.get_credential("service", "key")
+                value = store.get("key")
                 results.append(value)
             except Exception as e:
                 errors.append(e)
@@ -346,13 +334,13 @@ class TestConcurrency:
         """Test multiple concurrent writes"""
         import threading
 
-        store = CredentialStore(config_dir=str(temp_config_dir))
+        store = CredentialStore(base_dir=str(temp_config_dir))
 
         errors = []
 
         def write_credential(thread_id):
             try:
-                store.set_credential("service", f"key_{thread_id}", f"value_{thread_id}")
+                store.save_credentials({f"key_{thread_id}": f"value_{thread_id}"})
             except Exception as e:
                 errors.append(e)
 
@@ -373,7 +361,7 @@ class TestConcurrency:
 
         # Verify all values were written
         for i in range(10):
-            value = store.get_credential("service", f"key_{i}")
+            value = store.get(f"key_{i}")
             assert value == f"value_{i}"
 
 
@@ -384,12 +372,12 @@ class TestPersistence:
     def test_persistence_across_instances(self, temp_config_dir, mock_keyring):
         """Test that credentials persist across store instances"""
         # Create first store and set credential
-        store1 = CredentialStore(config_dir=str(temp_config_dir))
-        store1.set_credential("service", "key", "persistent_value")
+        store1 = CredentialStore(base_dir=str(temp_config_dir))
+        store1.save_credentials({"key": "persistent_value"})
 
         # Create second store instance
-        store2 = CredentialStore(config_dir=str(temp_config_dir))
-        value = store2.get_credential("service", "key")
+        store2 = CredentialStore(base_dir=str(temp_config_dir))
+        value = store2.get("key")
 
         assert value == "persistent_value"
 
@@ -410,8 +398,8 @@ class TestPersistence:
             mock_get.side_effect = get_password
 
             # Store credential
-            store1 = CredentialStore(config_dir=str(temp_config_dir))
-            store1.set_credential("service", "key", "value")
+            store1 = CredentialStore(base_dir=str(temp_config_dir))
+            store1.save_credentials({"key": "value"})
 
             # Delete credential file
             cred_file = Path(temp_config_dir) / "credentials.enc"
@@ -419,10 +407,10 @@ class TestPersistence:
                 cred_file.unlink()
 
             # Create new store - should still work with keyring
-            store2 = CredentialStore(config_dir=str(temp_config_dir))
+            store2 = CredentialStore(base_dir=str(temp_config_dir))
             # May return None since file is gone and keyring might not have the actual credential
             # This tests that it doesn't crash
-            value = store2.get_credential("service", "key")
+            value = store2.get("key")
             # Just verify no exception is raised
 
 
@@ -432,10 +420,10 @@ class TestSecurityProperties:
 
     def test_no_plaintext_keys_in_memory_dumps(self, temp_config_dir, mock_keyring):
         """Test that keys are not easily accessible in memory"""
-        store = CredentialStore(config_dir=str(temp_config_dir))
+        store = CredentialStore(base_dir=str(temp_config_dir))
         secret = "very_secret_api_key_12345"
 
-        store.set_credential("service", "key", secret)
+        store.save_credentials({"key": secret})
 
         # Get string representation of store object
         store_repr = repr(store)
@@ -449,8 +437,8 @@ class TestSecurityProperties:
         """Test that credential file has restrictive permissions (Unix only)"""
         import stat
 
-        store = CredentialStore(config_dir=str(temp_config_dir))
-        store.set_credential("service", "key", "value")
+        store = CredentialStore(base_dir=str(temp_config_dir))
+        store.save_credentials({"key": "value"})
 
         cred_file = Path(temp_config_dir) / "credentials.enc"
 
@@ -464,15 +452,15 @@ class TestSecurityProperties:
 
     def test_no_credential_leakage_on_exception(self, temp_config_dir, mock_keyring):
         """Test that credentials don't leak in exception messages"""
-        store = CredentialStore(config_dir=str(temp_config_dir))
+        store = CredentialStore(base_dir=str(temp_config_dir))
         secret = "secret_api_key_12345"
 
-        store.set_credential("service", "key", secret)
+        store.save_credentials({"key": secret})
 
         # Try to cause various errors
         try:
             # Force a potential error by corrupting internal state
-            store.set_credential("", "", "")
+            store.save_credentials({"": ""})
         except Exception as e:
             # Secret should not appear in exception message
             exception_str = str(e)
@@ -481,7 +469,7 @@ class TestSecurityProperties:
 
 def test_integration_with_config(temp_config_dir, mock_keyring):
     """Integration test with typical usage pattern"""
-    store = CredentialStore(config_dir=str(temp_config_dir))
+    store = CredentialStore(base_dir=str(temp_config_dir))
 
     # Simulate storing API keys
     api_keys = {
@@ -491,21 +479,20 @@ def test_integration_with_config(temp_config_dir, mock_keyring):
     }
 
     # Store all keys
-    for key_name, key_value in api_keys.items():
-        store.set_credential("gaming_ai_assistant", key_name, key_value)
+    store.save_credentials(api_keys)
 
     # Retrieve and verify
     for key_name, expected_value in api_keys.items():
-        retrieved = store.get_credential("gaming_ai_assistant", key_name)
+        retrieved = store.get(key_name)
         assert retrieved == expected_value
 
     # Delete one key
-    store.delete_credential("gaming_ai_assistant", "openai_api_key")
-    assert store.get_credential("gaming_ai_assistant", "openai_api_key") is None
+    store.delete("openai_api_key")
+    assert store.get("openai_api_key") is None
 
     # Others should still exist
-    assert store.get_credential("gaming_ai_assistant", "anthropic_api_key") == api_keys["anthropic_api_key"]
-    assert store.get_credential("gaming_ai_assistant", "gemini_api_key") == api_keys["gemini_api_key"]
+    assert store.get("anthropic_api_key") == api_keys["anthropic_api_key"]
+    assert store.get("gemini_api_key") == api_keys["gemini_api_key"]
 
 
 if __name__ == "__main__":

@@ -8,6 +8,7 @@ import hashlib
 import json
 import logging
 import os
+import threading
 from pathlib import Path
 from typing import Dict, Optional, Union
 
@@ -72,24 +73,26 @@ class CredentialStore:
         self._cipher: Optional[Fernet] = None
         self._master_password = master_password
         self._allow_password_prompt = allow_password_prompt
+        self._lock = threading.Lock()  # Thread safety for concurrent access
 
         self._ensure_directories()
 
     def save_credentials(self, values: Dict[str, Optional[str]]) -> None:
         """Persist credentials securely."""
-        data = self._load_raw()
-        for key, value in values.items():
-            if value:
-                data[key] = value
-            elif key in data:
-                del data[key]
+        with self._lock:
+            data = self._load_raw()
+            for key, value in values.items():
+                if value:
+                    data[key] = value
+                elif key in data:
+                    del data[key]
 
-        payload = json.dumps(data).encode("utf-8")
-        ciphertext = self._get_cipher().encrypt(payload)
-        with open(self.credential_path, "wb") as fh:
-            fh.write(ciphertext)
-        self._set_permissions(self.credential_path, 0o600)
-        logger.debug("Stored %d credential(s) in encrypted vault", len(values))
+            payload = json.dumps(data).encode("utf-8")
+            ciphertext = self._get_cipher().encrypt(payload)
+            with open(self.credential_path, "wb") as fh:
+                fh.write(ciphertext)
+            self._set_permissions(self.credential_path, 0o600)
+            logger.debug("Stored %d credential(s) in encrypted vault", len(values))
 
     def load_credentials(self) -> Dict[str, str]:
         """Load all credentials stored in the vault."""
@@ -101,15 +104,16 @@ class CredentialStore:
 
     def delete(self, key: str) -> None:
         """Remove a credential from the vault."""
-        data = self._load_raw()
-        if key in data:
-            del data[key]
-            payload = json.dumps(data).encode("utf-8")
-            ciphertext = self._get_cipher().encrypt(payload)
-            with open(self.credential_path, "wb") as fh:
-                fh.write(ciphertext)
-            self._set_permissions(self.credential_path, 0o600)
-            logger.debug("Removed credential %s from vault", key)
+        with self._lock:
+            data = self._load_raw()
+            if key in data:
+                del data[key]
+                payload = json.dumps(data).encode("utf-8")
+                ciphertext = self._get_cipher().encrypt(payload)
+                with open(self.credential_path, "wb") as fh:
+                    fh.write(ciphertext)
+                self._set_permissions(self.credential_path, 0o600)
+                logger.debug("Removed credential %s from vault", key)
 
     def _load_raw(self) -> Dict[str, str]:
         if not self.credential_path.exists():

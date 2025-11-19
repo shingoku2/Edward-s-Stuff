@@ -171,12 +171,12 @@ def mock_credential_store(temp_config_dir):
 
     Usage:
         def test_creds(mock_credential_store):
-            mock_credential_store.set_credential("service", "key", "value")
+            mock_credential_store.save_credentials({"key": "value"})
     """
     from src.credential_store import CredentialStore
 
     # Use temp directory for credential storage
-    return CredentialStore(config_dir=str(temp_config_dir))
+    return CredentialStore(base_dir=str(temp_config_dir))
 
 
 @pytest.fixture
