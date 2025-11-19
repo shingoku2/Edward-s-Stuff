@@ -41,6 +41,95 @@ For detailed architecture documentation, see [CLAUDE.md](CLAUDE.md).
 
 ---
 
+## Recent Session: Search Index Corruption Fix (2025-11-19)
+
+### Session Goals
+1. Fix critical bug where TF-IDF model state was not persisted to disk
+2. Ensure search results remain accurate after application restarts
+3. Add comprehensive regression testing for index persistence
+
+### Issue Identified
+**Problem:** The `KnowledgeIndex` TF-IDF model vocabulary was not being saved to disk. When the application restarted, the vocabulary was lost, causing the system to fall back to hash-based embeddings for new queries.
+
+**Impact:**
+- TF-IDF vectors (from indexed documents) were compared against hash-based vectors (from queries)
+- This resulted in mathematically invalid similarity comparisons
+- Search results became random garbage after application restart
+- Knowledge pack functionality was completely broken on restart
+
+**Root Cause:**
+- `_save_index()` in `src/knowledge_index.py:262-269` only saved the index dict
+- `SimpleTFIDFEmbedding` state (vocabulary, IDF values) was not persisted
+- On restart, `_load_index()` would restore vectors but not the TF-IDF model
+- New queries would use `_simple_hash_embedding()` fallback (line 95)
+
+### Changes Made
+
+**File: `src/knowledge_index.py`**
+
+1. **`_save_index()` (lines 274-286)** - Updated to serialize embedding provider
+   - Changed to save dict with both `index` and `embedding_provider` keys
+   - Only saves `SimpleTFIDFEmbedding` instances (external providers not pickled)
+   - Updated log message to reflect model persistence
+
+2. **`_load_index()` (lines 251-272)** - Updated to restore embedding provider
+   - Added detection for new format vs legacy format
+   - Restores `embedding_provider` from saved data if available
+   - Falls back gracefully for legacy index files (with warning)
+   - Logs when TF-IDF model is successfully loaded
+
+**File: `tests/unit/test_knowledge_system.py`**
+
+3. **`test_index_persistence_after_restart()` (lines 316-405)** - NEW comprehensive test
+   - Creates knowledge pack and indexes it
+   - Queries before "restart" to establish baseline
+   - Destroys index instance (simulates app shutdown)
+   - Creates new index instance (simulates app restart)
+   - Queries after "restart" with same question
+   - Verifies search results are consistent (not random)
+   - Validates TF-IDF model state (vocabulary, IDF) is preserved
+
+### Impact
+✅ **Search Quality Preserved**
+- Knowledge pack search results now remain accurate across restarts
+- TF-IDF model state (vocabulary, IDF values) correctly persisted
+- Query embeddings use same model as indexed document embeddings
+
+✅ **Backward Compatibility**
+- Legacy index files still load (with degraded search until re-indexed)
+- Warning logged when legacy format detected
+- No data loss on upgrade
+
+✅ **Testing Coverage**
+- Comprehensive regression test prevents future regressions
+- Test validates both functionality and mathematical correctness
+- Verifies picklability of `SimpleTFIDFEmbedding`
+
+### Technical Notes
+- `SimpleTFIDFEmbedding` is pickle-safe (all state is basic Python types)
+- External embedding providers (OpenAI, etc.) are not persisted (would require re-initialization)
+- Index format version change is transparent to users
+- Pickle protocol handles serialization of numpy-free TF-IDF implementation
+
+### Verification
+```python
+# Verified SimpleTFIDFEmbedding picklability
+import pickle
+embedding = SimpleTFIDFEmbedding()
+embedding.fit(['test document one', 'test document two'])
+pickled = pickle.dumps(embedding)
+unpickled = pickle.loads(pickled)
+# ✓ Vocabulary preserved: 4 terms
+# ✓ IDF preserved: 4 terms
+```
+
+### Related Issues Fixed (Bonus)
+**Note:** During investigation, confirmed the following were already fixed:
+1. ✅ AIAssistant race condition - `_history_lock` already implemented (line 63)
+2. ✅ Cross-platform game detection - Platform fallback already in place (lines 118-136)
+
+---
+
 ## Recent Session: Circular Import Fix (2025-11-18)
 
 ### Session Goals

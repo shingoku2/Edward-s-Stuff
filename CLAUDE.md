@@ -1876,6 +1876,54 @@ chunks = index.search("test query", pack.game_profile_id)
 print(f"Found {len(chunks)} chunks")
 ```
 
+#### Knowledge Pack Search Quality Degraded After Restart
+
+**Symptoms:** Search results are irrelevant or random after restarting the application
+
+**Diagnosis:**
+1. Check if you're running an older version (before 2025-11-19)
+2. Verify index files exist in `~/.gaming_ai_assistant/knowledge_index/`
+3. Look for warning: "Loaded legacy index format without embedding model"
+
+**Root Cause (Fixed in v1.3+):**
+- **Bug:** TF-IDF model vocabulary was not being persisted to disk
+- **Impact:** After restart, queries used hash embeddings vs TF-IDF vectors
+- **Result:** Mathematically invalid comparisons produced random results
+
+**Solution:**
+```python
+from knowledge_index import get_knowledge_index
+from knowledge_store import get_knowledge_store
+
+# Rebuild index for affected game to fix legacy indices
+index = get_knowledge_index()
+store = get_knowledge_store()
+
+# Get game profile ID
+game_profile_id = "elden-ring"  # Replace with your game
+
+# Rebuild index (this will save with new format)
+index.rebuild_index_for_game(game_profile_id)
+
+print(f"✓ Index rebuilt with TF-IDF model persistence")
+```
+
+**Verification:**
+```python
+# After rebuild, test search quality
+results = index.query(
+    game_profile_id="elden-ring",
+    question="How do I beat Margit?",
+    top_k=5
+)
+
+for i, result in enumerate(results, 1):
+    print(f"{i}. Score: {result.score:.3f}")
+    print(f"   Text: {result.text[:100]}...")
+```
+
+**Status:** ✅ Fixed in commit `78a2050` (2025-11-19)
+
 #### Macro Not Executing
 
 **Symptoms:** Hotkey pressed but macro doesn't run
@@ -2146,9 +2194,48 @@ theme_mgr = ThemeManager()
 
 #### ✅ Recent Fixes
 
-**Status:** Completed in 2025-11-18
+**Status:** Latest fix completed 2025-11-19
 
-**Circular Import Resolution:**
+**1. Search Index Corruption Fix (2025-11-19)** ⭐ **CRITICAL**
+
+The knowledge pack search system was experiencing a critical bug where TF-IDF model state was not persisted to disk, causing search results to become random garbage after application restarts.
+
+- **Issue:** Knowledge pack search returned irrelevant/random results after restarting application
+- **Root Cause:** `SimpleTFIDFEmbedding` vocabulary and IDF values were not saved to disk
+  - `_save_index()` only saved the index dict, not the TF-IDF model state
+  - On restart, queries used hash-based embeddings while comparing against TF-IDF vectors
+  - Resulted in mathematically invalid comparisons (different embedding spaces)
+- **Fix:** Updated `src/knowledge_index.py:251-286`
+  - `_save_index()` now serializes both index and embedding provider
+  - `_load_index()` restores TF-IDF model state from disk
+  - Backward compatible with legacy index files (logs warning, degrades gracefully)
+- **Testing:** Added comprehensive `test_index_persistence_after_restart()` in `tests/unit/test_knowledge_system.py:316-405`
+- **Impact:** Search results now remain accurate and consistent across restarts
+
+**Verification:**
+```python
+# Verify TF-IDF model persistence
+python -c "
+import sys
+sys.path.insert(0, 'src')
+from knowledge_index import SimpleTFIDFEmbedding
+import pickle
+
+embedding = SimpleTFIDFEmbedding()
+embedding.fit(['test doc one', 'test doc two'])
+pickled = pickle.dumps(embedding)
+unpickled = pickle.loads(pickled)
+print(f'✓ Vocabulary: {len(unpickled.vocabulary)} terms')
+print(f'✓ IDF: {len(unpickled.idf)} terms')
+"
+```
+
+**Commit:** `78a2050` | **Branch:** `claude/fix-search-index-corruption-018pjySXbV9WEEHojJQgmkrY`
+
+---
+
+**2. Circular Import Resolution (2025-11-18)**
+
 The application was experiencing a circular import error that prevented startup. The issue was resolved by ensuring consistent import patterns across all `src/` modules.
 
 - **Issue:** `ImportError: cannot import name 'get_knowledge_integration' from partially initialized module 'knowledge_integration'`
