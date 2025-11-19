@@ -106,6 +106,9 @@ class Config:
         self._load_macros()
         self._load_theme()
 
+        # Load from JSON config file if it exists
+        self._load_from_file()
+
         # Validate configuration (only if required)
         if require_keys:
             self._validate()
@@ -458,6 +461,83 @@ class Config:
     def set(self, key: str, value):
         """Set a configuration attribute dynamically."""
         setattr(self, key, value)
+
+    def get(self, key: str, default=None):
+        """Get a configuration value dynamically with optional default"""
+        return getattr(self, key, default)
+
+    def update(self, values: Dict):
+        """Update multiple configuration values at once"""
+        for key, value in values.items():
+            setattr(self, key, value)
+
+    def save(self):
+        """Save configuration to JSON file if config_path is set"""
+        if not self.config_path:
+            logger.warning("No config_path set, cannot save configuration")
+            return False
+
+        try:
+            config_data = {
+                'ai_provider': self.ai_provider,
+                'overlay_hotkey': self.overlay_hotkey,
+                'check_interval': self.check_interval,
+                'overlay_x': self.overlay_x,
+                'overlay_y': self.overlay_y,
+                'overlay_width': self.overlay_width,
+                'overlay_height': self.overlay_height,
+                'overlay_minimized': self.overlay_minimized,
+                'overlay_opacity': self.overlay_opacity,
+                'macros_enabled': self.macros_enabled,
+                'macro_safety_understood': self.macro_safety_understood,
+                'max_macro_repeat': self.max_macro_repeat,
+                'macro_execution_timeout': self.macro_execution_timeout
+            }
+
+            with open(self.config_path, 'w', encoding='utf-8') as f:
+                json.dump(config_data, f, indent=2)
+
+            logger.info(f"Saved configuration to {self.config_path}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to save configuration: {e}")
+            return False
+
+    def _load_from_file(self):
+        """Load configuration from JSON file if it exists"""
+        if not self.config_path or not Path(self.config_path).exists():
+            return
+
+        try:
+            with open(self.config_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+
+            # Update attributes from loaded data
+            for key, value in data.items():
+                if hasattr(self, key):
+                    setattr(self, key, value)
+
+            logger.info(f"Loaded configuration from {self.config_path}")
+        except json.JSONDecodeError as e:
+            logger.warning(f"Failed to parse config file, using defaults: {e}")
+        except Exception as e:
+            logger.error(f"Failed to load configuration: {e}")
+
+    def reset_to_defaults(self):
+        """Reset configuration to default values"""
+        self.ai_provider = 'anthropic'
+        self.overlay_hotkey = 'ctrl+shift+g'
+        self.check_interval = 5
+        self.overlay_x = 100
+        self.overlay_y = 100
+        self.overlay_width = 900
+        self.overlay_height = 700
+        self.overlay_minimized = False
+        self.overlay_opacity = 0.95
+        self.macros_enabled = False
+        self.macro_safety_understood = False
+        self.max_macro_repeat = 10
+        self.macro_execution_timeout = 30
 
     @staticmethod
     def save_to_env(provider: str,

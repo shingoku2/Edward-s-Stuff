@@ -25,13 +25,13 @@ sys.path.insert(0, str(src_path))
 def temp_dir():
     """Create a temporary directory for tests"""
     with tempfile.TemporaryDirectory() as tmpdir:
-        yield tmpdir
+        yield Path(tmpdir)
 
 
 @pytest.fixture
 def clean_config_dir(temp_dir):
     """Provide a clean config directory for tests"""
-    config_dir = Path(temp_dir) / "config"
+    config_dir = temp_dir / "config"
     config_dir.mkdir(exist_ok=True)
     return str(config_dir)
 
@@ -73,7 +73,7 @@ def game_profile_store():
 def config(temp_dir):
     """Provide a test Config instance"""
     from config import Config
-    config_path = Path(temp_dir) / "test_config.json"
+    config_path = temp_dir / "test_config.json"
     return Config(config_path=str(config_path), require_keys=False)
 
 
@@ -81,14 +81,14 @@ def config(temp_dir):
 def macro_store(temp_dir):
     """Provide a MacroStore instance"""
     from macro_store import MacroStore
-    return MacroStore(temp_dir)
+    return MacroStore(str(temp_dir))
 
 
 @pytest.fixture
 def knowledge_pack_store(temp_dir):
     """Provide a KnowledgePackStore instance"""
     from knowledge_store import KnowledgePackStore
-    return KnowledgePackStore(config_dir=temp_dir)
+    return KnowledgePackStore(config_dir=str(temp_dir))
 
 
 @pytest.fixture
@@ -97,7 +97,7 @@ def knowledge_index(temp_dir):
     from knowledge_index import KnowledgeIndex, SimpleTFIDFEmbedding
     embedding_provider = SimpleTFIDFEmbedding()
     return KnowledgeIndex(
-        config_dir=temp_dir,
+        config_dir=str(temp_dir),
         embedding_provider=embedding_provider
     )
 
@@ -106,7 +106,7 @@ def knowledge_index(temp_dir):
 def session_logger(temp_dir):
     """Provide a SessionLogger instance"""
     from session_logger import SessionLogger
-    return SessionLogger(config_dir=temp_dir)
+    return SessionLogger(config_dir=str(temp_dir))
 
 
 @pytest.fixture
