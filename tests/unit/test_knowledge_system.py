@@ -313,6 +313,97 @@ class TestKnowledgeIndex:
         )
         assert len(results) == 0
 
+    def test_index_persistence_after_restart(self, temp_dir):
+        """
+        Test that TF-IDF model state persists across restarts.
+
+        This is a critical regression test for the index corruption bug where
+        the TF-IDF vocabulary was not being saved, causing search results to
+        become random garbage after restarting the application.
+        """
+        from knowledge_index import KnowledgeIndex, SimpleTFIDFEmbedding
+        from knowledge_pack import KnowledgePack, KnowledgeSource
+        from knowledge_store import KnowledgePackStore
+
+        # Create knowledge store
+        store = KnowledgePackStore(config_dir=temp_dir)
+
+        # Create pack with distinctive content
+        source = KnowledgeSource(
+            id="s1",
+            type="note",
+            title="Magic Build Guide",
+            content="The best build for magic users is to focus on Intelligence stat and use Glintstone Sorcery. "
+                   "You should prioritize leveling Intelligence and Mind. Equip the Staff of Loss for bonus damage."
+        )
+
+        pack = KnowledgePack(
+            id="pack1",
+            name="Test Pack",
+            description="Test pack for persistence",
+            game_profile_id="elden_ring",
+            sources=[source]
+        )
+
+        # Save pack to store (required before indexing)
+        store.save_pack(pack)
+
+        # Create first index instance and index the pack
+        embedding_provider1 = SimpleTFIDFEmbedding()
+        index1 = KnowledgeIndex(
+            config_dir=temp_dir,
+            embedding_provider=embedding_provider1,
+            knowledge_store=store
+        )
+        index1.add_pack(pack)
+
+        # Query before "restart" to establish baseline
+        results_before = index1.query(
+            game_profile_id="elden_ring",
+            question="What stats should I level for magic build?",
+            top_k=3
+        )
+
+        # Should find relevant results
+        assert len(results_before) > 0
+        first_result_before = results_before[0]
+        assert first_result_before.score > 0.1  # Should have decent similarity
+
+        # Destroy the first index (simulate application shutdown)
+        del index1
+        del embedding_provider1
+
+        # Create NEW index instance (simulate application restart)
+        # This should load the persisted TF-IDF model from disk
+        embedding_provider2 = SimpleTFIDFEmbedding()
+        index2 = KnowledgeIndex(
+            config_dir=temp_dir,
+            embedding_provider=embedding_provider2,
+            knowledge_store=store
+        )
+
+        # Query after "restart" with same question
+        results_after = index2.query(
+            game_profile_id="elden_ring",
+            question="What stats should I level for magic build?",
+            top_k=3
+        )
+
+        # Verify results are still valid (not random garbage)
+        assert len(results_after) > 0
+        first_result_after = results_after[0]
+
+        # Results should be similar (TF-IDF model was loaded correctly)
+        # The scores should be comparable (within 10% tolerance)
+        assert abs(first_result_before.score - first_result_after.score) < 0.1
+
+        # The same top result should be retrieved
+        assert first_result_before.text == first_result_after.text
+
+        # Verify the embedding provider has vocabulary loaded
+        assert len(embedding_provider2.vocabulary) > 0
+        assert len(embedding_provider2.idf) > 0
+
 
 @pytest.mark.unit
 class TestIngestion:

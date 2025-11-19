@@ -249,22 +249,39 @@ class KnowledgeIndex:
         logger.info(f"KnowledgeIndex initialized at {self.index_dir}")
 
     def _load_index(self) -> None:
-        """Load index from disk"""
+        """Load index AND embedding model from disk"""
         try:
             if self.index_file.exists():
                 with open(self.index_file, 'rb') as f:
-                    self.index = pickle.load(f)
+                    data = pickle.load(f)
+
+                # Handle legacy format (if file just contains the dict) or new format
+                if isinstance(data, dict) and 'index' in data:
+                    self.index = data['index']
+                    if data.get('embedding_provider'):
+                        self.embedding_provider = data['embedding_provider']
+                        logger.info("Loaded TF-IDF model from disk")
+                else:
+                    # Legacy fallback: data is just the index dict
+                    self.index = data
+                    logger.warning("Loaded legacy index format without embedding model - search quality may be degraded")
+
                 logger.info(f"Loaded knowledge index with {sum(len(chunks) for chunks in self.index.values())} chunks")
         except Exception as e:
             logger.error(f"Failed to load index: {e}")
             self.index = {}
 
     def _save_index(self) -> None:
-        """Save index to disk"""
+        """Save index AND embedding model to disk"""
         try:
+            data = {
+                'index': self.index,
+                # Save the provider if it's our local TF-IDF one
+                'embedding_provider': self.embedding_provider if isinstance(self.embedding_provider, SimpleTFIDFEmbedding) else None
+            }
             with open(self.index_file, 'wb') as f:
-                pickle.dump(self.index, f)
-            logger.info("Saved knowledge index to disk")
+                pickle.dump(data, f)
+            logger.info("Saved knowledge index and model to disk")
         except Exception as e:
             logger.error(f"Failed to save index: {e}")
 
