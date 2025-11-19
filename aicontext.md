@@ -4509,3 +4509,7 @@ Update 2025-11-18 (QA run):
 - Pytest rerun with --ignore test_gui_minimal.py: 2 failures (PyQt6 import in src/ui/test_design_system.py::test_imports requiring libGL, custom profile resolution mismatch expecting "Custom AI behavior" vs stored "Custom prompt"); 84 tests passed, warnings about tests returning non-None values.
 - Environment limitation: GUI/Qt tests blocked until libGL can be installed or PyQt6 dependency mocked for CI.
 
+Update 2025-11-20:
+- Error: Could not find a version that satisfies the requirement google-generativeai>=0.3.0.
+- Fix: Set google-generativeai==0.1.0rc1 in requirements.txt to resolve installation failure.
+
