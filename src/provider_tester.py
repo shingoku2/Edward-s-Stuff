@@ -12,8 +12,10 @@ logger = logging.getLogger(__name__)
 class ProviderTester:
     """Test API connectivity for AI providers"""
 
+    DEFAULT_TIMEOUT = 15
+
     @staticmethod
-    def test_openai(api_key: str, base_url: Optional[str] = None) -> Tuple[bool, str]:
+    def test_openai(api_key: str, base_url: Optional[str] = None, timeout: float = DEFAULT_TIMEOUT) -> Tuple[bool, str]:
         """
         Test OpenAI API connection
 
@@ -32,13 +34,13 @@ class ProviderTester:
 
             # Initialize client with custom base URL if provided
             if base_url and base_url.strip():
-                client = openai.OpenAI(api_key=api_key, base_url=base_url)
+                client = openai.OpenAI(api_key=api_key, base_url=base_url, timeout=timeout)
             else:
-                client = openai.OpenAI(api_key=api_key)
+                client = openai.OpenAI(api_key=api_key, timeout=timeout)
 
             # Try to list models - lightweight test
             try:
-                models = client.models.list()
+                models = client.models.list(timeout=timeout)
                 model_count = len(list(models))
                 logger.info(f"OpenAI connection test successful - {model_count} models available")
                 return True, f"✅ Connected successfully!\n\nFound {model_count} available models."
@@ -48,7 +50,8 @@ class ProviderTester:
                 response = client.chat.completions.create(
                     model="gpt-3.5-turbo",
                     messages=[{"role": "user", "content": "Hi"}],
-                    max_tokens=5
+                    max_tokens=5,
+                    timeout=timeout,
                 )
                 logger.info("OpenAI connection test successful via chat completion")
                 return True, "✅ Connected successfully!\n\nAPI key is valid and working."
@@ -75,7 +78,7 @@ class ProviderTester:
                 return False, f"❌ Connection Failed\n\n{str(e)}\n\nPlease check your API key and try again."
 
     @staticmethod
-    def test_anthropic(api_key: str) -> Tuple[bool, str]:
+    def test_anthropic(api_key: str, timeout: float = DEFAULT_TIMEOUT) -> Tuple[bool, str]:
         """
         Test Anthropic API connection
 
@@ -91,13 +94,14 @@ class ProviderTester:
         try:
             import anthropic
 
-            client = anthropic.Anthropic(api_key=api_key)
+            client = anthropic.Anthropic(api_key=api_key, timeout=timeout)
 
             # Make a minimal API call to test connectivity
             response = client.messages.create(
                 model="claude-3-haiku-20240307",
                 max_tokens=10,
-                messages=[{"role": "user", "content": "Hi"}]
+                messages=[{"role": "user", "content": "Hi"}],
+                timeout=timeout,
             )
 
             logger.info("Anthropic connection test successful")
@@ -123,7 +127,7 @@ class ProviderTester:
                 return False, f"❌ Connection Failed\n\n{str(e)}\n\nPlease check your API key and try again."
 
     @staticmethod
-    def test_gemini(api_key: str) -> Tuple[bool, str]:
+    def test_gemini(api_key: str, timeout: float = DEFAULT_TIMEOUT) -> Tuple[bool, str]:
         """
         Test Google Gemini API connection
 
@@ -139,13 +143,14 @@ class ProviderTester:
         try:
             import google.generativeai as genai
 
-            genai.configure(api_key=api_key)
+            genai.configure(api_key=api_key, client_options={"timeout": timeout})
             model = genai.GenerativeModel('gemini-pro')
 
             # Make a minimal API call to test connectivity
             response = model.generate_content(
                 "Hi",
-                generation_config={'max_output_tokens': 10}
+                generation_config={'max_output_tokens': 10},
+                request_options={"timeout": timeout},
             )
 
             logger.info("Gemini connection test successful")

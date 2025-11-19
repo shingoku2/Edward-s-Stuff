@@ -170,8 +170,10 @@ class FileIngestor:
 class URLIngestor:
     """Handles text extraction from web URLs"""
 
+    DEFAULT_TIMEOUT = 15
+
     @staticmethod
-    def ingest_url(url: str, timeout: int = 10) -> str:
+    def ingest_url(url: str, timeout: int = DEFAULT_TIMEOUT) -> str:
         """
         Fetch and extract main text from URL
 
@@ -196,7 +198,12 @@ class URLIngestor:
             headers = {
                 'User-Agent': 'Mozilla/5.0 (Gaming AI Assistant Knowledge Pack Ingestion)'
             }
-            response = requests.get(url, timeout=timeout, headers=headers)
+            effective_timeout = timeout or URLIngestor.DEFAULT_TIMEOUT
+            response = requests.get(
+                url,
+                timeout=(effective_timeout, effective_timeout),
+                headers=headers,
+            )
             response.raise_for_status()
 
             # Parse HTML
@@ -293,7 +300,7 @@ class IngestionPipeline:
                 url = kwargs.get('url')
                 if not url:
                     raise IngestionError("url required for url source")
-                timeout = kwargs.get('timeout', 10)
+                timeout = kwargs.get('timeout', URLIngestor.DEFAULT_TIMEOUT)
                 return self.url_ingestor.ingest_url(url, timeout=timeout)
 
             elif source_type == 'note':

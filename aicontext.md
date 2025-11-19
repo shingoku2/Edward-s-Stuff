@@ -4524,3 +4524,9 @@ Update 2025-11-18 (QA run):
 Update 2025-11-20:
 - Removed unsupported `--dry-run` flag from the PyInstaller command in `.github/workflows/tests.yml` so the build validation step uses valid arguments.
 
+Update 2025-11-21:
+- Added explicit connection timeouts (15s default) to provider connection tests and the setup wizard's worker thread orchestration to prevent hanging API calls.
+- Hardened setup wizard thread lifecycle with interruption requests, finished-signal cleanup, and close-event teardown to avoid orphaned workers.
+- Ensured knowledge ingestion URL fetches always apply explicit connect/read timeouts (15s default) instead of relying on implicit defaults.
+- Validation: `python -m compileall src/knowledge_ingestion.py src/provider_tester.py src/setup_wizard.py` (pass).
+
