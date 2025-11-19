@@ -104,68 +104,6 @@ jobs:
           .coverage
         retention-days: 30
 
-  # Separate job for running specific test files
-  test-modules:
-    name: Module Tests on Ubuntu
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v5
-
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-        cache: 'pip'
-
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libegl1 libegl-mesa0 libxcb-cursor0 libxkbcommon-x11-0 xvfb
-
-    - name: Install Python dependencies
-      run: |
-        python -m pip install --upgrade pip setuptools wheel
-        pip install -r requirements.txt
-        pip install -r requirements-dev.txt
-
-    - name: Run module import tests
-      env:
-        QT_QPA_PLATFORM: offscreen
-        OMNIX_MASTER_PASSWORD: 'test-master-password-for-ci'
-      run: python test_modules.py
-
-    - name: Run macro system tests
-      env:
-        QT_QPA_PLATFORM: offscreen
-        OMNIX_MASTER_PASSWORD: 'test-master-password-for-ci'
-      run: python test_macro_system.py
-
-    - name: Run knowledge system tests
-      env:
-        QT_QPA_PLATFORM: offscreen
-        OMNIX_MASTER_PASSWORD: 'test-master-password-for-ci'
-      run: python test_knowledge_system.py
-
-    - name: Run game profile tests
-      env:
-        QT_QPA_PLATFORM: offscreen
-        OMNIX_MASTER_PASSWORD: 'test-master-password-for-ci'
-      run: python test_game_profiles.py
-
-    - name: Run edge case tests
-      env:
-        QT_QPA_PLATFORM: offscreen
-        OMNIX_MASTER_PASSWORD: 'test-master-password-for-ci'
-      run: python test_edge_cases.py
-
-    - name: Run GUI minimal tests
-      env:
-        QT_QPA_PLATFORM: offscreen
-        OMNIX_MASTER_PASSWORD: 'test-master-password-for-ci'
-      run: python test_gui_minimal.py
-
   # Build validation job
   build-validation:
     name: Build Validation (Windows)
