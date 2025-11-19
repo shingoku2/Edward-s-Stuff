@@ -4509,3 +4509,8 @@ Update 2025-11-18 (QA run):
 - Pytest rerun with --ignore test_gui_minimal.py: 2 failures (PyQt6 import in src/ui/test_design_system.py::test_imports requiring libGL, custom profile resolution mismatch expecting "Custom AI behavior" vs stored "Custom prompt"); 84 tests passed, warnings about tests returning non-None values.
 - Environment limitation: GUI/Qt tests blocked until libGL can be installed or PyQt6 dependency mocked for CI.
 
+Update 2026-02-12:
+- Added thread-safe service-aware credential handling (config_dir alias, service/key helpers, encryption lock) and broadened keyring error handling in `src/credential_store.py`.
+- Updated `test_credential_store.py` for encrypted binary assertions, master password fallback expectations, corrupted file handling, and synchronized concurrent writes.
+- Test run: `pytest test_credential_store.py -q` failed to start because of `Unknown config option: asyncio_mode` (pytest-asyncio plugin unavailable), so no tests executed.
+

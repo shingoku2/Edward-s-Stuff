@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import base64
 import getpass
-import hashlib
 import json
 import logging
 import os
 from pathlib import Path
+import threading
 from typing import Dict, Optional, Union
 
 from cryptography.fernet import Fernet, InvalidToken
@@ -49,6 +49,8 @@ class CredentialStore:
     def __init__(
         self,
         base_dir: Optional[Union[Path, str]] = None,
+        *,
+        config_dir: Optional[Union[Path, str]] = None,
         service_name: str = _DEFAULT_SERVICE_NAME,
         credential_filename: str = _DEFAULT_CREDENTIAL_FILE,
         master_password: Optional[str] = None,
@@ -67,8 +69,11 @@ class CredentialStore:
             KeyringUnavailableError: If keyring is unavailable and no password provided/allowed
         """
         self.service_name = service_name
-        self.base_dir = Path(base_dir) if base_dir else Path.home() / ".gaming_ai_assistant"
+        base_path = config_dir if config_dir is not None else base_dir
+        self.base_dir = Path(base_path) if base_path else Path.home() / ".gaming_ai_assistant"
+        self.config_dir = self.base_dir
         self.credential_path = self.base_dir / credential_filename
+        self._lock = threading.RLock()
         self._cipher: Optional[Fernet] = None
         self._master_password = master_password
         self._allow_password_prompt = allow_password_prompt
@@ -77,39 +82,76 @@ class CredentialStore:
 
     def save_credentials(self, values: Dict[str, Optional[str]]) -> None:
         """Persist credentials securely."""
-        data = self._load_raw()
-        for key, value in values.items():
-            if value:
-                data[key] = value
-            elif key in data:
-                del data[key]
+        with self._lock:
+            data = self._load_raw()
+            for key, value in values.items():
+                if value is not None and value != "":
+                    data[key] = value
+                elif key in data:
+                    del data[key]
 
-        payload = json.dumps(data).encode("utf-8")
-        ciphertext = self._get_cipher().encrypt(payload)
-        with open(self.credential_path, "wb") as fh:
-            fh.write(ciphertext)
-        self._set_permissions(self.credential_path, 0o600)
-        logger.debug("Stored %d credential(s) in encrypted vault", len(values))
+            self._write_data(data)
+            logger.debug("Stored %d credential(s) in encrypted vault", len(values))
 
     def load_credentials(self) -> Dict[str, str]:
         """Load all credentials stored in the vault."""
-        return self._load_raw()
+        with self._lock:
+            return self._load_raw()
 
     def get(self, key: str) -> Optional[str]:
         """Fetch a single credential by key."""
-        return self._load_raw().get(key)
+        with self._lock:
+            return self._load_raw().get(key)
 
     def delete(self, key: str) -> None:
         """Remove a credential from the vault."""
-        data = self._load_raw()
-        if key in data:
-            del data[key]
-            payload = json.dumps(data).encode("utf-8")
-            ciphertext = self._get_cipher().encrypt(payload)
-            with open(self.credential_path, "wb") as fh:
-                fh.write(ciphertext)
-            self._set_permissions(self.credential_path, 0o600)
-            logger.debug("Removed credential %s from vault", key)
+        with self._lock:
+            data = self._load_raw()
+            if key in data:
+                del data[key]
+                self._write_data(data)
+                logger.debug("Removed credential %s from vault", key)
+
+    def set_credential(self, service: str, key: str, value: Optional[str]) -> None:
+        """Store or update a credential for a specific service."""
+        with self._lock:
+            data = self._load_raw()
+            service_data = data.get(service, {}) if isinstance(data.get(service, {}), dict) else {}
+
+            if value is not None and value != "":
+                service_data[key] = value
+                data[service] = service_data
+            else:
+                if key in service_data:
+                    del service_data[key]
+                if service_data:
+                    data[service] = service_data
+                elif service in data:
+                    del data[service]
+
+            self._write_data(data)
+
+    def get_credential(self, service: str, key: str) -> Optional[str]:
+        """Retrieve a credential for a specific service."""
+        with self._lock:
+            data = self._load_raw()
+            service_data = data.get(service)
+            if isinstance(service_data, dict):
+                return service_data.get(key)
+            return None
+
+    def delete_credential(self, service: str, key: str) -> None:
+        """Delete a credential for a specific service."""
+        with self._lock:
+            data = self._load_raw()
+            service_data = data.get(service)
+            if isinstance(service_data, dict) and key in service_data:
+                del service_data[key]
+                if service_data:
+                    data[service] = service_data
+                else:
+                    del data[service]
+                self._write_data(data)
 
     def _load_raw(self) -> Dict[str, str]:
         if not self.credential_path.exists():
@@ -129,9 +171,21 @@ class CredentialStore:
             raise CredentialDecryptionError("Failed to decrypt credentials") from exc
 
         try:
-            return json.loads(plaintext.decode("utf-8"))
+            data = json.loads(plaintext.decode("utf-8"))
         except json.JSONDecodeError as exc:
             raise CredentialStoreError("Credential store contains invalid JSON") from exc
+
+        if not isinstance(data, dict):
+            return {}
+
+        return data
+
+    def _write_data(self, data: Dict[str, Optional[str]]) -> None:
+        payload = json.dumps(data).encode("utf-8")
+        ciphertext = self._get_cipher().encrypt(payload)
+        with open(self.credential_path, "wb") as fh:
+            fh.write(ciphertext)
+        self._set_permissions(self.credential_path, 0o600)
 
     def _ensure_directories(self) -> None:
         self.base_dir.mkdir(parents=True, exist_ok=True)
@@ -169,7 +223,7 @@ class CredentialStore:
             keyring.set_password(self.service_name, _KEYRING_KEY, key_string)
             logger.debug("Generated new encryption key and stored it in keyring")
             return key_bytes
-        except KeyringError as exc:
+        except Exception as exc:
             logger.warning("Keyring unavailable (%s); using password-based fallback", exc)
             return self._fallback_store_key(key_bytes)
 
@@ -177,7 +231,7 @@ class CredentialStore:
         """Read encryption key from system keyring or password-based fallback."""
         try:
             value = keyring.get_password(self.service_name, _KEYRING_KEY)
-        except KeyringError as exc:
+        except Exception as exc:
             logger.warning("Unable to access keyring: %s", exc)
             return self._load_fallback_key()
 
