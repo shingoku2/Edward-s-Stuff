@@ -126,10 +126,10 @@ class TestKnowledgeIntegration:
         from knowledge_store import KnowledgePackStore
         from knowledge_index import KnowledgeIndex, SimpleTFIDFEmbedding
 
-        # Create store and index
+        # Create store and index (must use same store instance)
         store = KnowledgePackStore(config_dir=temp_dir)
         embedding = SimpleTFIDFEmbedding()
-        index = KnowledgeIndex(config_dir=temp_dir, embedding_provider=embedding)
+        index = KnowledgeIndex(config_dir=temp_dir, embedding_provider=embedding, knowledge_store=store)
 
         # Create knowledge pack
         source = KnowledgeSource(

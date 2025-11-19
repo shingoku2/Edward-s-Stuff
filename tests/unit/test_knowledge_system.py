@@ -401,8 +401,9 @@ class TestKnowledgeIndex:
         assert first_result_before.text == first_result_after.text
 
         # Verify the embedding provider has vocabulary loaded
-        assert len(embedding_provider2.vocabulary) > 0
-        assert len(embedding_provider2.idf) > 0
+        # Note: index2.embedding_provider is the loaded one, not embedding_provider2
+        assert len(index2.embedding_provider.vocabulary) > 0
+        assert len(index2.embedding_provider.idf) > 0
 
 
 @pytest.mark.unit
