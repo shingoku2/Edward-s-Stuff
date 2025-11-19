@@ -47,6 +47,7 @@ class GameWatcher(QObject):
         self._watching = False
         self._watcher_thread: Optional[threading.Thread] = None
         self._stop_event = threading.Event()
+        self.last_known_pid: Optional[int] = None  # Cache PID for non-Windows optimization
 
     def start_watching(self) -> None:
         """Start monitoring for active game changes"""
@@ -121,14 +122,26 @@ class GameWatcher(QObject):
                 # This is "good enough" for single-screen setups.
                 logger.debug("Using fallback game detection for non-Windows platform")
 
-                # Get all running processes
-                for proc in psutil.process_iter(['name']):
+                # Optimization: Check if previously detected game is still running
+                if self.last_known_pid:
+                    try:
+                        proc = psutil.Process(self.last_known_pid)
+                        if proc.is_running():
+                            return proc.name()
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        # Process died or access denied - clear cache
+                        self.last_known_pid = None
+
+                # Fallback: Full scan of all running processes
+                for proc in psutil.process_iter(['name', 'pid']):
                     try:
                         exe_name = proc.info['name']
                         # Check if this process matches any known game
                         profile = self.profile_store.get_profile_by_executable(exe_name)
                         if profile and profile.id != "generic_game":
                             logger.debug(f"Found running game: {exe_name}")
+                            # Cache PID for next check
+                            self.last_known_pid = proc.info['pid']
                             return exe_name
                     except (psutil.NoSuchProcess, psutil.AccessDenied, KeyError):
                         continue
@@ -205,6 +218,7 @@ class GameWatcher(QObject):
             self.active_game = None
             self.active_game_exe = None
             self.active_profile = None
+            self.last_known_pid = None  # Clear cached PID
             self.game_closed.emit()
 
     def get_active_game(self) -> Optional[str]:

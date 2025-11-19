@@ -375,14 +375,27 @@ class MacroRunner:
         self.mouse_controller.click(click_button)
 
     def _scroll_mouse(self, x: int, y: int, amount: int):
-        """Scroll mouse wheel"""
+        """
+        Scroll mouse wheel
+
+        Note: Scroll direction behavior may vary by OS:
+        - Windows: Positive amount scrolls up, negative scrolls down
+        - macOS: Direction may be inverted if "natural scrolling" is enabled
+        - Linux: Behavior depends on desktop environment settings
+
+        Args:
+            x: X coordinate to scroll at
+            y: Y coordinate to scroll at
+            amount: Scroll amount (positive = up on Windows, negative = down)
+        """
         if not self.mouse_controller:
             return
 
         # Move to position
         self.mouse_controller.position = (x, y)
 
-        # Scroll
+        # Scroll (dx=0, dy=amount)
+        # pynput uses (dx, dy) where dy is vertical scroll
         self.mouse_controller.scroll(0, amount)
 
     def _parse_key_combo(self, key_combo: str) -> list:

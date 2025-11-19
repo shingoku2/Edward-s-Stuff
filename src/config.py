@@ -129,7 +129,11 @@ class Config:
 
         # Fallback: Try loading individual provider tokens from .env (legacy support)
         # This allows migration from old .env-based storage
+        # Only load from .env if not already present in secure storage (secure storage has priority)
         for provider in ['openai', 'anthropic', 'gemini']:
+            if provider in self.session_tokens:
+                continue  # Skip if already loaded from secure storage
+
             env_key = f'{provider.upper()}_SESSION_DATA'
             raw_value = os.getenv(env_key)
             if raw_value:
