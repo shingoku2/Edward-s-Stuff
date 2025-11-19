@@ -28,6 +28,7 @@ safety>=2.3.5             # Dependency vulnerability checking
 freezegun>=1.2.2          # Time mocking
 responses>=0.23.0         # HTTP request mocking
 faker>=19.3.0             # Fake data generation
+filelock>=3.14.0          # Cross-platform file locking
 
 # Development Tools
 ipython>=8.14.0           # Enhanced REPL

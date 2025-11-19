@@ -15,6 +15,7 @@ from typing import Dict, Optional, Union
 from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from filelock import FileLock
 import keyring
 from keyring.errors import KeyringError
 
@@ -56,6 +57,7 @@ class CredentialStore:
         credential_filename: str = _DEFAULT_CREDENTIAL_FILE,
         master_password: Optional[str] = None,
         allow_password_prompt: bool = True,
+        config_dir: Optional[Union[Path, str]] = None,
     ) -> None:
         """Initialize the credential store with robust defaults."""
 
@@ -154,6 +156,28 @@ class CredentialStore:
         """Delete a single credential (legacy API wrapper)."""
         full_key = f"{service}:{key}"
         self.delete(full_key)
+
+    # ------------------------------------------------------------------
+    # Compatibility wrappers for legacy callers and tests
+    # ------------------------------------------------------------------
+    def set_credential(self, service: str, key: str, value: Optional[str]) -> None:
+        composite_key = self._compose_key(service, key)
+        self.save_credentials({composite_key: value})
+
+    def get_credential(self, service: str, key: str) -> Optional[str]:
+        composite_key = self._compose_key(service, key)
+        data = self._load_raw()
+        if composite_key in data:
+            return data.get(composite_key)
+        return data.get(key)
+
+    def delete_credential(self, service: str, key: str) -> None:
+        composite_key = self._compose_key(service, key)
+        self.delete(composite_key)
+
+    @staticmethod
+    def _compose_key(service: str, key: str) -> str:
+        return f"{service}:{key}" if service else key
 
     def _load_raw(self) -> Dict[str, str]:
         if not self.credential_path.exists():
@@ -459,6 +483,18 @@ class CredentialStore:
             raise CredentialDecryptionError(
                 "Failed to decrypt master key. Your password may be incorrect."
             ) from exc
+
+    def _write_encrypted(self, data: Dict[str, Optional[str]]) -> None:
+        """Encrypt and persist the provided credential mapping safely."""
+
+        payload = json.dumps(data)
+        ciphertext = self._get_cipher().encrypt(payload.encode("utf-8")).decode("utf-8")
+        envelope = {"ciphertext": ciphertext}
+
+        with self._lock:
+            with open(self.credential_path, "w", encoding="utf-8") as fh:
+                json.dump(envelope, fh)
+            self._set_permissions(self.credential_path, 0o600)
 
     def _get_master_password(self) -> Optional[str]:
         """Get master password from various sources.

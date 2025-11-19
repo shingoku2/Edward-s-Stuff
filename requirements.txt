@@ -19,6 +19,7 @@ python-dotenv>=1.0.0
 pywin32>=306; platform_system=="Windows"
 cryptography>=41.0.0
 keyring>=24.2.0
+filelock>=3.14.0
 pynput>=1.7.6
 
 # PDF processing (optional but recommended for knowledge packs)
