@@ -58,3 +58,6 @@ htmlcov/
 
 # Pre-commit
 .pre-commit-cache/
+
+# Encrypted credentials
+credentials.enc

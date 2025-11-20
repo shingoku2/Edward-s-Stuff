@@ -480,3 +480,11 @@ npm run lint            # ESLint checks
 - Rewired settings menu to track active submenu (Overlay, General, Notifications, Privacy) and added actionable toggles (overlay layout, lock position, startup/energy/tooltips, desktop/sound/AI alerts, streamer/privacy toggles, usage sharing) so each list item opens content and updates state.
 - Added active provider banner and quick action mapping so provider selection and commands visibly respond to clicks.
 - Troubleshooting: multiple attempts to run `npm install` in `frontend/` (commands with and without timeout/registry overrides) hung after several minutes; processes were killed (`kill -9`). Build/test commands were not executed because dependency installation could not complete in the container environment.
+
+## 2026-02-24 Updates
+- Updated `tests/integration/test_ci_pipeline.py` to use `SessionLogger.get_recent_events` and ensure `GameProfileStore` persistence tests call the correct method signature.
+- Added optional `config_dir` support to `GameProfileStore` so tests can persist profiles in temporary directories without touching user directories.
+- Appended `credentials.enc` to `.gitignore` to prevent encrypted credential files from being tracked.
+
+### Troubleshooting
+- Verified fixes via `pytest tests/integration/test_ci_pipeline.py::TestCIPipeline::test_session_logger_headless tests/integration/test_ci_pipeline.py::TestDatabaseIntegrity::test_game_profile_persistence` (pass).
