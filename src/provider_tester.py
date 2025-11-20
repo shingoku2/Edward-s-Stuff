@@ -143,14 +143,13 @@ class ProviderTester:
         try:
             import google.generativeai as genai
 
-            genai.configure(api_key=api_key, client_options={"timeout": timeout})
+            genai.configure(api_key=api_key)
             model = genai.GenerativeModel('gemini-pro')
 
             # Make a minimal API call to test connectivity
             response = model.generate_content(
                 "Hi",
                 generation_config={'max_output_tokens': 10},
-                request_options={"timeout": timeout},
             )
 
             logger.info("Gemini connection test successful")
