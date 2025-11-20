@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import {
-  Settings, Bell, Lock, Activity,
-  Send, Crosshair, Trophy, Cpu, Layers, ChevronRight, Circle
+  Lock,
+  Activity,
+  Crosshair,
+  Cpu,
+  ChevronRight,
+  Circle
 } from 'lucide-react';
 
 // Geometric Corner Brackets Component
