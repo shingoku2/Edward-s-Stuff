@@ -40,77 +40,14 @@ if os.path.exists("dist"):
 
 # Build the executable
 print("\n[2/4] Building Windows executable...")
+print("  Using GamingAIAssistant.spec for build configuration...")
 print("  This may take several minutes...\n")
 
 cmd = [
     "pyinstaller",
-    "--name=GamingAIAssistant",
-    "--windowed",  # No console window
-    "--onedir",    # Create a folder with the exe
+    "GamingAIAssistant.spec",
     "--clean",
-    "--noconfirm",
-    "--add-data=.env.example:.",
-    "--add-data=README.md:.",
-    "--add-data=SETUP.md:.",
-    "--paths=src",
-    # PyQt6 modules
-    "--hidden-import=PyQt6.QtCore",
-    "--hidden-import=PyQt6.QtGui",
-    "--hidden-import=PyQt6.QtWidgets",
-    # Core modules
-    "--hidden-import=config",
-    "--hidden-import=game_detector",
-    "--hidden-import=ai_assistant",
-    "--hidden-import=gui",
-    # Secure modules
-    "--hidden-import=credential_store",
-    "--hidden-import=provider_tester",
-    "--hidden-import=providers",
-    "--hidden-import=ai_router",
-    "--hidden-import=setup_wizard",
-    # Settings and UI
-    "--hidden-import=providers_tab",
-    "--hidden-import=settings_dialog",
-    "--hidden-import=settings_tabs",
-    "--hidden-import=appearance_tabs",
-    # Game profiles and macros
-    "--hidden-import=game_profile",
-    "--hidden-import=game_profiles_tab",
-    "--hidden-import=game_watcher",
-    "--hidden-import=overlay_modes",
-    "--hidden-import=macro_store",
-    "--hidden-import=macro_runner",
-    "--hidden-import=macro_ai_generator",
-    # Knowledge and session management
-    "--hidden-import=knowledge_pack",
-    "--hidden-import=knowledge_store",
-    "--hidden-import=knowledge_index",
-    "--hidden-import=knowledge_ingestion",
-    "--hidden-import=knowledge_integration",
-    "--hidden-import=knowledge_packs_tab",
-    "--hidden-import=session_logger",
-    "--hidden-import=session_coaching",
-    "--hidden-import=session_recap_dialog",
-    # Managers
-    "--hidden-import=keybind_manager",
-    "--hidden-import=macro_manager",
-    "--hidden-import=theme_manager",
-    # AI Provider modules
-    "--hidden-import=anthropic",
-    "--hidden-import=openai",
-    "--hidden-import=google.generativeai",
-    # System and utility modules
-    "--hidden-import=psutil",
-    "--hidden-import=requests",
-    "--hidden-import=bs4",
-    "--hidden-import=dotenv",
-    "--hidden-import=cryptography",
-    "--hidden-import=keyring",
-    "--hidden-import=pynput",
-    # Additional dependencies
-    "--hidden-import=urllib3",
-    "--hidden-import=certifi",
-    "main.py"
+    "--noconfirm"
 ]
 
 result = subprocess.run(cmd, capture_output=True, text=True)

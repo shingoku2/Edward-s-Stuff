@@ -74,74 +74,11 @@ echo.
 
 REM Build
 echo Building executable (this takes 3-5 minutes)...
+echo Using GamingAIAssistant.spec for build configuration...
 echo Please wait...
 echo.
 
-python -m PyInstaller ^
-    --name=GamingAIAssistant ^
-    --windowed ^
-    --onedir ^
-    --clean ^
-    --noconfirm ^
-    --paths=src ^
-    --hidden-import=PyQt6.QtCore ^
-    --hidden-import=PyQt6.QtGui ^
-    --hidden-import=PyQt6.QtWidgets ^
-    --hidden-import=config ^
-    --hidden-import=game_detector ^
-    --hidden-import=ai_assistant ^
-    --hidden-import=gui ^
-    --hidden-import=credential_store ^
-    --hidden-import=provider_tester ^
-    --hidden-import=providers ^
-    --hidden-import=ai_router ^
-    --hidden-import=setup_wizard ^
-    --hidden-import=providers_tab ^
-    --hidden-import=settings_dialog ^
-    --hidden-import=settings_tabs ^
-    --hidden-import=appearance_tabs ^
-    --hidden-import=keybind_manager ^
-    --hidden-import=macro_manager ^
-    --hidden-import=theme_manager ^
-    --hidden-import=game_profile ^
-    --hidden-import=game_profiles_tab ^
-    --hidden-import=game_watcher ^
-    --hidden-import=overlay_modes ^
-    --hidden-import=macro_store ^
-    --hidden-import=macro_runner ^
-    --hidden-import=macro_ai_generator ^
-    --hidden-import=knowledge_pack ^
-    --hidden-import=knowledge_store ^
-    --hidden-import=knowledge_index ^
-    --hidden-import=knowledge_ingestion ^
-    --hidden-import=knowledge_integration ^
-    --hidden-import=knowledge_packs_tab ^
-    --hidden-import=session_logger ^
-    --hidden-import=session_coaching ^
-    --hidden-import=session_recap_dialog ^
-    --hidden-import=anthropic ^
-    --hidden-import=openai ^
-    --hidden-import=google.generativeai ^
-    --hidden-import=psutil ^
-    --hidden-import=requests ^
-    --hidden-import=bs4 ^
-    --hidden-import=dotenv ^
-    --hidden-import=cryptography ^
-    --hidden-import=keyring ^
-    --hidden-import=pynput ^
-    --hidden-import=ui.design_system ^
-    --hidden-import=ui.tokens ^
-    --hidden-import=ui.icons ^
-    --hidden-import=ui.components.buttons ^
-    --hidden-import=ui.components.inputs ^
-    --hidden-import=ui.components.cards ^
-    --hidden-import=ui.components.layouts ^
-    --hidden-import=ui.components.navigation ^
-    --hidden-import=ui.components.modals ^
-    --hidden-import=ui.components.dashboard_button ^
-    --hidden-import=ui.components.avatar_display ^
-    --hidden-import=ui.components.overlay ^
-    main.py
+python -m PyInstaller GamingAIAssistant.spec --clean --noconfirm
 
 if errorlevel 1 (
     echo.

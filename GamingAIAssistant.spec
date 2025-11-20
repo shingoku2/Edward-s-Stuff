@@ -5,7 +5,12 @@ a = Analysis(
     ['main.py'],
     pathex=['src'],
     binaries=[],
-    datas=[('.env.example', '.'), ('README.md', '.'), ('SETUP.md', '.')],
+    datas=[
+        ('.env.example', '.'),
+        ('README.md', '.'),
+        ('SETUP.md', '.'),
+        ('src/ui/omnix.qss', 'ui'),
+    ],
     hiddenimports=[
         # PyQt6
         'PyQt6.QtCore', 'PyQt6.QtGui', 'PyQt6.QtWidgets',
@@ -26,7 +31,13 @@ a = Analysis(
         # AI providers
         'anthropic', 'openai', 'google.generativeai',
         # Utilities
-        'psutil', 'requests', 'bs4', 'dotenv', 'cryptography', 'keyring', 'pynput'
+        'psutil', 'requests', 'bs4', 'dotenv', 'cryptography', 'keyring', 'pynput',
+        # UI Design System
+        'ui.design_system', 'ui.tokens', 'ui.icons',
+        'ui.components.buttons', 'ui.components.inputs', 'ui.components.cards',
+        'ui.components.layouts', 'ui.components.navigation', 'ui.components.modals',
+        'ui.components.dashboard_button', 'ui.components.avatar_display', 'ui.components.overlay',
+        'ui.components.dashboard'
     ],
     hookspath=[],
     hooksconfig={},
