@@ -3,7 +3,7 @@ Omnix UI Design Tokens
 ======================
 
 Design tokens define the visual foundation of the Omnix UI design system.
-Based on a high-tech, AI-focused aesthetic with dark themes and vibrant accents.
+Redesigned for a Futuristic/High-Tech aesthetic with Neon accents and Deep Space backgrounds.
 """
 
 from dataclasses import dataclass
@@ -12,63 +12,66 @@ from typing import Dict, Literal
 
 @dataclass
 class ColorPalette:
-    """Color palette for Omnix UI."""
+    """Color palette for Omnix UI (Futuristic Theme)."""
 
-    # Primary Backgrounds - Deep charcoal, near-black
-    bg_primary: str = "#1A1A2E"
-    bg_primary_alt: str = "#0F0F1A"
+    # Primary Backgrounds - Deep Space / Void
+    bg_primary: str = "#050508"
+    bg_primary_alt: str = "#0a0a12"
 
-    # Secondary Backgrounds/Panels - Dark muted blues/greys
-    bg_secondary: str = "#2C2C4A"
-    bg_secondary_alt: str = "#3A3A5A"
+    # Secondary Backgrounds - Glass/Holographic panels
+    # Using RGBA for transparency support in QSS
+    bg_secondary: str = "rgba(20, 25, 40, 0.6)"
+    bg_secondary_alt: str = "rgba(30, 35, 50, 0.8)"
 
-    # Accent Colors - Vibrant & Digital
-    accent_primary: str = "#00BFFF"  # Electric Blue
-    accent_primary_bright: str = "#00FFFF"  # Cyan
-    accent_primary_dark: str = "#1E90FF"  # Dodger Blue
+    # Accent Colors - Neon / Laser
+    accent_primary: str = "#00F0FF"       # Cyber Cyan
+    accent_primary_bright: str = "#E0FFFF" # White-hot Cyan
+    accent_primary_dark: str = "#008B8B"   # Deep Teal
 
-    accent_secondary: str = "#39FF14"  # Neon Green (warnings, specific data)
-    accent_tertiary: str = "#8A2BE2"  # Purple (alternative states)
+    accent_secondary: str = "#FF0055"     # Neon Magenta (Warnings/Active)
+    accent_tertiary: str = "#7000FF"      # Electric Violet
 
-    # Text Colors - Light grey/white for readability
+    # Text Colors
     text_primary: str = "#FFFFFF"
-    text_secondary: str = "#E0E0E0"
-    text_muted: str = "#B0B0B0"
-    text_disabled: str = "#707070"
+    text_secondary: str = "#A0A0B0"       # Cool Grey
+    text_muted: str = "#505060"
+    text_disabled: str = "#303040"
 
-    # Status Colors
-    success: str = "#39FF14"  # Neon Green
-    warning: str = "#FFB800"  # Amber
-    error: str = "#FF3B3B"  # Red
-    info: str = "#00BFFF"  # Electric Blue
+    # Status Colors - Neon variants
+    success: str = "#00FF9D"  # Matrix Green
+    warning: str = "#FFD700"  # Laser Gold
+    error: str = "#FF2A2A"    # Alert Red
+    info: str = "#00F0FF"     # Cyber Cyan
 
     # Border Colors
-    border_subtle: str = "#3A3A5A"
-    border_default: str = "#4A4A6A"
-    border_accent: str = "#00BFFF"
+    border_subtle: str = "rgba(255, 255, 255, 0.1)"
+    border_default: str = "rgba(0, 240, 255, 0.3)"
+    border_accent: str = "#00F0FF"
 
-    # Overlay Colors (with alpha channel)
-    overlay_dark: str = "rgba(15, 15, 26, 0.75)"  # 75% opacity
-    overlay_medium: str = "rgba(15, 15, 26, 0.85)"  # 85% opacity
-    overlay_light: str = "rgba(15, 15, 26, 0.95)"  # 95% opacity
+    # Overlay Colors
+    overlay_dark: str = "rgba(5, 5, 8, 0.90)"
+    overlay_medium: str = "rgba(5, 5, 8, 0.80)"
+    overlay_light: str = "rgba(5, 5, 8, 0.60)"
 
     # Interactive States
-    hover_overlay: str = "rgba(0, 191, 255, 0.1)"  # Blue tint
-    active_overlay: str = "rgba(0, 191, 255, 0.2)"  # Stronger blue tint
-    focus_outline: str = "#00BFFF"  # Electric Blue
+    hover_overlay: str = "rgba(0, 240, 255, 0.1)"  # Cyan tint
+    active_overlay: str = "rgba(0, 240, 255, 0.2)"  # Stronger cyan tint
+    focus_outline: str = "#00F0FF"  # Cyber Cyan
 
-    # Gradients (subtle, for depth)
-    gradient_dark: str = "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1A1A2E, stop:1 #0F0F1A)"
-    gradient_panel: str = "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2C2C4A, stop:1 #1A1A2E)"
+    # Gradients
+    gradient_primary: str = "qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #00F0FF, stop:1 #7000FF)"
+    gradient_surface: str = "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(30,35,50,0.9), stop:1 rgba(20,25,40,0.95))"
+    gradient_dark: str = "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #0a0a12, stop:1 #050508)"
+    gradient_panel: str = "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(30,35,50,0.8), stop:1 rgba(20,25,40,0.6))"
 
 
 @dataclass
 class Typography:
     """Typography system for Omnix UI."""
 
-    # Font Families
-    font_primary: str = "Roboto, 'Open Sans', Montserrat, sans-serif"
-    font_monospace: str = "'Fira Code', 'Source Code Pro', 'Courier New', monospace"
+    # Font Families - Prefer modern/geometric fonts
+    font_primary: str = "'Segoe UI', 'Roboto', 'Montserrat', sans-serif"
+    font_monospace: str = "'JetBrains Mono', 'Fira Code', monospace"
 
     # Font Sizes (in pt)
     size_xs: int = 9
@@ -76,16 +79,16 @@ class Typography:
     size_base: int = 11
     size_md: int = 12
     size_lg: int = 14
-    size_xl: int = 16
-    size_2xl: int = 20
-    size_3xl: int = 24
-    size_4xl: int = 32
+    size_xl: int = 18    # Increased for headings
+    size_2xl: int = 24
+    size_3xl: int = 32
+    size_4xl: int = 48
 
     # Font Weights
     weight_normal: int = 400
     weight_medium: int = 500
     weight_semibold: int = 600
-    weight_bold: int = 700
+    weight_bold: int = 800  # Extra bold for futuristic headers
 
     # Line Heights (relative to font size)
     line_height_tight: float = 1.2
@@ -108,33 +111,34 @@ class Spacing:
     # Spacing scale (multiples of base unit)
     xs: int = 4   # 1 unit
     sm: int = 8   # 2 units
-    md: int = 12  # 3 units
-    base: int = 16  # 4 units
-    lg: int = 24  # 6 units
-    xl: int = 32  # 8 units
-    xl2: int = 48  # 12 units
-    xl3: int = 64  # 16 units
+    md: int = 16  # 4 units - More breathing room
+    base: int = 20  # 5 units
+    lg: int = 32  # 8 units
+    xl: int = 48  # 12 units
+    xl2: int = 64  # 16 units
+    xl3: int = 96  # 24 units
 
     # Common padding values
-    padding_button: str = "8px 16px"
-    padding_input: str = "10px 12px"
-    padding_card: str = "16px"
-    padding_panel: str = "24px"
+    padding_button: str = "10px 24px"
+    padding_input: str = "12px 16px"
+    padding_card: str = "24px"
+    padding_panel: str = "32px"
 
     # Common margin values
     margin_sm: str = "8px"
-    margin_md: str = "12px"
-    margin_lg: str = "24px"
+    margin_md: str = "16px"
+    margin_lg: str = "32px"
 
 
 @dataclass
 class BorderRadius:
     """Border radius values for components."""
 
+    # Going for a slightly more angular/technical look
     none: int = 0
-    sm: int = 3
-    base: int = 5
-    md: int = 8
+    sm: int = 2
+    base: int = 4
+    md: int = 6
     lg: int = 12
     xl: int = 16
     full: int = 9999  # Pill shape
@@ -142,22 +146,24 @@ class BorderRadius:
 
 @dataclass
 class Shadows:
-    """Shadow effects for depth and elevation."""
+    """Shadow and Glow effects."""
 
-    # Subtle shadows for panels
-    sm: str = "0 1px 2px rgba(0, 0, 0, 0.3)"
-    base: str = "0 2px 4px rgba(0, 0, 0, 0.4)"
-    md: str = "0 4px 8px rgba(0, 0, 0, 0.5)"
-    lg: str = "0 8px 16px rgba(0, 0, 0, 0.6)"
-    xl: str = "0 12px 24px rgba(0, 0, 0, 0.7)"
+    # Neon Glows
+    sm: str = "0 0 5px rgba(0, 240, 255, 0.2)"
+    base: str = "0 0 10px rgba(0, 240, 255, 0.3)"
+    md: str = "0 0 15px rgba(0, 240, 255, 0.4)"
+    lg: str = "0 0 25px rgba(0, 240, 255, 0.5)"
 
-    # Glow effects (using accent colors)
-    glow_blue_sm: str = "0 0 4px rgba(0, 191, 255, 0.5)"
-    glow_blue_md: str = "0 0 8px rgba(0, 191, 255, 0.6)"
-    glow_blue_lg: str = "0 0 12px rgba(0, 191, 255, 0.7)"
+    # Error Glow
+    error_glow: str = "0 0 10px rgba(255, 42, 42, 0.5)"
 
-    glow_green_sm: str = "0 0 4px rgba(57, 255, 20, 0.5)"
-    glow_green_md: str = "0 0 8px rgba(57, 255, 20, 0.6)"
+    # Legacy glow effects (updated colors)
+    glow_blue_sm: str = "0 0 5px rgba(0, 240, 255, 0.3)"
+    glow_blue_md: str = "0 0 10px rgba(0, 240, 255, 0.4)"
+    glow_blue_lg: str = "0 0 15px rgba(0, 240, 255, 0.5)"
+
+    glow_green_sm: str = "0 0 5px rgba(0, 255, 157, 0.3)"
+    glow_green_md: str = "0 0 10px rgba(0, 255, 157, 0.4)"
 
     # Inner shadow for depth
     inner: str = "inset 0 2px 4px rgba(0, 0, 0, 0.3)"
@@ -169,9 +175,8 @@ class Animation:
 
     # Duration (in ms)
     duration_fast: int = 150
-    duration_base: int = 250
-    duration_slow: int = 350
-    duration_slower: int = 500
+    duration_base: int = 300
+    duration_slow: int = 500
 
     # Easing functions (CSS-style)
     ease_in: str = "cubic-bezier(0.4, 0, 1, 1)"

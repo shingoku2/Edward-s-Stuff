@@ -39,7 +39,7 @@ class OmnixDesignSystem:
         """
         return f"""
 /* ========================================
-   OMNIX UI DESIGN SYSTEM - BASE STYLES
+   OMNIX UI DESIGN SYSTEM - FUTURISTIC BASE STYLES
    ======================================== */
 
 /* Global Application Styling */
@@ -49,7 +49,8 @@ QWidget {{
     font-family: {self.tokens.typography.font_primary};
     font-size: {self.tokens.typography.size_base}pt;
     selection-background-color: {self.tokens.colors.accent_primary};
-    selection-color: {self.tokens.colors.text_primary};
+    selection-color: #000000;
+    outline: none;
 }}
 
 /* Main Window */
@@ -57,36 +58,33 @@ QMainWindow {{
     background-color: {self.tokens.colors.bg_primary};
 }}
 
-/* Panels and Containers */
+/* Panels and Containers - Glass Effect */
 QFrame {{
     background-color: {self.tokens.colors.bg_secondary};
-    border: 1px solid {self.tokens.colors.border_subtle};
-    border-radius: {self.tokens.radius.base}px;
+    border: 1px solid {self.tokens.colors.border_default};
+    border-radius: {self.tokens.radius.md}px;
 }}
 
-/* Scrollbars */
+/* Scrollbars - Slim & Minimal */
 QScrollBar:vertical {{
-    background-color: {self.tokens.colors.bg_secondary};
-    width: 12px;
+    background: transparent;
+    width: 6px;
     margin: 0;
-    border-radius: 6px;
 }}
 
 QScrollBar::handle:vertical {{
-    background-color: {self.tokens.colors.accent_primary};
+    background: {self.tokens.colors.border_default};
     min-height: 30px;
-    border-radius: 6px;
-    margin: 2px;
+    border-radius: 3px;
 }}
 
 QScrollBar::handle:vertical:hover {{
-    background-color: {self.tokens.colors.accent_primary_bright};
+    background: {self.tokens.colors.accent_primary};
 }}
 
 QScrollBar::add-line:vertical,
 QScrollBar::sub-line:vertical {{
     height: 0;
-    border: none;
 }}
 
 QScrollBar::add-page:vertical,
@@ -95,34 +93,31 @@ QScrollBar::sub-page:vertical {{
 }}
 
 QScrollBar:horizontal {{
-    background-color: {self.tokens.colors.bg_secondary};
-    height: 12px;
+    background: transparent;
+    height: 6px;
     margin: 0;
-    border-radius: 6px;
 }}
 
 QScrollBar::handle:horizontal {{
-    background-color: {self.tokens.colors.accent_primary};
+    background: {self.tokens.colors.border_default};
     min-width: 30px;
-    border-radius: 6px;
-    margin: 2px;
+    border-radius: 3px;
 }}
 
 QScrollBar::handle:horizontal:hover {{
-    background-color: {self.tokens.colors.accent_primary_bright};
+    background: {self.tokens.colors.accent_primary};
 }}
 
 QScrollBar::add-line:horizontal,
 QScrollBar::sub-line:horizontal {{
     width: 0;
-    border: none;
 }}
 
 /* Menu Bar */
 QMenuBar {{
     background-color: {self.tokens.colors.bg_primary_alt};
     color: {self.tokens.colors.text_primary};
-    border-bottom: 1px solid {self.tokens.colors.border_subtle};
+    border-bottom: 1px solid {self.tokens.colors.border_default};
     padding: 4px 8px;
 }}
 
@@ -133,44 +128,44 @@ QMenuBar::item {{
 }}
 
 QMenuBar::item:selected {{
-    background-color: {self.tokens.colors.bg_secondary};
+    background-color: {self.tokens.colors.accent_primary};
+    color: #000000;
 }}
 
 QMenuBar::item:pressed {{
-    background-color: {self.tokens.colors.accent_primary};
+    background-color: {self.tokens.colors.accent_primary_dark};
 }}
 
 /* Menu Dropdown */
 QMenu {{
-    background-color: {self.tokens.colors.bg_secondary};
+    background-color: {self.tokens.colors.bg_primary_alt};
     color: {self.tokens.colors.text_primary};
-    border: 1px solid {self.tokens.colors.border_accent};
+    border: 1px solid {self.tokens.colors.accent_primary};
     border-radius: {self.tokens.radius.md}px;
-    padding: 8px;
+    padding: 5px;
 }}
 
 QMenu::item {{
-    padding: 8px 24px 8px 12px;
+    padding: 8px 20px;
     border-radius: {self.tokens.radius.sm}px;
-    margin: 2px 4px;
 }}
 
 QMenu::item:selected {{
     background-color: {self.tokens.colors.accent_primary};
-    color: {self.tokens.colors.text_primary};
+    color: #000000;
 }}
 
 QMenu::separator {{
     height: 1px;
-    background-color: {self.tokens.colors.border_subtle};
-    margin: 6px 8px;
+    background-color: {self.tokens.colors.border_default};
+    margin: 4px 8px;
 }}
 
 /* Status Bar */
 QStatusBar {{
     background-color: {self.tokens.colors.bg_primary_alt};
     color: {self.tokens.colors.text_secondary};
-    border-top: 1px solid {self.tokens.colors.border_subtle};
+    border-top: 1px solid {self.tokens.colors.border_default};
     font-size: {self.tokens.typography.size_sm}pt;
 }}
 
@@ -189,65 +184,75 @@ QToolTip {{
         """Generate stylesheet for button components."""
         return f"""
 /* ========================================
-   BUTTONS
+   BUTTONS - NEON & GRADIENT STYLES
    ======================================== */
 
 /* Primary Button */
 QPushButton {{
-    background-color: {self.tokens.colors.accent_primary};
-    color: {self.tokens.colors.text_primary};
-    border: none;
+    background-color: rgba(0, 240, 255, 0.15);
+    color: {self.tokens.colors.accent_primary};
+    border: 1px solid {self.tokens.colors.accent_primary};
     border-radius: {self.tokens.radius.base}px;
     padding: {self.tokens.spacing.padding_button};
-    font-weight: {self.tokens.typography.weight_semibold};
+    font-weight: {self.tokens.typography.weight_bold};
     font-size: {self.tokens.typography.size_md}pt;
+    text-transform: uppercase;
     min-width: 80px;
 }}
 
 QPushButton:hover {{
-    background-color: {self.tokens.colors.accent_primary_bright};
+    background-color: {self.tokens.colors.accent_primary};
+    color: #000000;
+    border: 1px solid {self.tokens.colors.accent_primary_bright};
 }}
 
 QPushButton:pressed {{
     background-color: {self.tokens.colors.accent_primary_dark};
+    border-color: {self.tokens.colors.accent_primary_dark};
+    color: white;
 }}
 
 QPushButton:disabled {{
-    background-color: {self.tokens.colors.bg_secondary_alt};
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid {self.tokens.colors.text_disabled};
     color: {self.tokens.colors.text_disabled};
 }}
 
-/* Secondary Button */
+/* Secondary Button (Ghost) */
 QPushButton[buttonStyle="secondary"] {{
     background-color: transparent;
+    border: 1px solid {self.tokens.colors.text_muted};
     color: {self.tokens.colors.text_secondary};
-    border: 1px solid {self.tokens.colors.border_default};
 }}
 
 QPushButton[buttonStyle="secondary"]:hover {{
-    background-color: {self.tokens.colors.bg_secondary};
+    border-color: {self.tokens.colors.text_primary};
     color: {self.tokens.colors.text_primary};
-    border-color: {self.tokens.colors.accent_primary};
+    background-color: rgba(255, 255, 255, 0.05);
 }}
 
 /* Danger Button */
 QPushButton[buttonStyle="danger"] {{
-    background-color: {self.tokens.colors.error};
-    color: {self.tokens.colors.text_primary};
+    color: {self.tokens.colors.error};
+    border-color: {self.tokens.colors.error};
+    background-color: rgba(255, 42, 42, 0.1);
 }}
 
 QPushButton[buttonStyle="danger"]:hover {{
-    background-color: #FF5555;
+    background-color: {self.tokens.colors.error};
+    color: white;
 }}
 
 /* Success Button */
 QPushButton[buttonStyle="success"] {{
-    background-color: {self.tokens.colors.success};
-    color: {self.tokens.colors.bg_primary};
+    background-color: rgba(0, 255, 157, 0.15);
+    color: {self.tokens.colors.success};
+    border: 1px solid {self.tokens.colors.success};
 }}
 
 QPushButton[buttonStyle="success"]:hover {{
-    background-color: #50FF30;
+    background-color: {self.tokens.colors.success};
+    color: #000000;
 }}
 
 /* Icon Button */
@@ -263,7 +268,7 @@ QPushButton[buttonStyle="icon"] {{
 }}
 
 QPushButton[buttonStyle="icon"]:hover {{
-    background-color: {self.tokens.colors.bg_secondary};
+    background-color: rgba(255, 255, 255, 0.1);
 }}
 
 /* Tool Button */
@@ -276,16 +281,17 @@ QToolButton {{
 }}
 
 QToolButton:hover {{
-    background-color: {self.tokens.colors.bg_secondary};
+    background-color: rgba(255, 255, 255, 0.1);
 }}
 
 QToolButton:pressed {{
     background-color: {self.tokens.colors.accent_primary};
+    color: #000000;
 }}
 
 QToolButton:checked {{
     background-color: {self.tokens.colors.accent_primary};
-    color: {self.tokens.colors.text_primary};
+    color: #000000;
 }}
 """
 
@@ -293,53 +299,60 @@ QToolButton:checked {{
         """Generate stylesheet for input components."""
         return f"""
 /* ========================================
-   INPUT FIELDS
+   INPUT FIELDS - HIGH CONTRAST TECH
    ======================================== */
 
 /* Line Edit */
 QLineEdit {{
-    background-color: {self.tokens.colors.bg_secondary};
+    background-color: rgba(0, 0, 0, 0.3);
     color: {self.tokens.colors.text_primary};
     border: 1px solid {self.tokens.colors.border_default};
     border-radius: {self.tokens.radius.base}px;
     padding: {self.tokens.spacing.padding_input};
     font-size: {self.tokens.typography.size_md}pt;
     selection-background-color: {self.tokens.colors.accent_primary};
+    selection-color: black;
 }}
 
 QLineEdit:hover {{
-    border-color: {self.tokens.colors.border_accent};
+    border-color: {self.tokens.colors.accent_primary};
 }}
 
 QLineEdit:focus {{
-    border: 2px solid {self.tokens.colors.accent_primary};
-    padding: 9px 11px;  /* Adjust for thicker border */
+    border: 1px solid {self.tokens.colors.accent_primary_bright};
+    background-color: rgba(0, 240, 255, 0.05);
 }}
 
 QLineEdit:disabled {{
-    background-color: {self.tokens.colors.bg_primary_alt};
+    background-color: rgba(0, 0, 0, 0.2);
     color: {self.tokens.colors.text_disabled};
     border-color: {self.tokens.colors.border_subtle};
 }}
 
 /* Text Edit */
 QTextEdit, QPlainTextEdit {{
-    background-color: {self.tokens.colors.bg_secondary};
+    background-color: rgba(0, 0, 0, 0.3);
     color: {self.tokens.colors.text_primary};
     border: 1px solid {self.tokens.colors.border_default};
     border-radius: {self.tokens.radius.base}px;
     padding: {self.tokens.spacing.md}px;
     font-size: {self.tokens.typography.size_md}pt;
     selection-background-color: {self.tokens.colors.accent_primary};
+    selection-color: black;
+}}
+
+QTextEdit:hover, QPlainTextEdit:hover {{
+    border-color: {self.tokens.colors.accent_primary};
 }}
 
 QTextEdit:focus, QPlainTextEdit:focus {{
-    border: 2px solid {self.tokens.colors.accent_primary};
+    border: 1px solid {self.tokens.colors.accent_primary_bright};
+    background-color: rgba(0, 240, 255, 0.05);
 }}
 
 /* Combo Box (Dropdown) */
 QComboBox {{
-    background-color: {self.tokens.colors.bg_secondary};
+    background-color: rgba(0, 0, 0, 0.3);
     color: {self.tokens.colors.text_primary};
     border: 1px solid {self.tokens.colors.border_default};
     border-radius: {self.tokens.radius.base}px;
@@ -353,7 +366,7 @@ QComboBox:hover {{
 
 QComboBox::drop-down {{
     border: none;
-    width: 30px;
+    width: 24px;
 }}
 
 QComboBox::down-arrow {{
@@ -366,17 +379,18 @@ QComboBox::down-arrow {{
 }}
 
 QComboBox QAbstractItemView {{
-    background-color: {self.tokens.colors.bg_secondary};
+    background-color: {self.tokens.colors.bg_primary_alt};
     color: {self.tokens.colors.text_primary};
-    border: 1px solid {self.tokens.colors.accent_primary};
+    border: 1px solid {self.tokens.colors.border_default};
     border-radius: {self.tokens.radius.md}px;
     selection-background-color: {self.tokens.colors.accent_primary};
+    selection-color: black;
     padding: 4px;
 }}
 
 /* Spin Box */
 QSpinBox, QDoubleSpinBox {{
-    background-color: {self.tokens.colors.bg_secondary};
+    background-color: rgba(0, 0, 0, 0.3);
     color: {self.tokens.colors.text_primary};
     border: 1px solid {self.tokens.colors.border_default};
     border-radius: {self.tokens.radius.base}px;
@@ -384,11 +398,12 @@ QSpinBox, QDoubleSpinBox {{
 }}
 
 QSpinBox:focus, QDoubleSpinBox:focus {{
-    border: 2px solid {self.tokens.colors.accent_primary};
+    border: 1px solid {self.tokens.colors.accent_primary_bright};
+    background-color: rgba(0, 240, 255, 0.05);
 }}
 
 QSpinBox::up-button, QDoubleSpinBox::up-button {{
-    background-color: {self.tokens.colors.bg_secondary_alt};
+    background-color: rgba(0, 0, 0, 0.4);
     border: none;
     border-radius: {self.tokens.radius.sm}px;
     width: 20px;
@@ -399,7 +414,7 @@ QSpinBox::up-button:hover, QDoubleSpinBox::up-button:hover {{
 }}
 
 QSpinBox::down-button, QDoubleSpinBox::down-button {{
-    background-color: {self.tokens.colors.bg_secondary_alt};
+    background-color: rgba(0, 0, 0, 0.4);
     border: none;
     border-radius: {self.tokens.radius.sm}px;
     width: 20px;
@@ -766,72 +781,97 @@ QLabel[labelStyle="error"] {{
         Returns:
             QSS stylesheet for overlay window
         """
-        bg_color = f"rgba(15, 15, 26, {opacity})"
+        # Deep space background with specified opacity
+        bg_color = f"rgba(10, 12, 20, {opacity})"
 
         return f"""
 /* ========================================
-   IN-GAME OVERLAY STYLES
+   IN-GAME OVERLAY STYLES - FUTURISTIC HUD
    ======================================== */
 
 QWidget {{
-    background-color: {bg_color};
+    background-color: transparent;
     color: {self.tokens.colors.text_primary};
     font-family: {self.tokens.typography.font_primary};
     font-size: {self.tokens.typography.size_base}pt;
 }}
 
-/* Overlay Panel */
+/* Main container gets frosted glass background */
 QFrame {{
     background-color: {bg_color};
-    border: 1px solid {self.tokens.colors.accent_primary};
-    border-radius: {self.tokens.radius.md}px;
+    border: 1px solid {self.tokens.colors.border_default};
+    border-radius: {self.tokens.radius.lg}px;
 }}
 
 /* Minimize overlay chrome */
 QPushButton {{
-    background-color: rgba(0, 191, 255, 0.2);
-    color: {self.tokens.colors.text_primary};
+    background-color: rgba(0, 240, 255, 0.15);
+    color: {self.tokens.colors.accent_primary};
     border: 1px solid {self.tokens.colors.accent_primary};
     border-radius: {self.tokens.radius.sm}px;
     padding: 6px 12px;
     font-size: {self.tokens.typography.size_sm}pt;
+    font-weight: {self.tokens.typography.weight_bold};
 }}
 
 QPushButton:hover {{
     background-color: {self.tokens.colors.accent_primary};
+    color: #000000;
 }}
 
-/* Chat Display */
+/* Chat Display - slightly different background */
 QTextEdit {{
-    background-color: {bg_color};
+    background-color: rgba(0, 0, 0, 0.4);
     color: {self.tokens.colors.text_primary};
-    border: none;
+    border: 1px solid {self.tokens.colors.border_subtle};
+    border-radius: {self.tokens.radius.base}px;
     font-size: {self.tokens.typography.size_sm}pt;
 }}
 
 /* Input Field */
 QLineEdit {{
-    background-color: rgba(42, 42, 74, {opacity});
+    background-color: rgba(0, 0, 0, 0.3);
     color: {self.tokens.colors.text_primary};
-    border: 1px solid {self.tokens.colors.accent_primary};
+    border: 1px solid {self.tokens.colors.border_default};
     border-radius: {self.tokens.radius.sm}px;
     padding: 8px;
     font-size: {self.tokens.typography.size_sm}pt;
+    selection-background-color: {self.tokens.colors.accent_primary};
+    selection-color: black;
+}}
+
+QLineEdit:hover {{
+    border-color: {self.tokens.colors.accent_primary};
 }}
 
 QLineEdit:focus {{
-    border: 2px solid {self.tokens.colors.accent_primary_bright};
+    border: 1px solid {self.tokens.colors.accent_primary_bright};
+    background-color: rgba(0, 240, 255, 0.05);
 }}
 
-/* Scrollbar */
+/* Minimal Scrollbars for Overlay */
 QScrollBar:vertical {{
-    background-color: transparent;
-    width: 8px;
+    background: transparent;
+    width: 4px;
 }}
 
 QScrollBar::handle:vertical {{
-    background-color: {self.tokens.colors.accent_primary};
-    border-radius: 4px;
+    background: {self.tokens.colors.accent_primary};
+    border-radius: 2px;
+}}
+
+QScrollBar::handle:vertical:hover {{
+    background: {self.tokens.colors.accent_primary_bright};
+}}
+
+QScrollBar::add-line:vertical,
+QScrollBar::sub-line:vertical {{
+    height: 0;
+}}
+
+QScrollBar::add-page:vertical,
+QScrollBar::sub-page:vertical {{
+    background: none;
 }}
 """
 
