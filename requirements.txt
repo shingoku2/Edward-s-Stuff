@@ -16,6 +16,7 @@ PyQt6>=6.6.0
 
 # Additional utilities
 python-dotenv>=1.0.0
+PyYAML>=6.0
 pywin32>=306; platform_system=="Windows"
 cryptography>=41.0.0
 keyring>=24.2.0
