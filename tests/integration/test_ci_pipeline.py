@@ -186,7 +186,7 @@ class TestDeploymentReadiness:
 
     def test_workflow_files_valid(self):
         """Test that GitHub workflow files are valid YAML"""
-        import yaml
+        yaml = pytest.importorskip("yaml")
 
         workflows_dir = Path(".github/workflows")
         if not workflows_dir.exists():
