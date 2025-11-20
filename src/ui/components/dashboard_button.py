@@ -83,18 +83,18 @@ class OmnixDashboardButton(QPushButton):
         # Apply styling
         self.setStyleSheet(f"""
             OmnixDashboardButton {{
-                background-color: rgba(44, 44, 74, 0.6);
+                background-color: #2C2C4A99;
                 border: 1px solid {COLORS.border_subtle};
                 border-radius: {RADIUS.md}px;
                 min-width: 120px;
                 min-height: 120px;
             }}
             OmnixDashboardButton:hover {{
-                background-color: rgba(58, 58, 90, 0.8);
+                background-color: #3A3A5ACC;
                 border: 1px solid {COLORS.accent_primary};
             }}
             OmnixDashboardButton:pressed {{
-                background-color: rgba(70, 70, 110, 0.9);
+                background-color: #46466EE6;
                 border: 1px solid {COLORS.accent_primary_bright};
             }}
         """)

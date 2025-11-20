@@ -79,7 +79,7 @@ class OmnixAvatarDisplay(QFrame):
         self.setStyleSheet(
             f"""
             QFrame {{
-                background-color: rgba(20, 24, 40, 0.55);
+                background-color: #1418288C;
                 border: 1px solid {COLORS.border_subtle};
                 border-radius: {RADIUS.lg}px;
             }}
@@ -106,7 +106,7 @@ class OmnixAvatarDisplay(QFrame):
         info_frame.setStyleSheet(
             f"""
             QFrame {{
-                background-color: rgba(12, 20, 36, 0.72);
+                background-color: #0C1424B8;
                 border: 1px solid {COLORS.border_subtle};
                 border-radius: {RADIUS.base}px;
             }}

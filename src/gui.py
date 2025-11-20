@@ -120,7 +120,7 @@ class ChatWidget(QWidget):
         # Apply semi-transparent background for overlay
         self.chat_display.setStyleSheet(f"""
             QTextEdit {{
-                background-color: rgba(26, 26, 46, 0.7);
+                background-color: #1A1A2EB2;
             }}
         """)
         layout.addWidget(self.chat_display)
