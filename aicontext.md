@@ -481,9 +481,17 @@ npm run lint            # ESLint checks
 - Added active provider banner and quick action mapping so provider selection and commands visibly respond to clicks.
 - Troubleshooting: multiple attempts to run `npm install` in `frontend/` (commands with and without timeout/registry overrides) hung after several minutes; processes were killed (`kill -9`). Build/test commands were not executed because dependency installation could not complete in the container environment.
 
-## 2025-??-?? Updates (theme bridge cleanup)
-- Removed deprecated `src/ui/theme_bridge.py` and migrated references to the maintained `theme_compat` layer.
-- Updated UI documentation and migration plan to reflect the removal and highlight `ThemeManagerCompat` for legacy integration.
-- Refreshed CLAUDE.md deprecated file list and bandit report entry to drop the deleted module.
-- Replaced theme bridge test with compatibility layer coverage in `src/ui/test_design_system.py`.
-- Test: `python -m compileall src/ui/test_design_system.py` (pass).
+## 2026-02-24 Updates
+- Updated `tests/integration/test_ci_pipeline.py` to use `SessionLogger.get_recent_events` and ensure `GameProfileStore` persistence tests call the correct method signature.
+- Added optional `config_dir` support to `GameProfileStore` so tests can persist profiles in temporary directories without touching user directories.
+- Appended `credentials.enc` to `.gitignore` to prevent encrypted credential files from being tracked.
+
+### Troubleshooting
+- Verified fixes via `pytest tests/integration/test_ci_pipeline.py::TestCIPipeline::test_session_logger_headless tests/integration/test_ci_pipeline.py::TestDatabaseIntegrity::test_game_profile_persistence` (pass).
+
+## 2026-02-25 UI smoke test helper
+- Added `scripts/ui_test_tool.py` to drive the chat widget headlessly with a stub AI assistant, capture optional screenshots, and report bubble counts for UI validation.
+- Documented usage in `TESTING.md` under the new UI Smoke Test Helper section.
+
+### Troubleshooting
+- Attempted `python scripts/ui_test_tool.py --message "UI test ping"` but exited early with `libGL.so.1` missing; tool now detects the missing OpenGL runtime and provides installation guidance while returning exit code 2.

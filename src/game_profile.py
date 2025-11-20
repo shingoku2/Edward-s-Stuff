@@ -267,8 +267,14 @@ class GameProfileStore:
         ),
     ]
 
-    def __init__(self):
+    def __init__(self, config_dir: Optional[Path] = None):
         """Initialize profile store and load profiles"""
+        if config_dir:
+            self.config_dir = Path(config_dir)
+            self.profiles_file = self.config_dir / 'game_profiles.json'
+        else:
+            self.config_dir = CONFIG_DIR
+            self.profiles_file = PROFILES_FILE
         self.profiles: Dict[str, GameProfile] = {}
         self._custom_profile_ids: set = set()
         self._load_profiles()
@@ -280,9 +286,9 @@ class GameProfileStore:
             self.profiles[profile.id] = profile
 
         # Load custom profiles from file
-        if PROFILES_FILE.exists():
+        if self.profiles_file.exists():
             try:
-                with open(PROFILES_FILE, 'r') as f:
+                with open(self.profiles_file, 'r') as f:
                     data = json.load(f)
                     for profile_data in data.get('profiles', []):
                         profile = GameProfile.from_dict(profile_data)
@@ -296,7 +302,7 @@ class GameProfileStore:
         """Save all custom profiles to JSON file"""
         try:
             # Ensure directory exists
-            CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+            self.config_dir.mkdir(parents=True, exist_ok=True)
 
             # Only save custom profiles (not built-ins)
             custom_profiles = [
@@ -305,7 +311,7 @@ class GameProfileStore:
                 if pid in self.profiles
             ]
 
-            with open(PROFILES_FILE, 'w') as f:
+            with open(self.profiles_file, 'w') as f:
                 json.dump({'profiles': custom_profiles}, f, indent=2)
             logger.info(f"Saved {len(custom_profiles)} custom game profiles")
         except Exception as e:

@@ -143,7 +143,7 @@ class TestCIPipeline:
             meta={"test": True}
         )
 
-        events = logger.get_session_events("test_game")
+        events = logger.get_recent_events("test_game")
         assert len(events) >= 1
 
 
