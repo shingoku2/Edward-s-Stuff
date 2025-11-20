@@ -9,8 +9,8 @@ import asyncio
 import logging
 from typing import Any, Dict, List, Optional
 
-from config import Config
-from providers import (
+from src.config import Config
+from src.providers import (
     AIProvider,
     AnthropicProvider,
     create_provider,

@@ -2337,7 +2337,6 @@ stats.print_stats(10)  # Top 10 slowest
 
 4. **Deprecated Files** (kept for reference):
    - `src/theme_manager.py` - Legacy theme manager (deprecated)
-   - `src/ui/theme_bridge.py` - Old compatibility bridge (deprecated)
 
 #### Using the Theme System
 
