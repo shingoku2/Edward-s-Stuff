@@ -12,10 +12,18 @@ import os
 import threading
 from typing import Callable, Dict, List, Optional, TYPE_CHECKING
 
-from config import Config
-from ai_router import get_router, AIRouter
-from providers import ProviderError, ProviderAuthError, ProviderQuotaError, ProviderRateLimitError
-from src.knowledge_integration import get_knowledge_integration, KnowledgeIntegration
+from src.config import Config
+from src.ai_router import get_router, AIRouter
+from src.providers import (
+    ProviderError,
+    ProviderAuthError,
+    ProviderQuotaError,
+    ProviderRateLimitError,
+)
+from src.knowledge_integration import (
+    get_knowledge_integration,
+    KnowledgeIntegration,
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

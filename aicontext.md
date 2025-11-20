@@ -474,3 +474,13 @@ npm run lint            # ESLint checks
 - Build errors: Clear node_modules and reinstall
 - TypeScript errors: Ensure @types/react and @types/react-dom are installed
 - Missing dependencies: Run `npm install` in frontend directory
+
+---
+
+## 2025-01-?? Work Log (Automated Update)
+
+- Updated AI modules to follow the `from src.module import X` import convention for consistency and to avoid circular import edge cases. Adjusted `src/ai_assistant.py` and `src/ai_router.py` to import Config, router, and provider errors via the `src` package paths.
+- Added a compatibility shim in `src/providers.py` so that imports using either `providers` or `src.providers` resolve to the same module instance. This keeps exception classes identical across import styles and prevents mismatched error handling.
+- Tests run:
+  - `pytest tests/test_ai.py -q` (pass)
+  - `pytest -q` (fails at Qt-dependent collection due to missing `libGL.so.1` in environment)

@@ -6,9 +6,17 @@ Defines a consistent interface for interacting with different AI providers
 """
 
 import logging
+import sys
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Protocol, Tuple
+
+# Ensure imports using either ``providers`` or ``src.providers`` resolve to the
+# same module instance so exception classes remain identical across import
+# styles. This avoids mismatched exception types when code follows the
+# recommended ``from src.module import`` pattern but tests or legacy modules
+# import without the package prefix.
+sys.modules.setdefault("providers", sys.modules[__name__])
 
 logger = logging.getLogger(__name__)
 
