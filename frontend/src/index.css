@@ -31,9 +31,18 @@
   }
 }
 
-/* Hexagon clip path */
+/* Hexagon clip paths */
 .clip-hexagon {
   clip-path: polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%);
+}
+
+.clip-hexagon-border {
+  clip-path: polygon(
+    25% 0%, 75% 0%,
+    100% 50%,
+    75% 100%, 25% 100%,
+    0% 50%
+  );
 }
 
 /* Cyberpunk glow effect */
