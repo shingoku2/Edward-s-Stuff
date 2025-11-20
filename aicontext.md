@@ -304,3 +304,9 @@ worker.start()
 - Added new pytest suites for core config/credential handling, AI routing and assistant context trimming, knowledge ingestion/indexing, macro runner safety, and GUI interaction flows.
 - Resolved PyQt6 libGL import failure during GUI test collection by adding a module-level skip guard to handle headless environments.
 - Tests executed: `pytest tests/test_core.py tests/test_ai.py tests/test_knowledge.py tests/test_macro.py tests/test_gui.py -q` (16 passed, 1 skipped for PyQt6 availability).
+
+## 2025-??-?? Update (UI Redesign)
+- Refactored `src/gui.py` with new neon HUD layout matching OMNIX reference: added NeonButton/Toggle/Card widgets, chat bubble UI with animations, game status hex display, settings and AI provider panels, and bottom overlay bar.
+- Added custom stylesheet `src/ui/omnix.qss` for cyberpunk gradients, neon outlines, and chat bubble styling.
+- Updated game watcher UI hooks to reflect detected/idle games in the central hex module.
+- Applied entry animations and custom QSS loading in theme pipeline; resolved indentation error discovered via `python -m compileall src/gui.py`.

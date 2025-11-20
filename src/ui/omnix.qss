@@ -1,0 +1,186 @@
+/* Global baseline */
+#MainContainer {
+    background-color: #050814;
+    border: 1px solid #0c2d52;
+    border-radius: 18px;
+}
+
+#HeaderBar {
+    background: rgba(8, 12, 26, 0.85);
+    border: 1px solid #0d365d;
+    border-radius: 14px;
+}
+
+#BrandTitle {
+    color: #6ee0ff;
+    font-size: 32px;
+    font-family: "Orbitron", "Montserrat", "Segoe UI";
+    font-weight: 800;
+    letter-spacing: 3px;
+}
+
+#BrandSubtitle {
+    color: #5fc3ff;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 2px;
+}
+
+NeonCard {
+    background: rgba(7, 12, 28, 0.7);
+    border: 1px solid #0a4d7a;
+    border-radius: 16px;
+}
+
+#ChatWidget {
+    background: rgba(5, 10, 24, 0.8);
+}
+
+#ChatTitle {
+    color: #6ee0ff;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 2px;
+}
+
+#ChatSubtitle {
+    color: #4ac2ff;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 1px;
+}
+
+#ChatScroll {
+    border: 1px solid #0e3d63;
+    border-radius: 12px;
+    background: rgba(6, 12, 28, 0.6);
+}
+
+#ChatSender {
+    color: #8be7ff;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+#ChatText {
+    color: #e5f4ff;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+#ChatBubbleUser {
+    background: rgba(20, 184, 166, 0.1);
+    border: 1px solid #14b8a6;
+    border-radius: 12px;
+}
+
+#ChatBubbleAI {
+    background: rgba(124, 58, 237, 0.12);
+    border: 1px solid #7c3aed;
+    border-radius: 12px;
+}
+
+NeonButton {
+    color: #d8f8ff;
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #08263f, stop:1 #0b3d66);
+    border: 1px solid #0af5ff;
+    border-radius: 12px;
+    padding: 10px 16px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+NeonButton:hover {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #0a3558, stop:1 #0f5080);
+}
+
+NeonButton:pressed {
+    background: #072239;
+    border-color: #5ee9ff;
+}
+
+NeonButton[variant="toggle"] {
+    background: rgba(8, 18, 40, 0.6);
+    border: 1px solid #194567;
+    color: #7fd9ff;
+    text-align: left;
+}
+
+NeonButton[variant="toggle"][active="true"] {
+    background: rgba(14, 212, 255, 0.16);
+    border-color: #0af5ff;
+    color: #d8f8ff;
+}
+
+NeonButton[variant="provider"] {
+    text-align: left;
+    border-color: #5b21b6;
+    background: rgba(40, 6, 80, 0.4);
+}
+
+NeonButton[variant="provider"][active="true"] {
+    border-color: #8b5cf6;
+    background: rgba(83, 20, 160, 0.5);
+    color: #e0d7ff;
+}
+
+#SectionTitle {
+    color: #6ee0ff;
+    font-weight: 800;
+    letter-spacing: 2px;
+}
+
+#StatusIndicator {
+    background: qradialgradient(cx:0.5, cy:0.5, fx:0.5, fy:0.5, radius:0.8, stop:0 #0af5ff, stop:1 #063a5a);
+    border-radius: 6px;
+}
+
+#StatusText {
+    color: #60f7ab;
+    font-weight: 800;
+    letter-spacing: 2px;
+}
+
+#GameStatusPanel {
+    border-color: #0af5ff;
+}
+
+#HexGameLabel {
+    color: #ff4242;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: 2px;
+}
+
+#HexStatusLabel {
+    color: #6bfbca;
+    font-weight: 700;
+}
+
+#StatContainer {
+    border: 1px solid #0c3f66;
+    border-radius: 10px;
+    background: rgba(4, 12, 26, 0.75);
+}
+
+#StatLabel {
+    color: #6ee0ff;
+    letter-spacing: 2px;
+}
+
+#StatValue {
+    color: #60f7ab;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+#BottomBar {
+    background: rgba(7, 12, 28, 0.85);
+    border: 1px solid #0a4d7a;
+    border-radius: 14px;
+}
+
+#OverlayButton {
+    font-size: 14px;
+    padding: 12px 28px;
+}

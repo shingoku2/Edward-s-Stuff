@@ -4,16 +4,18 @@ Main application interface with overlay capabilities
 """
 
 import sys
+import math
 import logging
 import traceback
+from pathlib import Path
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QTextEdit, QLineEdit, QPushButton, QLabel, QSystemTrayIcon,
+    QLineEdit, QPushButton, QLabel, QSystemTrayIcon,
     QMenu, QFrame, QDialog, QRadioButton, QButtonGroup, QMessageBox,
-    QGroupBox
+    QGroupBox, QGraphicsOpacityEffect, QScrollArea, QSizePolicy
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QThread, QObject, QTimer, qInstallMessageHandler, QtMsgType
-from PyQt6.QtGui import QAction, QIcon, QPixmap, QPainter, QColor
+from PyQt6.QtCore import Qt, pyqtSignal, QThread, QObject, QTimer, qInstallMessageHandler, QtMsgType, QPropertyAnimation, QEasingCurve, QPointF
+from PyQt6.QtGui import QAction, QIcon, QPixmap, QPainter, QColor, QLinearGradient
 from typing import Optional, Dict
 import os
 import webbrowser
@@ -30,10 +32,7 @@ from game_watcher import get_game_watcher
 from game_profile import get_profile_store
 
 # Import design system components
-from ui.components import (
-    OmnixButton, OmnixIconButton, OmnixLineEdit, OmnixTextEdit,
-    OmnixGrid, OmnixHeaderBar, OmnixDashboardButton, OmnixAvatarDisplay
-)
+from ui.components import OmnixIconButton, OmnixLineEdit
 from ui.icons import icons
 from ui.tokens import COLORS, SPACING, RADIUS, TYPOGRAPHY
 
@@ -101,64 +100,189 @@ class SessionEventBridge(QObject):
         self.session_event.emit(provider, action, payload)
 
 
-class ChatWidget(QWidget):
-    """Chat interface widget for Q&A interactions with AI assistant"""
+class NeonButton(QPushButton):
+    """Neon-styled button with hover glow animation."""
 
-    def __init__(self, ai_assistant):
+    def __init__(self, text: str = "", parent: Optional[QWidget] = None, accent: str = "#0af5ff"):
+        super().__init__(text, parent)
+        self.accent_color = QColor(accent)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setProperty("variant", "primary")
+
+        # Subtle glow
+        self.shadow = QGraphicsOpacityEffect(self)
+        self.setGraphicsEffect(self.shadow)
+        self.shadow.setOpacity(0.35)
+
+        # Hover animation for opacity (glow intensity)
+        self._hover_animation = QPropertyAnimation(self.shadow, b"opacity", self)
+        self._hover_animation.setDuration(220)
+        self._hover_animation.setEasingCurve(QEasingCurve.Type.OutQuad)
+
+    def enterEvent(self, event):
+        self._animate_shadow(0.8)
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        self._animate_shadow(0.35)
+        super().leaveEvent(event)
+
+    def _animate_shadow(self, value: float):
+        self._hover_animation.stop()
+        self._hover_animation.setStartValue(self.shadow.opacity())
+        self._hover_animation.setEndValue(value)
+        self._hover_animation.start()
+
+
+class NeonToggle(NeonButton):
+    """Checkable toggle styled for neon chips."""
+
+    def __init__(self, text: str, parent: Optional[QWidget] = None):
+        super().__init__(text, parent)
+        self.setCheckable(True)
+        self.setChecked(False)
+        self.setProperty("variant", "toggle")
+
+    def mouseReleaseEvent(self, event):
+        super().mouseReleaseEvent(event)
+        self.setProperty("active", "true" if self.isChecked() else "false")
+        self.style().unpolish(self)
+        self.style().polish(self)
+
+
+class NeonCard(QFrame):
+    """Base container with holographic border styling."""
+
+    def __init__(self, parent: Optional[QWidget] = None):
+        super().__init__(parent)
+        self.setObjectName("NeonCard")
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
+        self.setFrameShape(QFrame.Shape.NoFrame)
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+
+
+class HexStatusWidget(QWidget):
+    """Custom-drawn hexagon container for game status display."""
+
+    def __init__(self, parent: Optional[QWidget] = None):
+        super().__init__(parent)
+        self.setMinimumSize(240, 240)
+        self.game_label = QLabel("CSGO", self)
+        self.game_label.setObjectName("HexGameLabel")
+        self.game_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.status_label = QLabel("ONLINE", self)
+        self.status_label.setObjectName("HexStatusLabel")
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._position_labels()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._position_labels()
+
+    def _position_labels(self):
+        center = self.rect().center()
+        self.game_label.resize(self.width() * 0.5, self.height() * 0.2)
+        self.game_label.move(center.x() - self.game_label.width() // 2, center.y() - self.game_label.height() // 2)
+        self.status_label.resize(self.width() * 0.4, 24)
+        self.status_label.move(center.x() - self.status_label.width() // 2, center.y() + self.game_label.height() // 2)
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        rect = self.rect().adjusted(8, 8, -8, -8)
+        points = []
+        for i in range(6):
+            angle_deg = 60 * i - 30
+            angle_rad = math.radians(angle_deg)
+            x = rect.center().x() + rect.width() / 2 * 0.86 * math.cos(angle_rad)
+            y = rect.center().y() + rect.height() / 2 * 0.86 * math.sin(angle_rad)
+            points.append(QPointF(x, y))
+
+        gradient = QLinearGradient(rect.topLeft(), rect.bottomRight())
+        gradient.setColorAt(0, QColor(10, 225, 255, 40))
+        gradient.setColorAt(1, QColor(129, 140, 248, 60))
+        painter.setBrush(gradient)
+        painter.setPen(QColor(20, 227, 255, 180))
+        painter.drawPolygon(points)
+
+
+class ChatWidget(NeonCard):
+    """Chat interface widget for Q&A interactions with AI assistant."""
+
+    def __init__(self, ai_assistant, title: str = "CHAT"):
         super().__init__()
         self.ai_assistant = ai_assistant
         self.ai_worker = None
         self.game_context_provider = None
+        self.title = title
         self.init_ui()
 
     def init_ui(self):
-        """Initialize the chat widget UI components"""
-        layout = QVBoxLayout()
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(SPACING.lg, SPACING.lg, SPACING.lg, SPACING.lg)
+        layout.setSpacing(SPACING.base)
+        self.setObjectName("ChatWidget")
 
-        # Chat history display area - use OmnixTextEdit
-        self.chat_display = OmnixTextEdit(read_only=True)
-        # Apply semi-transparent background for overlay
-        self.chat_display.setStyleSheet(f"""
-            QTextEdit {{
-                background-color: #1A1A2EB2;
-            }}
-        """)
-        layout.addWidget(self.chat_display)
+        if self.title:
+            header = QHBoxLayout()
+            title_label = QLabel(self.title)
+            title_label.setObjectName("ChatTitle")
+            subtitle = QLabel("Ready to assist")
+            subtitle.setObjectName("ChatSubtitle")
+            header.addWidget(title_label)
+            header.addStretch()
+            header.addWidget(subtitle)
+            layout.addLayout(header)
+
+        # Chat area
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setObjectName("ChatScroll")
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
+        self.messages_container = QWidget()
+        self.messages_layout = QVBoxLayout()
+        self.messages_layout.setContentsMargins(0, 0, 0, 0)
+        self.messages_layout.setSpacing(SPACING.sm)
+        self.messages_layout.addStretch()
+        self.messages_container.setLayout(self.messages_layout)
+
+        self.scroll_area.setWidget(self.messages_container)
+        layout.addWidget(self.scroll_area)
 
         # User input area
         input_layout = QHBoxLayout()
+        input_layout.setSpacing(SPACING.sm)
 
-        # Use OmnixLineEdit
-        self.input_field = OmnixLineEdit(placeholder="Ask a question about the game...")
+        self.input_field = OmnixLineEdit(placeholder="Ask anything about your match...")
         self.input_field.returnPressed.connect(self.send_message)
         input_layout.addWidget(self.input_field)
 
-        # Use OmnixButton with primary style
-        self.send_button = OmnixButton("Send", style="primary")
+        self.send_button = NeonButton("SEND")
+        self.send_button.setObjectName("SendButton")
         self.send_button.clicked.connect(self.send_message)
         input_layout.addWidget(self.send_button)
 
         layout.addLayout(input_layout)
 
-        # Clear chat history button - use OmnixButton with secondary style
-        self.clear_button = OmnixButton("Clear Chat", style="secondary")
+        action_row = QHBoxLayout()
+        action_row.addStretch()
+        self.clear_button = NeonButton("CLEAR")
+        self.clear_button.setObjectName("ClearButton")
         self.clear_button.clicked.connect(self.clear_chat)
-        layout.addWidget(self.clear_button)
-
-        self.setLayout(layout)
+        action_row.addWidget(self.clear_button)
+        layout.addLayout(action_row)
 
     def set_game_context_provider(self, provider):
-        """Register a callable that returns additional game context for chat prompts"""
         self.game_context_provider = provider
 
     def send_message(self):
-        """Process and send user message to AI assistant"""
         question = self.input_field.text().strip()
 
         if not question:
             return
 
-        # Check if AI assistant is configured
         if not self.ai_assistant:
             self.add_message(
                 "System",
@@ -168,16 +292,13 @@ class ChatWidget(QWidget):
             self.input_field.clear()
             return
 
-        # Display user's question in chat
         self.add_message("You", question, is_user=True)
         self.input_field.clear()
 
-        # Disable input while processing
         self.send_button.setEnabled(False)
         self.input_field.setEnabled(False)
         self.send_button.setText("Thinking...")
 
-        # Resolve optional game context without blocking UI
         game_context = None
         if callable(self.game_context_provider):
             try:
@@ -186,60 +307,218 @@ class ChatWidget(QWidget):
                 logger.error(f"Failed to gather game context: {exc}", exc_info=True)
                 game_context = None
 
-        # Create and start worker thread
         self.ai_worker = AIWorkerThread(self.ai_assistant, question, game_context=game_context)
         self.ai_worker.response_ready.connect(self.on_ai_response)
         self.ai_worker.error_occurred.connect(self.on_ai_error)
         self.ai_worker.finished.connect(self.on_ai_finished)
         self.ai_worker.start()
 
-        # Notify parent about thinking state if available
-        if self.parent() and hasattr(self.parent().parent(), 'avatar_display'):
-            self.parent().parent().avatar_display.set_thinking(True)
-
     def on_ai_response(self, response: str):
-        """Handle AI response"""
         self.add_message("AI Assistant", response, is_user=False)
 
     def on_ai_error(self, error: str):
-        """Handle AI error"""
         self.add_message("System", f"Error: {error}", is_user=False)
 
     def on_ai_finished(self):
-        """Re-enable input after AI finishes"""
         self.send_button.setEnabled(True)
         self.input_field.setEnabled(True)
-        self.send_button.setText("Send")
+        self.send_button.setText("SEND")
         self.ai_worker = None
 
-        # Notify parent about thinking state end if available
-        if self.parent() and hasattr(self.parent().parent(), 'avatar_display'):
-            self.parent().parent().avatar_display.set_thinking(False)
-
     def add_message(self, sender: str, message: str, is_user: bool = True):
-        """
-        Add a formatted message to the chat display
-
-        Args:
-            sender: Name of the message sender
-            message: Message content
-            is_user: True if message is from user, False if from AI/system
-        """
-        color = "#14b8a6" if is_user else "#f59e0b"
-        # Escape HTML to prevent issues with special characters
         message_escaped = message.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-        self.chat_display.append(f'<p><span style="color: {color}; font-weight: bold;">{sender}:</span> {message_escaped}</p>')
-        # Auto-scroll to bottom
-        self.chat_display.verticalScrollBar().setValue(
-            self.chat_display.verticalScrollBar().maximum()
-        )
+
+        bubble = QFrame()
+        bubble.setObjectName("ChatBubbleUser" if is_user else "ChatBubbleAI")
+        bubble.setProperty("role", "user" if is_user else "ai")
+        bubble_layout = QVBoxLayout()
+        bubble_layout.setContentsMargins(SPACING.md, SPACING.sm, SPACING.md, SPACING.sm)
+        bubble_layout.setSpacing(4)
+
+        sender_label = QLabel(sender)
+        sender_label.setObjectName("ChatSender")
+        text_label = QLabel(message_escaped)
+        text_label.setObjectName("ChatText")
+        text_label.setWordWrap(True)
+
+        bubble_layout.addWidget(sender_label)
+        bubble_layout.addWidget(text_label)
+        bubble.setLayout(bubble_layout)
+
+        effect = QGraphicsOpacityEffect()
+        bubble.setGraphicsEffect(effect)
+        effect.setOpacity(0.0)
+
+        insert_index = max(self.messages_layout.count() - 1, 0)
+        self.messages_layout.insertWidget(insert_index, bubble)
+        self._fade_in(effect)
+
+        QTimer.singleShot(0, self._scroll_to_bottom)
+
+    def _fade_in(self, effect: QGraphicsOpacityEffect):
+        animation = QPropertyAnimation(effect, b"opacity", self)
+        animation.setDuration(220)
+        animation.setStartValue(0.0)
+        animation.setEndValue(1.0)
+        animation.setEasingCurve(QEasingCurve.Type.OutQuad)
+        animation.start(QPropertyAnimation.DeletionPolicy.DeleteWhenStopped)
+
+    def _scroll_to_bottom(self):
+        bar = self.scroll_area.verticalScrollBar()
+        bar.setValue(bar.maximum())
 
     def clear_chat(self):
-        """Clear chat display and conversation history"""
-        self.chat_display.clear()
+        while self.messages_layout.count() > 1:
+            item = self.messages_layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
         if self.ai_assistant:
             self.ai_assistant.clear_history()
         logger.info("Chat history cleared")
+
+
+class ChatPanel(ChatWidget):
+    """Chat widget wrapper for the dashboard."""
+
+    def __init__(self, ai_assistant):
+        super().__init__(ai_assistant, title="CHAT")
+        self.setObjectName("ChatPanel")
+
+
+class GameStatusPanel(NeonCard):
+    """Central game status module with hex display and stats."""
+
+    def __init__(self):
+        super().__init__()
+        self.setObjectName("GameStatusPanel")
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(SPACING.lg, SPACING.lg, SPACING.lg, SPACING.lg)
+        layout.setSpacing(SPACING.base)
+
+        title = QLabel("GAME DETECTED")
+        title.setObjectName("SectionTitle")
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(title)
+
+        self.hex_widget = HexStatusWidget()
+        layout.addWidget(self.hex_widget, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        status_row = QHBoxLayout()
+        status_row.setSpacing(SPACING.sm)
+        indicator = QFrame()
+        indicator.setObjectName("StatusIndicator")
+        indicator.setFixedSize(12, 12)
+        status_label = QLabel("ONLINE")
+        status_label.setObjectName("StatusText")
+        status_row.addStretch()
+        status_row.addWidget(indicator)
+        status_row.addWidget(status_label)
+        status_row.addStretch()
+        layout.addLayout(status_row)
+
+        stats_row = QHBoxLayout()
+        stats_row.setSpacing(SPACING.lg)
+        stats_row.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        for label, value in [("K/D", "1.52"), ("MATCH", "24"), ("WINS", "152")]:
+            stat = self._build_stat(label, value)
+            stats_row.addWidget(stat)
+        layout.addLayout(stats_row)
+
+    def _build_stat(self, label: str, value: str) -> QWidget:
+        container = QFrame()
+        container.setObjectName("StatContainer")
+        stat_layout = QVBoxLayout(container)
+        stat_layout.setContentsMargins(12, 6, 12, 6)
+        stat_layout.setSpacing(4)
+        label_widget = QLabel(label)
+        label_widget.setObjectName("StatLabel")
+        value_widget = QLabel(value)
+        value_widget.setObjectName("StatValue")
+        stat_layout.addWidget(label_widget, alignment=Qt.AlignmentFlag.AlignCenter)
+        stat_layout.addWidget(value_widget, alignment=Qt.AlignmentFlag.AlignCenter)
+        return container
+
+
+class SettingsPanel(NeonCard):
+    """Settings chip panel."""
+
+    def __init__(self):
+        super().__init__()
+        self.setObjectName("SettingsPanel")
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(SPACING.lg, SPACING.lg, SPACING.lg, SPACING.lg)
+        layout.setSpacing(SPACING.sm)
+
+        title = QLabel("SETTINGS")
+        title.setObjectName("SectionTitle")
+        layout.addWidget(title)
+
+        chips_layout = QVBoxLayout()
+        chips_layout.setSpacing(SPACING.sm)
+        for text in ["Overlay Mode", "General", "Notifications", "Privacy"]:
+            toggle = NeonToggle(text)
+            toggle.setObjectName("SettingToggle")
+            chips_layout.addWidget(toggle)
+        layout.addLayout(chips_layout)
+
+
+class AIProviderPanel(NeonCard):
+    """AI provider selection panel."""
+
+    def __init__(self):
+        super().__init__()
+        self.setObjectName("AIProviderPanel")
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(SPACING.lg, SPACING.lg, SPACING.lg, SPACING.lg)
+        layout.setSpacing(SPACING.base)
+
+        title = QLabel("AI PROVIDER")
+        title.setObjectName("SectionTitle")
+        layout.addWidget(title)
+
+        buttons_layout = QVBoxLayout()
+        buttons_layout.setSpacing(SPACING.sm)
+
+        self.synapse_btn = NeonButton("SYNAPSE")
+        self.synapse_btn.setProperty("variant", "provider")
+        self.synapse_btn.setCheckable(True)
+        self.synapse_btn.setChecked(True)
+        buttons_layout.addWidget(self.synapse_btn)
+
+        self.hybridnex_btn = NeonButton("HYBRIDNEX")
+        self.hybridnex_btn.setProperty("variant", "provider")
+        self.hybridnex_btn.setCheckable(True)
+        buttons_layout.addWidget(self.hybridnex_btn)
+
+        self.synapse_btn.clicked.connect(lambda: self._select_provider(self.synapse_btn))
+        self.hybridnex_btn.clicked.connect(lambda: self._select_provider(self.hybridnex_btn))
+
+        layout.addLayout(buttons_layout)
+
+    def _select_provider(self, btn: NeonButton):
+        for candidate in [self.synapse_btn, self.hybridnex_btn]:
+            candidate.setChecked(candidate is btn)
+            candidate.setProperty("active", "true" if candidate.isChecked() else "false")
+            candidate.style().unpolish(candidate)
+            candidate.style().polish(candidate)
+
+
+class BottomBar(QFrame):
+    """Bottom overlay bar."""
+
+    def __init__(self, overlay_handler):
+        super().__init__()
+        self.setObjectName("BottomBar")
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(SPACING.lg, SPACING.sm, SPACING.lg, SPACING.sm)
+        layout.setSpacing(SPACING.base)
+
+        self.overlay_button = NeonButton("OVERLAY")
+        self.overlay_button.setObjectName("OverlayButton")
+        self.overlay_button.clicked.connect(overlay_handler)
+        layout.addWidget(self.overlay_button)
+        layout.addStretch()
 
 
 class OverlayWindow(QWidget):
@@ -758,92 +1037,80 @@ class MainWindow(QMainWindow):
             QTimer.singleShot(250, self.open_advanced_settings)
 
     def init_ui(self):
-        """Initialize the main window UI as a 2x3 dashboard with avatar display and frosted glass aesthetic"""
-        self.setWindowTitle("Omnix AI Assistant - Dashboard")
-
-        # Make window frameless and translucent for frosted glass effect
+        """Initialize the main window UI to match the neon HUD reference."""
+        self.setWindowTitle("Omnix: All Knowing Gaming Companion")
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.resize(1440, 900)
 
-        # Set default window size
-        self.resize(800, 700)
-
-        # Setup central widget - this will be the frosted glass panel
         central_widget = QWidget()
-        central_widget.setObjectName("DashboardContainer")
+        central_widget.setObjectName("MainContainer")
         self.setCentralWidget(central_widget)
 
-        # Apply frosted glass styling to the container
-        central_widget.setStyleSheet(self.design_system.generate_overlay_stylesheet(opacity=0.9))
-
-        # Main layout
         main_layout = QVBoxLayout()
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(0)
+        main_layout.setContentsMargins(24, 24, 24, 24)
+        main_layout.setSpacing(16)
 
-        # Header with draggable area
-        self.header = OmnixHeaderBar(title="Omnix AI Assistant", logo_text="⬡")
+        # Header / branding
+        self.header = QFrame()
+        self.header.setObjectName("HeaderBar")
+        header_layout = QHBoxLayout(self.header)
+        header_layout.setContentsMargins(16, 8, 16, 8)
+        brand = QLabel("OMNIX")
+        brand.setObjectName("BrandTitle")
+        subtitle = QLabel("ALL KNOWING AI COMPANION")
+        subtitle.setObjectName("BrandSubtitle")
+        header_layout.addWidget(brand)
+        header_layout.addStretch()
+        header_layout.addWidget(subtitle)
         main_layout.addWidget(self.header)
 
-        # Dashboard Container
-        dashboard_container = QWidget()
-        dashboard_layout = QVBoxLayout()
-        dashboard_layout.setContentsMargins(SPACING.lg, SPACING.lg, SPACING.lg, SPACING.lg)
-        dashboard_layout.setSpacing(SPACING.lg)
+        # Content row
+        content_layout = QHBoxLayout()
+        content_layout.setSpacing(16)
 
-        # Avatar Display Section (Top)
-        self.avatar_display = OmnixAvatarDisplay()
-        self.avatar_display.setMinimumHeight(300)
-        dashboard_layout.addWidget(self.avatar_display)
+        self.chat_panel = ChatPanel(self.ai_assistant)
+        content_layout.addWidget(self.chat_panel, 2)
 
-        # Button Grid Section (Bottom) - 2x3 layout
-        button_grid_container = QWidget()
-        button_grid_layout = QVBoxLayout()
-        button_grid_layout.setContentsMargins(0, 0, 0, 0)
-        button_grid_layout.setSpacing(SPACING.base)
+        self.game_status_panel = GameStatusPanel()
+        content_layout.addWidget(self.game_status_panel, 2)
 
-        # Create 2x3 grid using OmnixGrid
-        self.dashboard_grid = OmnixGrid(spacing=SPACING.base)
+        right_column = QVBoxLayout()
+        right_column.setSpacing(12)
+        self.settings_panel = SettingsPanel()
+        self.settings_panel.setFixedHeight(240)
+        right_column.addWidget(self.settings_panel)
 
-        # Row 1: Chat, AI Provider, Settings
-        self.chat_button = OmnixDashboardButton("chat", "Chat")
-        self.chat_button.clicked.connect(self.toggle_overlay_visibility)
-        self.dashboard_grid.add_widget(self.chat_button, 0, 0)
+        self.ai_panel = AIProviderPanel()
+        right_column.addWidget(self.ai_panel)
 
-        self.ai_button = OmnixDashboardButton("ai", "AI Provider")
-        self.ai_button.clicked.connect(lambda: self.open_settings_tab(0))
-        self.dashboard_grid.add_widget(self.ai_button, 0, 1)
+        right_container = QWidget()
+        right_container.setObjectName("RightColumn")
+        right_container.setLayout(right_column)
+        content_layout.addWidget(right_container, 1)
 
-        self.settings_button = OmnixDashboardButton("settings", "Settings")
-        self.settings_button.clicked.connect(self.open_advanced_settings)
-        self.dashboard_grid.add_widget(self.settings_button, 0, 2)
+        main_layout.addLayout(content_layout)
 
-        # Row 2: Game Profiles, Knowledge Pack, Session Coaching
-        self.profiles_button = OmnixDashboardButton("game", "Game Profiles")
-        self.profiles_button.clicked.connect(lambda: self.open_settings_tab(1))
-        self.dashboard_grid.add_widget(self.profiles_button, 1, 0)
-
-        self.knowledge_button = OmnixDashboardButton("knowledge", "Knowledge Pack")
-        self.knowledge_button.clicked.connect(lambda: self.open_settings_tab(2))
-        self.dashboard_grid.add_widget(self.knowledge_button, 1, 1)
-
-        self.session_button = OmnixDashboardButton("session", "Session Coaching")
-        self.session_button.clicked.connect(self.show_session_recap)
-        self.dashboard_grid.add_widget(self.session_button, 1, 2)
-
-        button_grid_layout.addWidget(self.dashboard_grid)
-        button_grid_container.setLayout(button_grid_layout)
-        dashboard_layout.addWidget(button_grid_container)
-
-        dashboard_container.setLayout(dashboard_layout)
-        main_layout.addWidget(dashboard_container)
+        # Bottom bar
+        self.bottom_bar = BottomBar(self.toggle_overlay_visibility)
+        main_layout.addWidget(self.bottom_bar)
 
         central_widget.setLayout(main_layout)
+
+        # Apply custom stylesheet on top of theme
+        self.apply_theme()
+        self._apply_entry_animations([
+            self.chat_panel,
+            self.game_status_panel,
+            self.settings_panel,
+            self.ai_panel,
+            self.bottom_bar,
+        ])
 
         # System tray integration
         self.create_system_tray()
 
-        logger.info("Main window initialized as 2x3 dashboard with avatar display")
+        logger.info("Main window initialized with neon HUD layout")
 
     def mousePressEvent(self, event):
         """Handle mouse press for dragging the frameless window"""
@@ -986,9 +1253,10 @@ class MainWindow(QMainWindow):
                 self.ai_assistant.set_current_game(self.current_game)
                 logger.debug("AI Assistant current game context updated")
 
-            # Update avatar display
-            if hasattr(self, 'avatar_display'):
-                self.avatar_display.set_game_context(game_name)
+            # Update central game status display
+            if hasattr(self, 'game_status_panel'):
+                self.game_status_panel.hex_widget.game_label.setText(game_name.upper())
+                self.game_status_panel.hex_widget.status_label.setText("ONLINE")
 
             # Update overlay title with current game
             if self.overlay_window:
@@ -1014,9 +1282,10 @@ class MainWindow(QMainWindow):
         try:
             logger.info("GameWatcher: game closed")
 
-            # Clear avatar display
-            if hasattr(self, 'avatar_display'):
-                self.avatar_display.set_game_context(None)
+            # Clear central game status
+            if hasattr(self, 'game_status_panel'):
+                self.game_status_panel.hex_widget.game_label.setText("OMNIX")
+                self.game_status_panel.hex_widget.status_label.setText("IDLE")
 
             # Update overlay title
             if self.overlay_window:
@@ -1280,11 +1549,40 @@ class MainWindow(QMainWindow):
     def apply_theme(self):
         """Apply current theme to the main window"""
         try:
-            stylesheet = self.theme_manager.generate_stylesheet(for_overlay=False)
-            self.setStyleSheet(stylesheet)
+            base_stylesheet = self.theme_manager.generate_stylesheet(for_overlay=False)
+            custom_stylesheet = self._load_custom_stylesheet()
+            self.setStyleSheet(base_stylesheet + "\n" + custom_stylesheet)
             logger.info("Theme applied to main window")
         except Exception as e:
             logger.error(f"Error applying theme: {e}")
+
+    def _load_custom_stylesheet(self) -> str:
+        custom_path = Path(__file__).parent / "ui" / "omnix.qss"
+        if custom_path.exists():
+            try:
+                return custom_path.read_text(encoding="utf-8")
+            except OSError as exc:
+                logger.error(f"Failed to read custom stylesheet: {exc}")
+        return ""
+
+    def _apply_entry_animations(self, widgets: list[QWidget]):
+        delay = 0
+        for widget in widgets:
+            effect = QGraphicsOpacityEffect(widget)
+            widget.setGraphicsEffect(effect)
+            effect.setOpacity(0.0)
+
+            animation = QPropertyAnimation(effect, b"opacity", widget)
+            animation.setDuration(400)
+            animation.setStartValue(0.0)
+            animation.setEndValue(1.0)
+            animation.setEasingCurve(QEasingCurve.Type.OutQuad)
+
+            def start_anim(anim=animation):
+                anim.start(QPropertyAnimation.DeletionPolicy.DeleteWhenStopped)
+
+            QTimer.singleShot(delay, start_anim)
+            delay += 80
 
     def apply_overlay_appearance(self):
         """Apply current appearance settings to the overlay window"""
