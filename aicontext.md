@@ -488,3 +488,10 @@ npm run lint            # ESLint checks
 
 ### Troubleshooting
 - Verified fixes via `pytest tests/integration/test_ci_pipeline.py::TestCIPipeline::test_session_logger_headless tests/integration/test_ci_pipeline.py::TestDatabaseIntegrity::test_game_profile_persistence` (pass).
+
+## 2026-02-25 UI smoke test helper
+- Added `scripts/ui_test_tool.py` to drive the chat widget headlessly with a stub AI assistant, capture optional screenshots, and report bubble counts for UI validation.
+- Documented usage in `TESTING.md` under the new UI Smoke Test Helper section.
+
+### Troubleshooting
+- Attempted `python scripts/ui_test_tool.py --message "UI test ping"` but exited early with `libGL.so.1` missing; tool now detects the missing OpenGL runtime and provides installation guidance while returning exit code 2.

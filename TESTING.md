@@ -286,6 +286,22 @@ def test_button_click(qtbot):
     assert clicked
 ```
 
+### UI Smoke Test Helper
+
+Use the headless helper to exercise the chat widget and optionally capture a
+PNG for manual review:
+
+```bash
+python scripts/ui_test_tool.py --message "Ping from smoke test" --screenshot /tmp/omnix-ui.png
+```
+
+- Runs with `QT_QPA_PLATFORM=offscreen` by default for CI/headless hosts.
+- Stubs the AI assistant so the chat panel always returns an echo response.
+- Reports bubble counts, response completion, and saves a screenshot when the
+  `--screenshot` flag is provided.
+- If you see `libGL.so.1` errors, install the system OpenGL runtime (e.g.
+  `sudo apt-get install -y libgl1`).
+
 ### Using Markers
 
 Mark tests to organize and selectively run them:
