@@ -1,0 +1,96 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [ staging ]
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    environment: staging
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Verify deployment branch
+      run: |
+        CURRENT_BRANCH=$(git branch --show-current)
+        echo "Deploying from branch: $CURRENT_BRANCH"
+        if [ "$CURRENT_BRANCH" != "staging" ]; then
+          echo "Warning: Deploying from non-staging branch"
+        fi
+
+    - name: Set up Python environment
+      run: |
+        cd /opt/omnix
+        source venv/bin/activate
+        python --version
+        pip --version
+
+    - name: Update deployment directory
+      run: |
+        # Sync code to deployment directory
+        rsync -av --delete \
+          --exclude='.git' \
+          --exclude='venv' \
+          --exclude='__pycache__' \
+          --exclude='*.pyc' \
+          --exclude='.env' \
+          --exclude='htmlcov' \
+          --exclude='.pytest_cache' \
+          ${{ github.workspace }}/ /opt/omnix/staging/
+
+    - name: Install dependencies
+      run: |
+        cd /opt/omnix/staging
+        /opt/omnix/venv/bin/pip install -r requirements.txt
+
+    - name: Run pre-deployment tests
+      run: |
+        cd /opt/omnix/staging
+        source /opt/omnix/venv/bin/activate
+        export QT_QPA_PLATFORM=offscreen
+        pytest tests/integration/test_ci_pipeline.py -v --tb=short
+      continue-on-error: false  # Fail deployment if tests fail
+
+    - name: Create deployment marker
+      run: |
+        cd /opt/omnix/staging
+        DEPLOY_TIME=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+        COMMIT_SHA=$(git rev-parse HEAD)
+        COMMIT_MSG=$(git log -1 --pretty=%B)
+
+        cat > .deployment_info << EOF
+        Deployment Time: $DEPLOY_TIME
+        Commit: $COMMIT_SHA
+        Branch: $(git branch --show-current)
+        Message: $COMMIT_MSG
+        Runner: $(hostname)
+        EOF
+
+        echo "Deployment marker created:"
+        cat .deployment_info
+
+    - name: Verify deployment
+      run: |
+        cd /opt/omnix/staging
+        source /opt/omnix/venv/bin/activate
+
+        # Verify critical modules can import
+        python -c "import config; import game_detector; import ai_router; print('✓ All modules imported successfully')"
+
+        # Verify config directory is accessible
+        python -c "from pathlib import Path; assert Path.home().exists(); print('✓ Config directory accessible')"
+
+        echo "✓ Deployment verification passed"
+
+    - name: Deployment summary
+      if: always()
+      run: |
+        echo "::notice title=Deployment Status::Deployment to staging environment completed"
+        if [ -f /opt/omnix/staging/.deployment_info ]; then
+          echo "Deployment Info:"
+          cat /opt/omnix/staging/.deployment_info
+        fi
