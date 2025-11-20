@@ -299,3 +299,8 @@ worker.start()
 ---
 
 **This file provides quick context for AI assistants. For comprehensive information, see CLAUDE.md**
+
+## 2025-01-17 Agent Update
+- Added new pytest suites for core config/credential handling, AI routing and assistant context trimming, knowledge ingestion/indexing, macro runner safety, and GUI interaction flows.
+- Resolved PyQt6 libGL import failure during GUI test collection by adding a module-level skip guard to handle headless environments.
+- Tests executed: `pytest tests/test_core.py tests/test_ai.py tests/test_knowledge.py tests/test_macro.py tests/test_gui.py -q` (16 passed, 1 skipped for PyQt6 availability).
