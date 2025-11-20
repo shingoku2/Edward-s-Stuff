@@ -181,9 +181,9 @@ class HexStatusWidget(QWidget):
 
     def _position_labels(self):
         center = self.rect().center()
-        self.game_label.resize(self.width() * 0.5, self.height() * 0.2)
+        self.game_label.resize(int(self.width() * 0.5), int(self.height() * 0.2))
         self.game_label.move(center.x() - self.game_label.width() // 2, center.y() - self.game_label.height() // 2)
-        self.status_label.resize(self.width() * 0.4, 24)
+        self.status_label.resize(int(self.width() * 0.4), 24)
         self.status_label.move(center.x() - self.status_label.width() // 2, center.y() + self.game_label.height() // 2)
 
     def paintEvent(self, event):
