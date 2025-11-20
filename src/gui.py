@@ -198,7 +198,7 @@ class HexStatusWidget(QWidget):
             y = rect.center().y() + rect.height() / 2 * 0.86 * math.sin(angle_rad)
             points.append(QPointF(x, y))
 
-        gradient = QLinearGradient(rect.topLeft(), rect.bottomRight())
+        gradient = QLinearGradient(QPointF(rect.topLeft()), QPointF(rect.bottomRight()))
         gradient.setColorAt(0, QColor(10, 225, 255, 40))
         gradient.setColorAt(1, QColor(129, 140, 248, 60))
         painter.setBrush(gradient)
