@@ -37,6 +37,6 @@ jobs:
       run: |
         cd /opt/omnix
         source venv/bin/activate
-        pytest tests/ -v --tb=short
+        xvfb-run -a pytest tests/ -v --tb=short
       env:
         QT_QPA_PLATFORM: offscreen
