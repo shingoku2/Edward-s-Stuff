@@ -52,10 +52,10 @@ class OmnixOverlayPanel(QFrame):
         self.setFrameShape(QFrame.Shape.StyledPanel)
 
         # Apply styling
-        bg_alpha = int(opacity * 255)
+        bg_alpha = format(int(opacity * 255), '02x')
         self.setStyleSheet(f"""
             OmnixOverlayPanel {{
-                background-color: rgba(15, 15, 26, {opacity});
+                background-color: #0F0F1A{bg_alpha};
                 border: 1px solid {COLORS.accent_primary};
                 border-radius: {RADIUS.md}px;
             }}
@@ -111,7 +111,7 @@ class OmnixOverlayChatWidget(QWidget):
         self.chat_display.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.chat_display.setStyleSheet(f"""
             QTextEdit {{
-                background-color: rgba(42, 42, 74, 0.5);
+                background-color: #2A2A4A80;
                 color: {COLORS.text_primary};
                 border: none;
                 border-radius: {RADIUS.sm}px;
@@ -132,7 +132,7 @@ class OmnixOverlayChatWidget(QWidget):
         self.input_field.returnPressed.connect(self._send_message)
         self.input_field.setStyleSheet(f"""
             QLineEdit {{
-                background-color: rgba(42, 42, 74, 0.7);
+                background-color: #2A2A4AB2;
                 color: {COLORS.text_primary};
                 border: 1px solid {COLORS.accent_primary};
                 border-radius: {RADIUS.sm}px;
@@ -150,7 +150,7 @@ class OmnixOverlayChatWidget(QWidget):
         self.send_button.clicked.connect(self._send_message)
         self.send_button.setStyleSheet(f"""
             QPushButton {{
-                background-color: rgba(0, 191, 255, 0.3);
+                background-color: #00BFFF4D;
                 color: {COLORS.text_primary};
                 border: 1px solid {COLORS.accent_primary};
                 border-radius: {RADIUS.sm}px;
@@ -256,7 +256,7 @@ class OmnixOverlayTip(QWidget):
         # Styling
         self.setStyleSheet(f"""
             QWidget {{
-                background-color: rgba(42, 42, 74, 0.9);
+                background-color: #2A2A4AE6;
                 border: 1px solid {border_color};
                 border-radius: {RADIUS.md}px;
             }}
@@ -344,7 +344,7 @@ class OmnixOverlayStatus(QWidget):
         # Styling
         self.setStyleSheet(f"""
             QWidget {{
-                background-color: rgba(42, 42, 74, 0.8);
+                background-color: #2A2A4ACC;
                 border: 1px solid {COLORS.accent_primary};
                 border-radius: {RADIUS.sm}px;
             }}
