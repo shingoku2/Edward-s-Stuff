@@ -12,6 +12,7 @@ from .layouts import OmnixVBox, OmnixHBox, OmnixGrid, OmnixFormLayout
 from .navigation import OmnixSidebar, OmnixSidebarButton, OmnixHeaderBar
 from .modals import OmnixDialog, OmnixConfirmDialog, OmnixMessageDialog, OmnixInputDialog
 from .dashboard_button import OmnixDashboardButton
+from .dashboard import OmnixDashboard, OmnixStatusCard
 from .avatar_display import OmnixAvatarDisplay
 
 __all__ = [
@@ -34,6 +35,8 @@ __all__ = [
     "OmnixConfirmDialog",
     "OmnixMessageDialog",
     "OmnixInputDialog",
+    "OmnixDashboard",
+    "OmnixStatusCard",
     "OmnixDashboardButton",
     "OmnixAvatarDisplay",
 ]
