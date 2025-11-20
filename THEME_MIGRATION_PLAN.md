@@ -28,8 +28,7 @@ Omnix currently has **two separate theming systems** that are not fully integrat
 1. Users changing settings in Appearance tab may not see full effects on new components
 2. Two sources of truth for styling creates confusion
 3. Settings don't fully propagate between systems
-4. `src/ui/theme_bridge.py` attempts to bridge them but it's a temporary solution
-5. Maintenance burden of keeping two systems in sync
+4. Maintenance burden of keeping two systems in sync
 
 ## Migration Goals
 
@@ -43,7 +42,6 @@ Omnix currently has **two separate theming systems** that are not fully integrat
 
 ### Files Using Legacy Theme System
 - `src/theme_manager.py` (654 lines) - **TO DEPRECATE**
-- `src/ui/theme_bridge.py` (234 lines) - **TO REMOVE**
 - `src/appearance_tabs.py` (~700 lines) - **TO REFACTOR**
 - `src/gui.py` (1,800 lines) - **TO UPDATE**
 - `src/settings_dialog.py` - **TO UPDATE**
@@ -98,9 +96,9 @@ Omnix currently has **two separate theming systems** that are not fully integrat
 ### Phase 7: Cleanup (IN PROGRESS)
 - [x] Created theme_compat.py as bridge (will remain for backward compat)
 - [ ] Deprecate `theme_manager.py` with migration notice
-- [ ] Remove or deprecate `theme_bridge.py`
-- [ ] Update all documentation
-- [ ] Update CLAUDE.md to remove technical debt section
+- [x] Remove or deprecate `theme_bridge.py`
+- [x] Update all documentation
+- [x] Update CLAUDE.md to remove technical debt section
 
 ### Phase 8: Testing ⏭️ (Deferred to Runtime)
 - [ ] Test theme changes propagate to all UI elements
@@ -322,7 +320,7 @@ def migrate_legacy_theme_file():
 - Design System Documentation: src/ui/DESIGN_SYSTEM.md
 - Design Tokens: src/ui/tokens.py
 - Legacy Theme Manager: src/theme_manager.py
-- Theme Bridge: src/ui/theme_bridge.py
+- Compatibility Layer: src/theme_compat.py
 
 ---
 
@@ -381,9 +379,8 @@ def migrate_legacy_theme_file():
 - `src/settings_dialog.py` - Import update
 - `CLAUDE.md` - Documentation update
 
-**Deprecated Files (2):**
+**Deprecated Files (1):**
 - `src/theme_manager.py` - Legacy system
-- `src/ui/theme_bridge.py` - Old bridge
 
 ### Commits
 

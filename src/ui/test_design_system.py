@@ -132,32 +132,42 @@ def test_icons():
         print(f"⚠ Icon system imports work (full test skipped: {e})")
 
 
-def test_theme_bridge():
-    """Test theme bridge compatibility."""
-    print("\nTesting theme bridge...")
+def test_theme_compatibility():
+    """Test legacy compatibility wrapper."""
+    print("\nTesting theme compatibility...")
 
-    try:
-        # Use relative imports from parent package
-        from .theme_bridge import OmnixThemeBridge, migrate_to_omnix_design_system
-        from ..theme_manager import Theme
+    from src.theme_compat import ThemeManagerCompat, LegacyTheme
 
-        # Create bridge
-        bridge = OmnixThemeBridge()
-        assert bridge is not None
+    compat = ThemeManagerCompat()
+    assert compat.current_theme is not None
 
-        # Convert legacy theme
-        omnix_theme = bridge.convert_legacy_to_omnix()
-        assert isinstance(omnix_theme, Theme)
-        assert omnix_theme.primary_color == "#00BFFF"  # Omnix accent_primary
+    # Update tokens via legacy theme
+    legacy_theme = LegacyTheme(
+        primary_color="#123456",
+        secondary_color="#ABCDEF",
+        font_size=14,
+        spacing=20,
+        border_radius=10,
+    )
+    compat.set_theme(legacy_theme)
 
-        # Migration helper
-        bridge2, theme2 = migrate_to_omnix_design_system()
-        assert bridge2 is not None
-        assert theme2 is not None
+    tokens = compat.omnix_manager.tokens
+    assert tokens.colors.accent_primary == "#123456"
+    assert tokens.colors.accent_secondary == "#ABCDEF"
+    assert tokens.typography.size_base == 14
+    assert tokens.spacing.base == 20
+    assert tokens.radius.base == 10
 
-        print("✓ Theme bridge working correctly")
-    except ImportError as e:
-        print(f"⚠ Theme bridge test skipped (dependencies not available): {e}")
+    # Persistence roundtrip
+    saved = compat.save_to_dict()
+    compat.load_from_dict(saved)
+    assert compat.current_theme.primary_color == "#123456"
+
+    # Stylesheet generation still available
+    stylesheet = compat.generate_stylesheet()
+    assert isinstance(stylesheet, str)
+
+    print("✓ Theme compatibility working correctly")
 
 
 def test_component_creation():
@@ -199,7 +209,7 @@ def run_all_tests():
         test_tokens()
         test_stylesheet_generation()
         test_icons()
-        test_theme_bridge()
+        test_theme_compatibility()
         test_component_creation()
 
         print("\n" + "=" * 60)

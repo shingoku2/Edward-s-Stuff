@@ -73,7 +73,6 @@ src/ui/
 ├── tokens.py                # Design tokens (colors, typography, spacing)
 ├── design_system.py         # QSS stylesheet generator
 ├── icons.py                 # SVG icon system
-├── theme_bridge.py          # Legacy theme compatibility
 ├── components/              # Reusable UI components
 │   ├── __init__.py
 │   ├── buttons.py          # Button components
@@ -147,19 +146,20 @@ See [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) for complete documentation including:
 
 ## Integration with Existing Code
 
-The design system includes a theme bridge for backward compatibility:
+For legacy callers, use the compatibility layer to translate existing themes to the new token system:
 
 ```python
-from src.ui.theme_bridge import OmnixThemeBridge
+from theme_compat import ThemeManagerCompat
 
-# Create bridge with existing theme
-bridge = OmnixThemeBridge(legacy_theme)
+compat = ThemeManagerCompat()
+legacy_theme = compat.current_theme
 
-# Convert to Omnix design system
-omnix_theme = bridge.convert_legacy_to_omnix()
+# Update legacy values as needed
+legacy_theme.primary_color = "#FF00FF"
+compat.set_theme(legacy_theme)
 
-# Apply to application
-bridge.apply_to_application(app)
+# Apply updated stylesheet
+app.setStyleSheet(compat.generate_stylesheet())
 ```
 
 ## Customization
