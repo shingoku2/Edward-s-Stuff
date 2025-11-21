@@ -9,9 +9,11 @@ import os
 import sys
 from pathlib import Path
 from typing import Dict, Optional
+
 from dotenv import load_dotenv
 
 from credential_store import CredentialDecryptionError, CredentialStore, CredentialStoreError
+from security import ensure_private_dir, ensure_private_file
 
 logger = logging.getLogger(__name__)
 
@@ -38,9 +40,11 @@ class Config:
         """
         self.config_path = config_path
         self.config_dir = config_dir
+        self._ensure_secure_directories()
         # Load environment variables
         if env_file and os.path.exists(env_file):
             load_dotenv(env_file, override=True)  # Override existing env vars
+            self._protect_file(Path(env_file))
         else:
             # Try multiple locations for .env file
             # This handles both development and PyInstaller bundled scenarios
@@ -60,6 +64,7 @@ class Config:
                 if env_path.exists():
                     load_dotenv(env_path, override=True)  # Override existing env vars
                     logger.info("Loaded .env from: %s", env_path)
+                    self._protect_file(env_path)
                     break
 
         # Secure credential storage
@@ -112,6 +117,26 @@ class Config:
         # Validate configuration (only if required)
         if require_keys:
             self._validate()
+
+    def _ensure_secure_directories(self) -> None:
+        """Create configuration directories with hardened permissions."""
+        try:
+            ensure_private_dir(CONFIG_DIR)
+        except Exception as exc:  # pragma: no cover - defensive guard
+            logger.warning("Failed to secure default config dir %s: %s", CONFIG_DIR, exc)
+
+        if self.config_dir:
+            try:
+                ensure_private_dir(Path(self.config_dir))
+            except Exception as exc:  # pragma: no cover - defensive guard
+                logger.warning("Failed to secure custom config dir %s: %s", self.config_dir, exc)
+
+    def _protect_file(self, path: Path) -> None:
+        """Ensure a configuration file is restricted to the current user."""
+        try:
+            ensure_private_file(path)
+        except Exception as exc:  # pragma: no cover - defensive guard
+            logger.warning("Unable to harden permissions for %s: %s", path, exc)
 
     def _load_session_tokens_from_secure_storage(self, credentials: Dict) -> None:
         """
@@ -176,6 +201,7 @@ class Config:
     def _load_keybinds(self):
         """Load keybinds from JSON file"""
         try:
+            self._protect_file(KEYBINDS_FILE)
             if KEYBINDS_FILE.exists():
                 with open(KEYBINDS_FILE, 'r', encoding='utf-8') as f:
                     self.keybinds = json.load(f)
@@ -190,6 +216,7 @@ class Config:
     def _load_macros(self):
         """Load macros from JSON file"""
         try:
+            self._protect_file(MACROS_FILE)
             if MACROS_FILE.exists():
                 with open(MACROS_FILE, 'r', encoding='utf-8') as f:
                     self.macros = json.load(f)
@@ -204,6 +231,7 @@ class Config:
     def _load_theme(self):
         """Load theme from JSON file"""
         try:
+            self._protect_file(THEME_FILE)
             if THEME_FILE.exists():
                 with open(THEME_FILE, 'r', encoding='utf-8') as f:
                     self.theme = json.load(f)
@@ -233,6 +261,7 @@ class Config:
                 json.dump(keybinds, f, indent=2)
 
             self.keybinds = keybinds
+            self._protect_file(KEYBINDS_FILE)
             logger.info(f"Saved {len(keybinds)} keybinds to {KEYBINDS_FILE}")
             return True
         except Exception as e:
@@ -257,6 +286,7 @@ class Config:
                 json.dump(macros, f, indent=2)
 
             self.macros = macros
+            self._protect_file(MACROS_FILE)
             logger.info(f"Saved {len(macros)} macros to {MACROS_FILE}")
             return True
         except Exception as e:
@@ -281,6 +311,7 @@ class Config:
                 json.dump(theme, f, indent=2)
 
             self.theme = theme
+            self._protect_file(THEME_FILE)
             logger.info(f"Saved theme to {THEME_FILE}")
             return True
         except Exception as e:
@@ -657,6 +688,8 @@ class Config:
                 f.write(f"OVERLAY_HEIGHT={existing_content.get('OVERLAY_HEIGHT', '700')}\n")
                 f.write(f"OVERLAY_MINIMIZED={existing_content.get('OVERLAY_MINIMIZED', 'false')}\n")
                 f.write(f"OVERLAY_OPACITY={existing_content.get('OVERLAY_OPACITY', '0.95')}\n")
+
+        ensure_private_file(env_path)
 
         return env_path
 
