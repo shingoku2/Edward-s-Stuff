@@ -255,7 +255,7 @@ class HexStatusWidget(QWidget):
             x = center.x() + radius * 0.9 * math.cos(radians)
             y = center.y() + radius * 0.9 * math.sin(radians)
             points.append(QPoint(int(x), int(y)))
-        painter.drawPolygon(*points)
+        painter.drawPolygon(points)
 
         painter.setPen(QColor("#ff4e4e"))
         painter.setFont(QFont("Orbitron", 18, QFont.Weight.Bold))
