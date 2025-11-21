@@ -120,7 +120,10 @@ class Config:
 
     def _ensure_secure_directories(self) -> None:
         """Create configuration directories with hardened permissions."""
-        ensure_private_dir(CONFIG_DIR)
+        try:
+            ensure_private_dir(CONFIG_DIR)
+        except Exception as exc:  # pragma: no cover - defensive guard
+            logger.warning("Failed to secure default config dir %s: %s", CONFIG_DIR, exc)
 
         if self.config_dir:
             try:
