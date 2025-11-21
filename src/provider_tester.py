@@ -175,3 +175,26 @@ class ProviderTester:
                 return False, f"❌ Connection Error\n\nCould not reach Google servers.\n\nPlease check your internet connection."
             else:
                 return False, f"❌ Connection Failed\n\n{str(e)}\n\nPlease check your API key and try again."
+
+    @staticmethod
+    def test_ollama(base_url: str = "http://localhost:11434", timeout: float = DEFAULT_TIMEOUT) -> Tuple[bool, str]:
+        """Test Ollama connectivity."""
+
+        try:
+            import ollama
+
+            client = ollama.Client(host=base_url)
+            models = client.list()
+            model_count = len(models.get("models", []))
+
+            if model_count == 0:
+                return True, "✅ Connected to Ollama. No models installed yet."
+
+            return True, f"✅ Connected to Ollama!\n\n{model_count} models available."
+        except ImportError:
+            error_msg = "Ollama library not installed. Please install it with:\npip install ollama"
+            logger.error(error_msg)
+            return False, f"❌ Library Missing\n\n{error_msg}"
+        except Exception as exc:
+            logger.error(f"Ollama connection test failed: {exc}")
+            return False, f"❌ Connection Failed\n\n{exc}\n\nIs the Ollama daemon running on {base_url}?"

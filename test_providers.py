@@ -15,6 +15,7 @@ from src.providers import (
     OpenAIProvider,
     AnthropicProvider,
     GeminiProvider,
+    OllamaProvider,
     ProviderError,
     ProviderAuthError,
     ProviderQuotaError,
@@ -305,7 +306,7 @@ class TestProviderHealth:
 
     def test_provider_health_creation(self):
         """Test creating ProviderHealth object"""
-        health = ProviderHealth(healthy=True, message="All good")
+        health = ProviderHealth(is_healthy=True, message="All good")
 
         assert health.healthy is True
         assert health.message == "All good"
@@ -315,7 +316,7 @@ class TestProviderHealth:
         provider = OpenAIProvider(api_key="sk-test-key")
 
         with patch.object(provider, 'test_connection') as mock_test:
-            mock_test.return_value = ProviderHealth(healthy=True, message="Connected")
+            mock_test.return_value = ProviderHealth(is_healthy=True, message="Connected")
 
             health = provider.test_connection()
 
@@ -347,6 +348,14 @@ class TestProviderTester:
 
         assert success is False
         assert "required" in message.lower()
+
+    def test_test_ollama_missing_library(self, monkeypatch):
+        """Test Ollama connection when library is missing."""
+        with patch.dict(sys.modules, {"ollama": None}):
+            success, message = ProviderTester.test_ollama("http://localhost:11434")
+
+        assert success is False
+        assert "library" in message.lower()
 
     @patch('openai.OpenAI')
     def test_test_openai_with_mocked_client(self, mock_openai_class):
@@ -468,6 +477,17 @@ class TestProviderConfiguration:
 
         assert provider.default_model == "gemini-pro-vision"
 
+    def test_ollama_with_custom_parameters(self):
+        """Test Ollama provider with custom parameters"""
+        provider = OllamaProvider(
+            api_key=None,
+            base_url="http://localhost:11434",
+            default_model="llama3:instruct"
+        )
+
+        assert provider.base_url == "http://localhost:11434"
+        assert provider.default_model == "llama3:instruct"
+
 
 @pytest.mark.integration
 class TestProviderIntegration:
@@ -479,10 +499,13 @@ class TestProviderIntegration:
         providers = {
             "openai": OpenAIProvider(api_key="sk-test-openai"),
             "anthropic": AnthropicProvider(api_key="sk-ant-test"),
-            "gemini": GeminiProvider(api_key="AIza-test")
+            "gemini": GeminiProvider(api_key="AIza-test"),
+            "ollama": OllamaProvider(api_key=None, base_url="http://localhost:11434"),
         }
 
         for name, provider in providers.items():
+            if hasattr(provider, 'client') and provider.client is None and name == "ollama":
+                provider.client = object()
             assert provider.is_configured()
             assert provider.name == name
 
@@ -491,8 +514,12 @@ class TestProviderIntegration:
         providers = [
             OpenAIProvider(api_key="sk-test"),
             AnthropicProvider(api_key="sk-ant-test"),
-            GeminiProvider(api_key="AIza-test")
+            GeminiProvider(api_key="AIza-test"),
+            OllamaProvider(api_key=None, base_url="http://localhost:11434"),
         ]
+
+        # Mock Ollama client to report configured
+        providers[-1].client = object()
 
         required_methods = ['chat', 'is_configured', 'test_connection']
 

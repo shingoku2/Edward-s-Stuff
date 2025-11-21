@@ -39,13 +39,18 @@ class AIRouter:
 
     def _initialize_providers(self):
         """Initialize all available providers with their API keys"""
-        for provider_name in ["openai", "anthropic", "gemini"]:
+        provider_names = ["openai", "anthropic", "gemini", "ollama"]
+
+        for provider_name in provider_names:
             api_key = self.config.get_api_key(provider_name)
-            if api_key:
+            base_url = self.config.get_provider_endpoint(provider_name)
+
+            if api_key or base_url or provider_name == "ollama":
                 try:
                     self._providers[provider_name] = create_provider(
                         provider_name,
-                        api_key=api_key
+                        api_key=api_key,
+                        base_url=base_url,
                     )
                     logger.debug(f"Initialized provider: {provider_name}")
                 except Exception as e:
@@ -94,7 +99,7 @@ class AIRouter:
         Returns:
             List of provider names that are configured with API keys
         """
-        return list(self._providers.keys())
+        return [name for name, provider in self._providers.items() if provider.is_configured()]
 
     def chat(
         self,

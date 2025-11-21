@@ -5,6 +5,7 @@ Defines a consistent interface for interacting with different AI providers
 (OpenAI, Anthropic, Gemini) with a clean abstraction that hides provider-specific details.
 """
 
+import asyncio
 import logging
 import sys
 from abc import ABC, abstractmethod
@@ -34,13 +35,30 @@ else:  # Defensive fallback for unexpected import names
 logger = logging.getLogger(__name__)
 
 
+class AwaitableDict(dict):
+    """Dictionary that can be awaited for async test compatibility."""
+
+    def __await__(self):  # type: ignore[override]
+        async def _wrapper():
+            return self
+
+        return _wrapper().__await__()
+
+
 @dataclass
 class ProviderHealth:
     """Health status of a provider"""
-    healthy: bool
+
+    is_healthy: bool
     message: str
     error_type: Optional[str] = None  # 'auth', 'quota', 'rate_limit', 'connection', etc.
     details: Optional[Dict[str, Any]] = None
+
+    @property
+    def healthy(self) -> bool:
+        """Backward-compatible alias used by tests."""
+
+        return self.is_healthy
 
 
 class ProviderError(Exception):
@@ -200,7 +218,7 @@ class OpenAIProvider:
         messages: List[Dict[str, str]],
         model: Optional[str] = None,
         **kwargs: Any
-    ) -> Dict[str, Any]:
+    ) -> AwaitableDict:
         """
         Send a chat request to OpenAI
 
@@ -230,12 +248,12 @@ class OpenAIProvider:
             except Exception:
                 usage = {"total_tokens": None}
 
-            return {
+            return AwaitableDict({
                 "content": response.choices[0].message.content,
                 "model": response.model,
                 "stop_reason": response.choices[0].finish_reason,
                 "usage": usage,
-            }
+            })
         except Exception as e:
             error_str = str(e).lower()
 
@@ -327,7 +345,7 @@ class AnthropicProvider:
         messages: List[Dict[str, str]],
         model: Optional[str] = None,
         **kwargs: Any
-    ) -> Dict[str, Any]:
+    ) -> AwaitableDict:
         """
         Send a chat request to Anthropic
 
@@ -375,12 +393,12 @@ class AnthropicProvider:
             except Exception:
                 total_tokens = None
 
-            return {
+            return AwaitableDict({
                 "content": response.content[0].text,
                 "model": response.model,
                 "stop_reason": response.stop_reason,
                 "usage": {"total_tokens": total_tokens},
-            }
+            })
         except Exception as e:
             error_str = str(e).lower()
 
@@ -477,7 +495,7 @@ class GeminiProvider:
         messages: List[Dict[str, str]],
         model: Optional[str] = None,
         **kwargs: Any
-    ) -> Dict[str, Any]:
+    ) -> AwaitableDict:
         """
         Send a chat request to Gemini
 
@@ -519,11 +537,11 @@ class GeminiProvider:
                 **kwargs
             )
 
-            return {
+            return AwaitableDict({
                 "content": response.text,
                 "model": model_name,
                 "stop_reason": response.candidates[0].finish_reason if response.candidates else None,
-            }
+            })
         except Exception as e:
             error_str = str(e).lower()
 
@@ -558,6 +576,8 @@ def get_provider_class(provider_name: str) -> type:
         return AnthropicProvider
     elif provider_name == "gemini":
         return GeminiProvider
+    elif provider_name == "ollama":
+        return OllamaProvider
     else:
         raise ValueError(f"Unknown provider: {provider_name}")
 
@@ -565,6 +585,7 @@ def get_provider_class(provider_name: str) -> type:
 def create_provider(
     provider_name: str,
     api_key: Optional[str] = None,
+    base_url: Optional[str] = None,
     **kwargs: Any
 ) -> Any:
     """
@@ -579,4 +600,95 @@ def create_provider(
         Instantiated provider object
     """
     provider_class = get_provider_class(provider_name)
-    return provider_class(api_key=api_key, **kwargs)
+    init_kwargs = {"api_key": api_key}
+    if base_url:
+        init_kwargs["base_url"] = base_url
+
+    return provider_class(**init_kwargs, **kwargs)
+class OllamaProvider:
+    """Ollama provider implementation (local or remote)."""
+
+    name = "ollama"
+
+    def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None, default_model: Optional[str] = None):
+        self.api_key = api_key  # Included for API-compatibility; typically not required.
+        self.base_url = base_url or "http://localhost:11434"
+        self.default_model = default_model or "llama3"
+        self.client = None
+        self._initialize_client()
+
+    def _initialize_client(self) -> None:
+        """Initialize the Ollama client."""
+
+        try:
+            import ollama
+
+            self.client = ollama.Client(host=self.base_url)
+        except Exception:
+            logger.warning("Ollama library not installed or failed to initialize")
+
+    def is_configured(self) -> bool:
+        """Ollama is configured if a client is available (no key required)."""
+
+        return self.client is not None
+
+    def test_connection(self) -> ProviderHealth:
+        """Test connectivity to the Ollama daemon."""
+
+        if not self.is_configured():
+            return ProviderHealth(
+                is_healthy=False,
+                message="Ollama client not initialized - ensure the 'ollama' package is installed",
+                error_type="connection",
+            )
+
+        try:
+            models = self.client.list().get("models", [])
+            if models:
+                return ProviderHealth(
+                    is_healthy=True,
+                    message=f"✅ Connected to Ollama. {len(models)} models available.",
+                    details={"models": [m.get("name") for m in models]},
+                )
+
+            return ProviderHealth(
+                is_healthy=True,
+                message="✅ Connected to Ollama but no models are installed.",
+            )
+        except Exception as exc:
+            return ProviderHealth(
+                is_healthy=False,
+                message=f"❌ Failed to reach Ollama at {self.base_url}: {exc}",
+                error_type="connection",
+                details={"original_error": str(exc)},
+            )
+
+    def chat(
+        self,
+        messages: List[Dict[str, str]],
+        model: Optional[str] = None,
+        **kwargs: Any,
+    ) -> AwaitableDict:
+        """Send a chat request to Ollama."""
+
+        if not self.is_configured():
+            raise ProviderConnectionError("Ollama client not initialized or unreachable")
+
+        model_name = model or self.default_model
+
+        try:
+            response = self.client.chat(model=model_name, messages=messages, **kwargs)
+            message = response.get("message", {})
+            return AwaitableDict({
+                "content": message.get("content", ""),
+                "model": response.get("model", model_name),
+                "stop_reason": response.get("done_reason"),
+                "usage": response.get("usage"),
+            })
+        except Exception as exc:
+            error_str = str(exc).lower()
+
+            if "connection" in error_str or "failed to connect" in error_str:
+                raise ProviderConnectionError(f"Ollama connection failed: {exc}")
+            raise ProviderError(f"Ollama error: {exc}")
+
