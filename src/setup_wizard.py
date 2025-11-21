@@ -45,6 +45,8 @@ class TestConnectionThread(QThread):
                 success, message = ProviderTester.test_anthropic(self.api_key, timeout=self.timeout)
             elif self.provider == "gemini":
                 success, message = ProviderTester.test_gemini(self.api_key, timeout=self.timeout)
+            elif self.provider == "ollama":
+                success, message = ProviderTester.test_ollama(self.base_url or "http://localhost:11434", timeout=self.timeout)
             else:
                 success, message = False, f"Unknown provider: {self.provider}"
 
@@ -71,20 +73,24 @@ class SetupWizard(QDialog):
         self.provider_enabled = {
             'openai': False,
             'anthropic': False,
-            'gemini': False
+            'gemini': False,
+            'ollama': False,
         }
         self.provider_keys = {
             'openai': '',
             'anthropic': '',
-            'gemini': ''
+            'gemini': '',
+            'ollama': '',
         }
         self.provider_base_urls = {
-            'openai': ''
+            'openai': '',
+            'ollama': 'http://localhost:11434',
         }
         self.provider_tested = {
             'openai': False,
             'anthropic': False,
-            'gemini': False
+            'gemini': False,
+            'ollama': False,
         }
 
         self.default_provider = 'anthropic'  # Default to Anthropic (Claude)
@@ -265,6 +271,14 @@ class SetupWizard(QDialog):
         )
         layout.addWidget(gemini_group)
 
+        ollama_group = self.create_provider_checkbox(
+            'ollama',
+            'Ollama (Local)',
+            'Runs models locally without API keys. Requires the Ollama daemon running on your machine.',
+            'https://ollama.com'
+        )
+        layout.addWidget(ollama_group)
+
         layout.addStretch()
 
         # Default selection
@@ -367,6 +381,10 @@ class SetupWizard(QDialog):
             name = "Google Gemini"
             placeholder = "AIza..."
             help_text = "Your Gemini API key (starts with 'AIza')"
+        elif provider_id == 'ollama':
+            name = "Ollama (Local)"
+            placeholder = "Not required for local use"
+            help_text = "Optional: provide a token if your Ollama endpoint is secured."
         else:
             name = provider_id.title()
             placeholder = ""
@@ -435,6 +453,27 @@ class SetupWizard(QDialog):
 
             base_url_input = QLineEdit()
             base_url_input.setPlaceholderText("https://api.openai.com/v1")
+            base_url_input.textChanged.connect(lambda text, p=provider_id: self.on_base_url_changed(p, text))
+            base_url_input.setStyleSheet("""
+                QLineEdit {
+                    background-color: #2a2a2a;
+                    color: #ffffff;
+                    border: 1px solid #3a3a3a;
+                    border-radius: 5px;
+                    padding: 6px;
+                    font-size: 9pt;
+                }
+            """)
+            layout.addWidget(base_url_input)
+            self.key_input_sections[f'{provider_id}_base_url'] = base_url_input
+        elif provider_id == 'ollama':
+            base_url_label = QLabel("Ollama Host (defaults to http://localhost:11434):")
+            base_url_label.setStyleSheet("font-size: 9pt; color: #9ca3af; margin-top: 5px;")
+            layout.addWidget(base_url_label)
+
+            base_url_input = QLineEdit()
+            base_url_input.setText(self.provider_base_urls.get('ollama', 'http://localhost:11434'))
+            base_url_input.setPlaceholderText("http://localhost:11434")
             base_url_input.textChanged.connect(lambda text, p=provider_id: self.on_base_url_changed(p, text))
             base_url_input.setStyleSheet("""
                 QLineEdit {
@@ -582,7 +621,7 @@ class SetupWizard(QDialog):
     def test_provider_connection(self, provider_id: str):
         """Test connection for a specific provider"""
         api_key = self.provider_keys.get(provider_id, '').strip()
-        if not api_key:
+        if not api_key and provider_id != 'ollama':
             QMessageBox.warning(self, "Missing API Key", "Please enter an API key first.")
             return
 
@@ -665,7 +704,7 @@ class SetupWizard(QDialog):
                 del self.key_input_sections[key]
 
         # Add sections for enabled providers
-        for provider_id in ['openai', 'anthropic', 'gemini']:
+        for provider_id in ['openai', 'anthropic', 'gemini', 'ollama']:
             if self.provider_enabled[provider_id]:
                 section = self.create_provider_key_section(provider_id)
                 # Insert before the stretch
@@ -678,8 +717,9 @@ class SetupWizard(QDialog):
         configured_count = 0
         first_working_provider = None
 
-        for provider_id in ['openai', 'anthropic', 'gemini']:
-            if self.provider_enabled[provider_id] and self.provider_keys[provider_id]:
+        for provider_id in ['openai', 'anthropic', 'gemini', 'ollama']:
+            configured = self.provider_enabled[provider_id] and (self.provider_keys[provider_id] or provider_id == 'ollama')
+            if configured:
                 configured_count += 1
                 tested = self.provider_tested.get(provider_id, False)
 
@@ -689,6 +729,8 @@ class SetupWizard(QDialog):
                     name = "Anthropic (Claude)"
                 elif provider_id == 'gemini':
                     name = "Google Gemini"
+                elif provider_id == 'ollama':
+                    name = "Ollama (Local)"
                 else:
                     name = provider_id.title()
 
@@ -707,8 +749,8 @@ class SetupWizard(QDialog):
             if first_working_provider:
                 self.default_provider = first_working_provider
             else:
-                for provider_id in ['anthropic', 'openai', 'gemini']:
-                    if self.provider_enabled[provider_id] and self.provider_keys[provider_id]:
+                for provider_id in ['anthropic', 'openai', 'gemini', 'ollama']:
+                    if self.provider_enabled[provider_id] and (self.provider_keys[provider_id] or provider_id == 'ollama'):
                         self.default_provider = provider_id
                         break
 
@@ -718,6 +760,8 @@ class SetupWizard(QDialog):
                 default_name = "Anthropic (Claude)"
             elif self.default_provider == 'gemini':
                 default_name = "Google Gemini"
+            elif self.default_provider == 'ollama':
+                default_name = "Ollama (Local)"
             else:
                 default_name = self.default_provider.title()
 
@@ -781,7 +825,8 @@ class SetupWizard(QDialog):
         elif current_index == 2:  # Key input
             # All enabled providers must have keys entered (not necessarily tested)
             for provider_id, enabled in self.provider_enabled.items():
-                if enabled and not self.provider_keys.get(provider_id, '').strip():
+                requires_key = provider_id != 'ollama'
+                if enabled and requires_key and not self.provider_keys.get(provider_id, '').strip():
                     can_proceed = False
                     break
 
@@ -799,39 +844,35 @@ class SetupWizard(QDialog):
                     credentials['ANTHROPIC_API_KEY'] = key
                 elif provider_id == 'gemini':
                     credentials['GEMINI_API_KEY'] = key
+                elif provider_id == 'ollama':
+                    credentials['OLLAMA_API_KEY'] = key
 
-        if credentials:
-            try:
+        try:
+            if credentials:
                 self.credential_store.save_credentials(credentials)
                 logger.info(f"Saved {len(credentials)} credentials to secure storage")
 
-                # Emit completion signal with default provider and credentials
-                self.setup_complete.emit(self.default_provider, credentials)
+            # Emit completion signal with default provider and credentials
+            self.setup_complete.emit(self.default_provider, credentials)
 
-                # Show success message
-                QMessageBox.information(
-                    self,
-                    "Setup Complete",
-                    f"Your API keys have been saved securely!\n\n"
-                    f"Default provider: {self.default_provider.title()}\n\n"
-                    f"The assistant is ready to use. Press Ctrl+Shift+G to toggle the overlay."
-                )
-
-                self.accept()
-
-            except Exception as e:
-                logger.error(f"Failed to save credentials: {e}", exc_info=True)
-                QMessageBox.critical(
-                    self,
-                    "Setup Failed",
-                    f"Failed to save your credentials:\n{str(e)}\n\n"
-                    f"Please try again or check the log file for details."
-                )
-        else:
-            QMessageBox.warning(
+            # Show success message
+            QMessageBox.information(
                 self,
-                "No Credentials",
-                "No API keys were configured. Please go back and enter at least one API key."
+                "Setup Complete",
+                f"Your API keys have been saved securely!\n\n",
+                f"Default provider: {self.default_provider.title()}\n\n",
+                f"The assistant is ready to use. Press Ctrl+Shift+G to toggle the overlay.",
+            )
+
+            self.accept()
+
+        except Exception as e:
+            logger.error(f"Failed to save credentials: {e}", exc_info=True)
+            QMessageBox.critical(
+                self,
+                "Setup Failed",
+                f"Failed to save your credentials:\n{str(e)}\n\n",
+                f"Please try again or check the log file for details.",
             )
 
     def closeEvent(self, event):

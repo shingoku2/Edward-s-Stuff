@@ -495,3 +495,10 @@ npm run lint            # ESLint checks
 
 ### Troubleshooting
 - Attempted `python scripts/ui_test_tool.py --message "UI test ping"` but exited early with `libGL.so.1` missing; tool now detects the missing OpenGL runtime and provides installation guidance while returning exit code 2.
+
+## 2026-03-01 Updates
+- Restored AI provider functionality by making responses awaitable, fixing ProviderHealth initialization, and adding Ollama provider support across routing and configuration.
+- Expanded provider management UI (settings tab and setup wizard) to configure Ollama hosts and treat its API key as optional while enabling connection testing.
+- Added Ollama dependency, provider tester coverage, and updated automated tests for new provider handling and health structures.
+- Tests not run in this environment.
+

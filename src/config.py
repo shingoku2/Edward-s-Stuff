@@ -71,6 +71,8 @@ class Config:
         self.openai_api_key = credentials.get('OPENAI_API_KEY') or os.getenv('OPENAI_API_KEY')
         self.anthropic_api_key = credentials.get('ANTHROPIC_API_KEY') or os.getenv('ANTHROPIC_API_KEY')
         self.gemini_api_key = credentials.get('GEMINI_API_KEY') or os.getenv('GEMINI_API_KEY')
+        self.ollama_api_key = credentials.get('OLLAMA_API_KEY') or os.getenv('OLLAMA_API_KEY')
+        self.ollama_host = os.getenv('OLLAMA_HOST') or os.getenv('OLLAMA_BASE_URL') or 'http://localhost:11434'
 
         # Session tokens - load from secure storage instead of .env
         self.session_tokens: Dict[str, dict] = {}
@@ -133,7 +135,7 @@ class Config:
         # Fallback: Try loading individual provider tokens from .env (legacy support)
         # This allows migration from old .env-based storage
         # Only load from .env if not already present in secure storage (secure storage has priority)
-        for provider in ['openai', 'anthropic', 'gemini']:
+        for provider in ['openai', 'anthropic', 'gemini', 'ollama']:
             if provider in self.session_tokens:
                 continue  # Skip if already loaded from secure storage
 
@@ -159,8 +161,8 @@ class Config:
         if self.ai_provider == 'gemini' and not self.gemini_api_key:
             raise ValueError("Gemini API key not found. Please add it via the Settings dialog.")
 
-        if self.ai_provider not in ['openai', 'anthropic', 'gemini']:
-            raise ValueError(f"Invalid AI provider: {self.ai_provider}. Must be 'openai', 'anthropic', or 'gemini'")
+        if self.ai_provider not in ['openai', 'anthropic', 'gemini', 'ollama']:
+            raise ValueError(f"Invalid AI provider: {self.ai_provider}. Must be 'openai', 'anthropic', 'gemini', or 'ollama'")
 
     def _load_secure_credentials(self) -> dict:
         """Load credentials from the encrypted store with graceful fallbacks."""
@@ -298,15 +300,17 @@ class Config:
         has_api_key = bool(
             self.openai_api_key or
             self.anthropic_api_key or
-            self.gemini_api_key
+            self.gemini_api_key or
+            self.ollama_api_key
         )
 
         # Check session tokens
         has_session = bool(self.session_tokens.get('openai') or
                           self.session_tokens.get('anthropic') or
-                          self.session_tokens.get('gemini'))
+                          self.session_tokens.get('gemini') or
+                          self.session_tokens.get('ollama'))
 
-        return has_api_key or has_session
+        return has_api_key or has_session or bool(self.ollama_host)
 
 
     def get_api_key(self, provider: Optional[str] = None) -> Optional[str]:
@@ -314,7 +318,7 @@ class Config:
         Get the API key for a specific provider or the currently selected provider.
 
         Args:
-            provider: Provider name ('openai', 'anthropic', 'gemini').
+            provider: Provider name ('openai', 'anthropic', 'gemini', 'ollama').
                      If None, uses the current AI_PROVIDER setting.
 
         Returns:
@@ -328,6 +332,8 @@ class Config:
             return self.anthropic_api_key
         elif target_provider == 'gemini':
             return self.gemini_api_key
+        elif target_provider == 'ollama':
+            return self.ollama_api_key
         return None
 
     def set_api_key(self, provider: str, api_key: Optional[str]) -> None:
@@ -335,7 +341,7 @@ class Config:
         Set an API key for a provider and persist it to secure storage.
 
         Args:
-            provider: Provider name ('openai', 'anthropic', 'gemini')
+            provider: Provider name ('openai', 'anthropic', 'gemini', 'ollama')
             api_key: The API key to store (None to clear)
         """
         provider = provider.lower()
@@ -348,6 +354,8 @@ class Config:
                 self.anthropic_api_key = api_key
             elif provider == 'gemini':
                 self.gemini_api_key = api_key
+            elif provider == 'ollama':
+                self.ollama_api_key = api_key
             else:
                 logger.warning(f"Unknown provider: {provider}")
                 return
@@ -391,7 +399,7 @@ class Config:
         Clear an API key for a provider.
 
         Args:
-            provider: Provider name ('openai', 'anthropic', 'gemini')
+            provider: Provider name ('openai', 'anthropic', 'gemini', 'ollama')
         """
         provider = provider.lower()
 
@@ -402,6 +410,8 @@ class Config:
             self.anthropic_api_key = None
         elif provider == 'gemini':
             self.gemini_api_key = None
+        elif provider == 'ollama':
+            self.ollama_api_key = None
         else:
             logger.warning(f"Unknown provider: {provider}")
             return
@@ -421,14 +431,14 @@ class Config:
         otherwise returns the first available provider with a key.
 
         Returns:
-            Provider name ('openai', 'anthropic', 'gemini')
+            Provider name ('openai', 'anthropic', 'gemini', 'ollama')
         """
         # First check if current provider has a key
         if self.has_provider_key(self.ai_provider):
             return self.ai_provider
 
         # Try other providers in order
-        for provider in ['anthropic', 'openai', 'gemini']:
+        for provider in ['anthropic', 'openai', 'gemini', 'ollama']:
             if self.has_provider_key(provider):
                 return provider
 
@@ -455,8 +465,19 @@ class Config:
             has_api_key = bool(self.anthropic_api_key)
         elif target_provider == 'gemini':
             has_api_key = bool(self.gemini_api_key)
+        elif target_provider == 'ollama':
+            has_api_key = bool(self.ollama_api_key)
+            has_session = has_session or bool(self.ollama_host)
 
         return has_api_key or has_session
+
+    def get_provider_endpoint(self, provider: str) -> Optional[str]:
+        """Get provider-specific endpoint or host configuration."""
+
+        provider = provider.lower()
+        if provider == 'ollama':
+            return self.ollama_host
+        return None
 
     def set(self, key: str, value):
         """Set a configuration attribute dynamically."""

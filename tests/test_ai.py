@@ -20,7 +20,7 @@ class StubConfig:
     def get_effective_provider(self):
         if self._keys.get(self.ai_provider):
             return self.ai_provider
-        for provider in ["anthropic", "openai", "gemini"]:
+        for provider in ["anthropic", "openai", "gemini", "ollama"]:
             if self._keys.get(provider):
                 return provider
         return self.ai_provider

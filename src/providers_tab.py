@@ -38,6 +38,8 @@ class TestConnectionThread(QThread):
                 success, message = ProviderTester.test_anthropic(self.api_key)
             elif self.provider == "gemini":
                 success, message = ProviderTester.test_gemini(self.api_key)
+            elif self.provider == "ollama":
+                success, message = ProviderTester.test_ollama(self.base_url or "http://localhost:11434")
             else:
                 success, message = False, f"Unknown provider: {self.provider}"
 
@@ -58,20 +60,28 @@ class ProvidersTab(QWidget):
         self.config = config
         self.credential_store = CredentialStore()
         self.test_threads = {}
+        self.provider_base_urls = {
+            'openai': None,
+            'ollama': self.config.ollama_host,
+        }
 
         # Track current keys (masked display vs. actual values)
         self.current_keys = {
             'openai': config.openai_api_key or '',
             'anthropic': config.anthropic_api_key or '',
-            'gemini': config.gemini_api_key or ''
+            'gemini': config.gemini_api_key or '',
+            'ollama': config.ollama_api_key or ''
         }
 
         # Track modified keys (only if user enters new value)
         self.modified_keys = {
             'openai': None,
             'anthropic': None,
-            'gemini': None
+            'gemini': None,
+            'ollama': None
         }
+
+        self.ollama_host = config.ollama_host
 
         self.init_ui()
         self.load_current_config()
@@ -109,6 +119,7 @@ class ProvidersTab(QWidget):
         self.provider_combo.addItem("Anthropic (Claude)", "anthropic")
         self.provider_combo.addItem("OpenAI (GPT)", "openai")
         self.provider_combo.addItem("Google Gemini", "gemini")
+        self.provider_combo.addItem("Ollama (Local)", "ollama")
         self.provider_combo.setStyleSheet("""
             QComboBox {
                 background-color: #2a2a2a;
@@ -169,6 +180,18 @@ class ProvidersTab(QWidget):
         )
         layout.addWidget(gemini_section)
 
+        # Ollama
+        ollama_section = self.create_provider_section(
+            'ollama',
+            'Ollama (Local or Remote)',
+            'Not required',
+            'https://ollama.com',
+            supports_custom_url=True,
+            key_optional=True,
+            default_base_url=self.ollama_host
+        )
+        layout.addWidget(ollama_section)
+
         layout.addStretch()
 
         # Action buttons
@@ -199,7 +222,8 @@ class ProvidersTab(QWidget):
         self.setLayout(layout)
 
     def create_provider_section(self, provider_id: str, name: str, placeholder: str,
-                                 get_key_url: str, supports_custom_url: bool = False) -> QGroupBox:
+                                 get_key_url: str, supports_custom_url: bool = False,
+                                 key_optional: bool = False, default_base_url: Optional[str] = None) -> QGroupBox:
         """Create a provider configuration section"""
         group = QGroupBox(name)
         layout = QVBoxLayout()
@@ -270,7 +294,12 @@ class ProvidersTab(QWidget):
             url_layout.addWidget(QLabel("Base URL:"))
 
             base_url_input = QLineEdit()
-            base_url_input.setPlaceholderText("https://api.openai.com/v1 (leave empty for default)")
+            if provider_id == 'ollama':
+                base_url_input.setPlaceholderText("http://localhost:11434")
+            else:
+                base_url_input.setPlaceholderText("https://api.openai.com/v1 (leave empty for default)")
+            if default_base_url:
+                base_url_input.setText(default_base_url)
             base_url_input.setStyleSheet("""
                 QLineEdit {
                     background-color: #2a2a2a;
@@ -291,7 +320,10 @@ class ProvidersTab(QWidget):
 
         # Get API Key button
         get_key_button = QPushButton("Get API Key →")
-        get_key_button.clicked.connect(lambda checked, url=get_key_url: webbrowser.open(url))
+        if get_key_url:
+            get_key_button.clicked.connect(lambda checked, url=get_key_url: webbrowser.open(url))
+        else:
+            get_key_button.setEnabled(False)
         get_key_button.setStyleSheet("""
             QPushButton {
                 background-color: #3b82f6;
@@ -361,7 +393,8 @@ class ProvidersTab(QWidget):
             'key_input': key_input,
             'base_url_input': base_url_input,
             'test_button': test_button,
-            'clear_button': clear_button
+            'clear_button': clear_button,
+            'key_optional': key_optional
         }
 
         return group
@@ -386,9 +419,15 @@ class ProvidersTab(QWidget):
                 section['key_input'].setPlaceholderText(f"Current: {masked} (enter new key to change)")
                 section['status_label'].setText("✅ Configured")
                 section['status_label'].setStyleSheet("color: #10b981; font-weight: bold;")
+            elif section.get('key_optional'):
+                section['status_label'].setText("✅ Ready (no key required)")
+                section['status_label'].setStyleSheet("color: #10b981; font-weight: bold;")
             else:
                 section['status_label'].setText("❌ Not configured")
                 section['status_label'].setStyleSheet("color: #ef4444;")
+
+            if section.get('base_url_input') and section['base_url_input'].text().strip() == "" and provider_id == 'ollama':
+                section['base_url_input'].setText(self.ollama_host)
 
     def on_key_changed(self, provider_id: str, text: str):
         """Handle API key text change"""
@@ -411,8 +450,11 @@ class ProvidersTab(QWidget):
         api_key = self.modified_keys.get(provider_id) or self.current_keys.get(provider_id, '')
 
         if not api_key or not api_key.strip():
-            QMessageBox.warning(self, "Missing API Key", f"Please enter an API key for {provider_id.title()} first.")
-            return
+            section = self.provider_sections.get(provider_id)
+            key_optional = section.get('key_optional') if section else False
+            if not key_optional:
+                QMessageBox.warning(self, "Missing API Key", f"Please enter an API key for {provider_id.title()} first.")
+                return
 
         section = self.provider_sections.get(provider_id)
         if not section:
@@ -430,6 +472,8 @@ class ProvidersTab(QWidget):
         base_url = None
         if section['base_url_input']:
             base_url = section['base_url_input'].text().strip() or None
+            if provider_id == 'ollama':
+                self.provider_base_urls['ollama'] = base_url or self.ollama_host
 
         # Start test thread
         thread = TestConnectionThread(provider_id, api_key, base_url)
@@ -486,6 +530,10 @@ class ProvidersTab(QWidget):
                     self.credential_store.delete('ANTHROPIC_API_KEY')
                 elif provider_id == 'gemini':
                     self.credential_store.delete('GEMINI_API_KEY')
+                elif provider_id == 'ollama':
+                    self.credential_store.delete('OLLAMA_API_KEY')
+                    self.provider_base_urls['ollama'] = 'http://localhost:11434'
+                    self.ollama_host = 'http://localhost:11434'
 
                 # Update local state
                 self.current_keys[provider_id] = ''
@@ -496,8 +544,12 @@ class ProvidersTab(QWidget):
                 if section:
                     section['key_input'].clear()
                     section['key_input'].setPlaceholderText("Enter API key...")
-                    section['status_label'].setText("❌ Not configured")
-                    section['status_label'].setStyleSheet("color: #ef4444;")
+                    if section.get('key_optional'):
+                        section['status_label'].setText("✅ Ready (no key required)")
+                        section['status_label'].setStyleSheet("color: #10b981; font-weight: bold;")
+                    else:
+                        section['status_label'].setText("❌ Not configured")
+                        section['status_label'].setStyleSheet("color: #ef4444;")
 
                 QMessageBox.information(
                     self,
@@ -526,7 +578,7 @@ class ProvidersTab(QWidget):
     def on_wizard_complete(self, default_provider: str, credentials: Dict[str, str]):
         """Handle wizard completion"""
         # Reload configuration
-        for provider_id in ['openai', 'anthropic', 'gemini']:
+        for provider_id in ['openai', 'anthropic', 'gemini', 'ollama']:
             key_name = f'{provider_id.upper()}_API_KEY'
             if key_name in credentials:
                 self.current_keys[provider_id] = credentials[key_name]
@@ -561,6 +613,8 @@ class ProvidersTab(QWidget):
                     credentials['ANTHROPIC_API_KEY'] = new_key
                 elif provider_id == 'gemini':
                     credentials['GEMINI_API_KEY'] = new_key
+                elif provider_id == 'ollama':
+                    credentials['OLLAMA_API_KEY'] = new_key
 
         return default_provider, credentials
 
@@ -593,6 +647,13 @@ class ProvidersTab(QWidget):
 
                     # Reload UI to show new masked keys
                     self.load_current_config()
+
+            # Persist base URLs for providers that support them
+            ollama_section = self.provider_sections.get('ollama')
+            if ollama_section and ollama_section.get('base_url_input'):
+                host_value = ollama_section['base_url_input'].text().strip() or self.ollama_host
+                self.config.ollama_host = host_value
+                self.provider_base_urls['ollama'] = host_value
 
             # Emit signal
             self.provider_config_changed.emit(default_provider, credentials)
