@@ -4,12 +4,12 @@ Provides AI-powered session recaps and coaching based on session logs
 """
 
 import logging
-from typing import Optional, Dict, List
 from datetime import datetime
+from typing import List, Optional
 
-from session_logger import SessionLogger, SessionEvent, get_session_logger
-from ai_router import get_router, AIRouter
+from ai_router import get_router
 from config import Config
+from session_logger import SessionEvent, SessionLogger, get_session_logger
 
 logger = logging.getLogger(__name__)
 
@@ -20,9 +20,7 @@ class SessionCoach:
     """
 
     def __init__(
-        self,
-        session_logger: Optional[SessionLogger] = None,
-        config: Optional[Config] = None
+        self, session_logger: Optional[SessionLogger] = None, config: Optional[Config] = None
     ):
         """
         Initialize session coach
@@ -61,15 +59,15 @@ class SessionCoach:
         knowledge_queries = []
 
         for event in events:
-            if event.event_type == 'question':
+            if event.event_type == "question":
                 questions.append(event.content)
-            elif event.event_type == 'answer':
+            elif event.event_type == "answer":
                 # Only keep summary/first 100 chars
                 summary = event.content[:100] + "..." if len(event.content) > 100 else event.content
                 answers.append(summary)
-            elif event.event_type == 'macro':
+            elif event.event_type == "macro":
                 macros.append(event.content)
-            elif event.event_type == 'knowledge_query':
+            elif event.event_type == "knowledge_query":
                 knowledge_queries.append(event.content)
 
         # Format sections
@@ -93,11 +91,7 @@ class SessionCoach:
 
         return "\n".join(lines)
 
-    def generate_session_recap(
-        self,
-        game_profile_id: str,
-        game_name: Optional[str] = None
-    ) -> str:
+    def generate_session_recap(self, game_profile_id: str, game_name: Optional[str] = None) -> str:
         """
         Generate an AI-powered session recap
 
@@ -144,7 +138,7 @@ Keep the tone friendly and encouraging. Format the response with clear sections.
                 prompt=prompt,
                 provider=self.config.ai_provider,
                 system_prompt="You are a helpful gaming coach providing session recaps and next-step suggestions.",
-                conversation_history=[]
+                conversation_history=[],
             )
 
             logger.info(f"Generated session recap for {game_profile_id}")
@@ -155,10 +149,7 @@ Keep the tone friendly and encouraging. Format the response with clear sections.
             return f"Failed to generate session recap: {str(e)}"
 
     def ask_coach(
-        self,
-        game_profile_id: str,
-        question: str,
-        game_name: Optional[str] = None
+        self, game_profile_id: str, question: str, game_name: Optional[str] = None
     ) -> str:
         """
         Ask the coach a question with session history context
@@ -180,7 +171,7 @@ Keep the tone friendly and encouraging. Format the response with clear sections.
             if events:
                 context_lines.append("Recent session activity:")
                 for event in events[-10:]:  # Last 10 events
-                    if event.event_type == 'question':
+                    if event.event_type == "question":
                         context_lines.append(f"- User asked: {event.content}")
 
             context = "\n".join(context_lines) if context_lines else "No prior session context."
@@ -207,7 +198,7 @@ Keep the response concise and actionable."""
                 prompt=prompt,
                 provider=self.config.ai_provider,
                 system_prompt="You are a helpful gaming coach focused on progress tracking and improvement.",
-                conversation_history=[]
+                conversation_history=[],
             )
 
             logger.info(f"Answered coach question for {game_profile_id}")
@@ -218,10 +209,7 @@ Keep the response concise and actionable."""
             return f"Failed to get coaching response: {str(e)}"
 
     def get_progress_summary(
-        self,
-        game_profile_id: str,
-        game_name: Optional[str] = None,
-        days: int = 7
+        self, game_profile_id: str, game_name: Optional[str] = None, days: int = 7
     ) -> str:
         """
         Generate a progress summary over multiple sessions
@@ -243,6 +231,7 @@ Keep the response concise and actionable."""
 
             # Filter by date range
             from datetime import timedelta
+
             cutoff_date = datetime.now() - timedelta(days=days)
             recent_events = [e for e in events if e.timestamp >= cutoff_date]
 
@@ -252,7 +241,7 @@ Keep the response concise and actionable."""
             # Count sessions (approximate by gaps)
             session_count = 1
             for i in range(1, len(recent_events)):
-                time_gap = recent_events[i].timestamp - recent_events[i-1].timestamp
+                time_gap = recent_events[i].timestamp - recent_events[i - 1].timestamp
                 if time_gap.total_seconds() > 7200:  # 2 hour gap = new session
                     session_count += 1
 
@@ -281,7 +270,7 @@ Keep it encouraging and constructive."""
                 prompt=prompt,
                 provider=self.config.ai_provider,
                 system_prompt="You are a supportive gaming coach analyzing player progress.",
-                conversation_history=[]
+                conversation_history=[],
             )
 
             logger.info(f"Generated progress summary for {game_profile_id}")
@@ -313,8 +302,7 @@ Keep it brief and actionable."""
         try:
             # Use the router's chat method which handles provider selection
             response = self.router.chat(
-                messages=[{"role": "user", "content": prompt}],
-                provider=self.config.ai_provider
+                messages=[{"role": "user", "content": prompt}], provider=self.config.ai_provider
             )
             return response["content"]
         except Exception as e:
@@ -341,8 +329,7 @@ Be specific and actionable."""
 
         try:
             response = await self.router.chat(
-                messages=[{"role": "user", "content": prompt}],
-                provider=self.config.ai_provider
+                messages=[{"role": "user", "content": prompt}], provider=self.config.ai_provider
             )
             return response["content"]
         except Exception as e:
@@ -354,8 +341,7 @@ Be specific and actionable."""
 
         try:
             response = await self.router.chat(
-                messages=[{"role": "user", "content": prompt}],
-                provider=self.config.ai_provider
+                messages=[{"role": "user", "content": prompt}], provider=self.config.ai_provider
             )
             return response["content"]
         except Exception as e:

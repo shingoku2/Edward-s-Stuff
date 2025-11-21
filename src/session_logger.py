@@ -3,15 +3,15 @@ Session Logger Module
 Tracks user interactions and AI responses per game profile for coaching and recap
 """
 
-import logging
 import json
+import logging
 import os
 import threading
-from pathlib import Path
-from typing import List, Dict, Optional
-from datetime import datetime, timedelta
-from dataclasses import dataclass, asdict
 from collections import deque
+from dataclasses import asdict, dataclass
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +28,7 @@ class SessionEvent:
         content: Event content (question text, answer summary, etc.)
         meta: Additional metadata
     """
+
     timestamp: datetime
     event_type: str
     game_profile_id: str
@@ -45,7 +46,7 @@ class SessionEvent:
     def to_dict(self) -> Dict:
         """Convert to dictionary for JSON serialization"""
         data = asdict(self)
-        data['timestamp'] = self.timestamp.isoformat()
+        data["timestamp"] = self.timestamp.isoformat()
         return data
 
     @classmethod
@@ -129,11 +130,7 @@ class SessionLogger:
         return session_id
 
     def log_event(
-        self,
-        game_profile_id: str,
-        event_type: str,
-        content: str,
-        meta: Optional[Dict] = None
+        self, game_profile_id: str, event_type: str, content: str, meta: Optional[Dict] = None
     ) -> None:
         """
         Log a session event
@@ -151,7 +148,7 @@ class SessionLogger:
                 event_type=event_type,
                 game_profile_id=game_profile_id,
                 content=content,
-                meta=meta or {}
+                meta=meta or {},
             )
 
             # Add to in-memory storage
@@ -185,16 +182,20 @@ class SessionLogger:
 
             # Limit to MAX_EVENTS_ON_DISK
             if len(events_data) > self.MAX_EVENTS_ON_DISK:
-                events_data = events_data[-self.MAX_EVENTS_ON_DISK:]
+                events_data = events_data[-self.MAX_EVENTS_ON_DISK :]
 
             # Save to file with lock protection to prevent concurrent write corruption
             with self._save_lock:
-                with open(session_file, 'w') as f:
-                    json.dump({
-                        'game_profile_id': game_profile_id,
-                        'session_id': session_id,
-                        'events': events_data
-                    }, f, indent=2)
+                with open(session_file, "w") as f:
+                    json.dump(
+                        {
+                            "game_profile_id": game_profile_id,
+                            "session_id": session_id,
+                            "events": events_data,
+                        },
+                        f,
+                        indent=2,
+                    )
 
             logger.debug(f"Saved session {session_id} for {game_profile_id}")
 
@@ -209,10 +210,10 @@ class SessionLogger:
             if not session_file.exists():
                 return []
 
-            with open(session_file, 'r') as f:
+            with open(session_file, "r") as f:
                 data = json.load(f)
 
-            events = [SessionEvent.from_dict(e) for e in data.get('events', [])]
+            events = [SessionEvent.from_dict(e) for e in data.get("events", [])]
             logger.debug(f"Loaded {len(events)} events for session {session_id}")
             return events
 
@@ -252,12 +253,11 @@ class SessionLogger:
         # If we need more, load from recent session files
         if len(events) < limit:
             session_files = sorted(
-                self.logs_dir.glob(f"{game_profile_id}_*.json"),
-                reverse=True  # Most recent first
+                self.logs_dir.glob(f"{game_profile_id}_*.json"), reverse=True  # Most recent first
             )
 
             for session_file in session_files[:5]:  # Check last 5 sessions
-                session_id = session_file.stem.split('_', 1)[1]  # Extract session_id
+                session_id = session_file.stem.split("_", 1)[1]  # Extract session_id
                 if session_id not in self.current_sessions.values():
                     # Load historical session
                     historical_events = self._load_session(game_profile_id, session_id)
@@ -283,11 +283,11 @@ class SessionLogger:
 
         if not events:
             return {
-                'total_events': 0,
-                'session_id': None,
-                'start_time': None,
-                'duration_minutes': 0,
-                'event_types': {}
+                "total_events": 0,
+                "session_id": None,
+                "start_time": None,
+                "duration_minutes": 0,
+                "event_types": {},
             }
 
         # Count event types
@@ -300,14 +300,14 @@ class SessionLogger:
         end_time = events[-1].timestamp
         duration = (end_time - start_time).total_seconds() / 60
 
-        session_id = self.current_sessions.get(game_profile_id, 'unknown')
+        session_id = self.current_sessions.get(game_profile_id, "unknown")
 
         return {
-            'total_events': len(events),
-            'session_id': session_id,
-            'start_time': start_time.isoformat(),
-            'duration_minutes': round(duration, 1),
-            'event_types': event_types
+            "total_events": len(events),
+            "session_id": session_id,
+            "start_time": start_time.isoformat(),
+            "duration_minutes": round(duration, 1),
+            "event_types": event_types,
         }
 
     def clear_session(self, game_profile_id: str) -> None:
@@ -340,14 +340,11 @@ class SessionLogger:
         Returns:
             List of session IDs (sorted by date, most recent first)
         """
-        session_files = sorted(
-            self.logs_dir.glob(f"{game_profile_id}_*.json"),
-            reverse=True
-        )
+        session_files = sorted(self.logs_dir.glob(f"{game_profile_id}_*.json"), reverse=True)
 
         session_ids = []
         for session_file in session_files:
-            session_id = session_file.stem.split('_', 1)[1]
+            session_id = session_file.stem.split("_", 1)[1]
             session_ids.append(session_id)
 
         return session_ids

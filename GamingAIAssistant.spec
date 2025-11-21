@@ -37,7 +37,8 @@ a = Analysis(
         'ui.components.buttons', 'ui.components.inputs', 'ui.components.cards',
         'ui.components.layouts', 'ui.components.navigation', 'ui.components.modals',
         'ui.components.dashboard_button', 'ui.components.avatar_display', 'ui.components.overlay',
-        'ui.components.dashboard'
+        'ui.components.dashboard', 'ui.theme_manager',
+        'theme_compat'
     ],
     hookspath=[],
     hooksconfig={},

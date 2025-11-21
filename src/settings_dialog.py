@@ -4,20 +4,25 @@ Comprehensive tabbed settings dialog for the Gaming AI Assistant
 """
 
 import logging
-from typing import Dict, Optional
-from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QTabWidget,
-    QPushButton, QMessageBox, QLabel
-)
-from PyQt6.QtCore import pyqtSignal, Qt
 
-from settings_tabs import KeybindingsTab, MacrosTab
+from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtWidgets import (
+    QDialog,
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QPushButton,
+    QTabWidget,
+    QVBoxLayout,
+)
+
 from appearance_tabs import AppAppearanceTab, OverlayAppearanceTab
-from providers_tab import ProvidersTab
 from game_profiles_tab import GameProfilesTab
-from knowledge_packs_tab import KnowledgePacksTab
 from keybind_manager import KeybindManager
+from knowledge_packs_tab import KnowledgePacksTab
 from macro_manager import MacroManager
+from providers_tab import ProvidersTab
+from settings_tabs import KeybindingsTab, MacrosTab
 from theme_compat import ThemeManager as LegacyThemeManager
 from ui.theme_manager import get_theme_manager
 
@@ -51,7 +56,7 @@ class TabbedSettingsDialog(QDialog):
         macro_manager: MacroManager,
         theme_manager: LegacyThemeManager,
         # Keep reference to original SettingsDialog for General tab
-        original_settings_widget=None
+        original_settings_widget=None,
     ):
         super().__init__(parent)
         self.config = config
@@ -75,14 +80,16 @@ class TabbedSettingsDialog(QDialog):
 
         # Title
         title = QLabel("⚙️ Application Settings")
-        title.setStyleSheet("""
+        title.setStyleSheet(
+            """
             QLabel {
                 color: #14b8a6;
                 font-size: 18pt;
                 font-weight: bold;
                 padding: 15px;
             }
-        """)
+        """
+        )
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title)
 
@@ -98,7 +105,8 @@ class TabbedSettingsDialog(QDialog):
         button_layout = QHBoxLayout()
 
         self.save_button = QPushButton("Save All Settings")
-        self.save_button.setStyleSheet("""
+        self.save_button.setStyleSheet(
+            """
             QPushButton {
                 background-color: #14b8a6;
                 color: white;
@@ -114,12 +122,14 @@ class TabbedSettingsDialog(QDialog):
             QPushButton:pressed {
                 background-color: #0d7a6f;
             }
-        """)
+        """
+        )
         self.save_button.clicked.connect(self.save_all_settings)
         button_layout.addWidget(self.save_button)
 
         cancel_button = QPushButton("Cancel")
-        cancel_button.setStyleSheet("""
+        cancel_button.setStyleSheet(
+            """
             QPushButton {
                 background-color: #6b7280;
                 color: white;
@@ -131,7 +141,8 @@ class TabbedSettingsDialog(QDialog):
             QPushButton:hover {
                 background-color: #4b5563;
             }
-        """)
+        """
+        )
         cancel_button.clicked.connect(self.reject)
         button_layout.addWidget(cancel_button)
 
@@ -177,7 +188,9 @@ class TabbedSettingsDialog(QDialog):
 
         # Overlay Appearance tab (uses new design system)
         self.overlay_appearance_tab = OverlayAppearanceTab(self.omnix_theme_manager, self.config)
-        self.overlay_appearance_tab.overlay_appearance_changed.connect(self.on_overlay_appearance_changed)
+        self.overlay_appearance_tab.overlay_appearance_changed.connect(
+            self.on_overlay_appearance_changed
+        )
         self.tab_widget.addTab(self.overlay_appearance_tab, "🪟 Overlay Appearance")
 
     def set_current_tab(self, tab_index: int):
@@ -253,6 +266,7 @@ class TabbedSettingsDialog(QDialog):
             # Save provider to .env
             if default_provider:
                 from config import Config
+
                 Config.save_to_env(
                     provider=default_provider,
                     session_tokens=self.config.session_tokens,
@@ -263,7 +277,7 @@ class TabbedSettingsDialog(QDialog):
                     overlay_width=self.config.overlay_width,
                     overlay_height=self.config.overlay_height,
                     overlay_minimized=self.config.overlay_minimized,
-                    overlay_opacity=self.config.overlay_opacity
+                    overlay_opacity=self.config.overlay_opacity,
                 )
                 # Update the config object in memory so changes take effect immediately
                 self.config.ai_provider = default_provider
@@ -277,12 +291,12 @@ class TabbedSettingsDialog(QDialog):
 
             # Emit comprehensive settings saved signal
             all_settings = {
-                'keybinds': keybinds,
-                'macros': macros,
-                'theme': theme,
-                'overlay_appearance': overlay_appearance,
-                'default_provider': default_provider,
-                'credentials': credentials
+                "keybinds": keybinds,
+                "macros": macros,
+                "theme": theme,
+                "overlay_appearance": overlay_appearance,
+                "default_provider": default_provider,
+                "credentials": credentials,
             }
             self.settings_saved.emit(all_settings)
 
@@ -292,18 +306,14 @@ class TabbedSettingsDialog(QDialog):
                 self,
                 "Settings Saved",
                 "All settings have been saved successfully!\n\n"
-                "Some changes may require restarting the application to take full effect."
+                "Some changes may require restarting the application to take full effect.",
             )
 
             self.accept()
 
         except Exception as e:
             logger.error(f"Error saving settings: {e}", exc_info=True)
-            QMessageBox.critical(
-                self,
-                "Save Error",
-                f"Failed to save settings:\n{str(e)}"
-            )
+            QMessageBox.critical(self, "Save Error", f"Failed to save settings:\n{str(e)}")
 
     def apply_dialog_theme(self):
         """Apply theme styling to the dialog"""
@@ -311,7 +321,8 @@ class TabbedSettingsDialog(QDialog):
         theme = self.theme_manager.current_theme
 
         # Apply dark theme by default
-        self.setStyleSheet(f"""
+        self.setStyleSheet(
+            f"""
             QDialog {{
                 background-color: {theme.background_color};
                 color: {theme.text_color};
@@ -344,4 +355,5 @@ class TabbedSettingsDialog(QDialog):
                 background: {theme.primary_color};
                 opacity: 0.8;
             }}
-        """)
+        """
+        )

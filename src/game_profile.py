@@ -5,16 +5,15 @@ Manages per-game AI assistant configurations
 
 import json
 import logging
-import os
-from dataclasses import dataclass, asdict, field
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
 # Configuration directory for game profiles
-CONFIG_DIR = Path.home() / '.gaming_ai_assistant'
-PROFILES_FILE = CONFIG_DIR / 'game_profiles.json'
+CONFIG_DIR = Path.home() / ".gaming_ai_assistant"
+PROFILES_FILE = CONFIG_DIR / "game_profiles.json"
 
 
 @dataclass
@@ -33,6 +32,7 @@ class GameProfile:
         extra_settings: Future extensibility dictionary
         is_builtin: Whether this is a built-in template profile
     """
+
     id: str
     display_name: str
     exe_names: List[str]
@@ -271,7 +271,7 @@ class GameProfileStore:
         """Initialize profile store and load profiles"""
         if config_dir:
             self.config_dir = Path(config_dir)
-            self.profiles_file = self.config_dir / 'game_profiles.json'
+            self.profiles_file = self.config_dir / "game_profiles.json"
         else:
             self.config_dir = CONFIG_DIR
             self.profiles_file = PROFILES_FILE
@@ -288,9 +288,9 @@ class GameProfileStore:
         # Load custom profiles from file
         if self.profiles_file.exists():
             try:
-                with open(self.profiles_file, 'r') as f:
+                with open(self.profiles_file, "r") as f:
                     data = json.load(f)
-                    for profile_data in data.get('profiles', []):
+                    for profile_data in data.get("profiles", []):
                         profile = GameProfile.from_dict(profile_data)
                         self.profiles[profile.id] = profile
                         self._custom_profile_ids.add(profile.id)
@@ -311,8 +311,8 @@ class GameProfileStore:
                 if pid in self.profiles
             ]
 
-            with open(self.profiles_file, 'w') as f:
-                json.dump({'profiles': custom_profiles}, f, indent=2)
+            with open(self.profiles_file, "w") as f:
+                json.dump({"profiles": custom_profiles}, f, indent=2)
             logger.info(f"Saved {len(custom_profiles)} custom game profiles")
         except Exception as e:
             logger.error(f"Failed to save game profiles: {e}")
@@ -359,11 +359,7 @@ class GameProfileStore:
 
     def list_custom_profiles(self) -> List[GameProfile]:
         """Get only custom (non-built-in) profiles"""
-        return [
-            self.profiles[pid]
-            for pid in self._custom_profile_ids
-            if pid in self.profiles
-        ]
+        return [self.profiles[pid] for pid in self._custom_profile_ids if pid in self.profiles]
 
     def create_profile(self, profile: GameProfile) -> bool:
         """

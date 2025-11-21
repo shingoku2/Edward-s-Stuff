@@ -3,13 +3,16 @@ Test suite for Game Watcher
 
 Tests background game monitoring thread.
 """
+
+
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+
 from PyQt6.QtTest import QSignalSpy
-from PyQt6.QtCore import QCoreApplication
+
+from src.game_detector import GameDetector  # noqa: F401
+from src.game_profile import GameProfileStore  # noqa: F401
 from src.game_watcher import GameWatcher
-from src.game_detector import GameDetector
-from src.game_profile import GameProfileStore
 
 
 @pytest.mark.unit
@@ -40,9 +43,9 @@ class TestGameWatcherSignals:
         watcher = GameWatcher()
 
         # Check for required signals
-        assert hasattr(watcher, 'game_detected')
-        assert hasattr(watcher, 'game_changed')
-        assert hasattr(watcher, 'game_closed')
+        assert hasattr(watcher, "game_detected")
+        assert hasattr(watcher, "game_changed")
+        assert hasattr(watcher, "game_closed")
 
     @pytest.mark.skip(reason="Requires Qt event loop")
     def test_game_detected_signal(self, qtbot):
@@ -69,7 +72,7 @@ class TestGameDetectionLogic:
         watcher = GameWatcher()
 
         # Should have detector
-        assert hasattr(watcher, 'detector')
+        assert hasattr(watcher, "detector")
         assert watcher.detector is not None
 
     def test_watcher_has_profile_store(self):
@@ -77,7 +80,7 @@ class TestGameDetectionLogic:
         watcher = GameWatcher()
 
         # Should have profile_store
-        assert hasattr(watcher, 'profile_store')
+        assert hasattr(watcher, "profile_store")
         assert watcher.profile_store is not None
 
 
@@ -120,16 +123,16 @@ class TestGameStateTracking:
         watcher = GameWatcher()
 
         # Should have current game attribute
-        assert hasattr(watcher, 'active_game') or hasattr(watcher, '_active_game')
+        assert hasattr(watcher, "active_game") or hasattr(watcher, "_active_game")
 
     def test_has_active_game_attributes(self):
         """Test that watcher has game state attributes"""
         watcher = GameWatcher()
 
         # Should have game tracking attributes
-        assert hasattr(watcher, 'active_game')
-        assert hasattr(watcher, 'active_game_exe')
-        assert hasattr(watcher, 'active_profile')
+        assert hasattr(watcher, "active_game")
+        assert hasattr(watcher, "active_game_exe")
+        assert hasattr(watcher, "active_profile")
 
 
 @pytest.mark.integration

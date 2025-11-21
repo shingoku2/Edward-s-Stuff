@@ -5,12 +5,14 @@ Omnix Dashboard Button Component
 Large grid button component for the main dashboard with icon and text label.
 """
 
-from PyQt6.QtWidgets import QPushButton, QVBoxLayout, QLabel
+from typing import Optional
+
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QCursor
-from typing import Optional
-from ..tokens import COLORS, SPACING, RADIUS, TYPOGRAPHY
+from PyQt6.QtWidgets import QLabel, QPushButton, QVBoxLayout
+
 from ..icons import icons
+from ..tokens import COLORS, RADIUS, SPACING, TYPOGRAPHY
 
 
 class OmnixDashboardButton(QPushButton):
@@ -55,19 +57,22 @@ class OmnixDashboardButton(QPushButton):
         self.icon_label = QLabel()
         self.icon_label.setPixmap(icon_pixmap)
         self.icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.icon_label.setStyleSheet("""
+        self.icon_label.setStyleSheet(
+            """
             QLabel {
                 background: transparent;
                 border: none;
             }
-        """)
+        """
+        )
         layout.addWidget(self.icon_label)
 
         # Text label
         self.text_label = QLabel(text)
         self.text_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.text_label.setWordWrap(True)
-        self.text_label.setStyleSheet(f"""
+        self.text_label.setStyleSheet(
+            f"""
             QLabel {{
                 background: transparent;
                 border: none;
@@ -75,13 +80,15 @@ class OmnixDashboardButton(QPushButton):
                 font-size: {TYPOGRAPHY.size_sm}pt;
                 font-weight: {TYPOGRAPHY.weight_medium};
             }}
-        """)
+        """
+        )
         layout.addWidget(self.text_label)
 
         self.setLayout(layout)
 
         # Apply styling
-        self.setStyleSheet(f"""
+        self.setStyleSheet(
+            f"""
             OmnixDashboardButton {{
                 background-color: #2C2C4A99;
                 border: 1px solid {COLORS.border_subtle};
@@ -97,4 +104,5 @@ class OmnixDashboardButton(QPushButton):
                 background-color: #46466EE6;
                 border: 1px solid {COLORS.accent_primary_bright};
             }}
-        """)
+        """
+        )

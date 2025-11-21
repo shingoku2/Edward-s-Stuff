@@ -5,20 +5,22 @@ Cross-platform support with anti-cheat awareness
 """
 
 import logging
-import time
-import threading
 import random
-from typing import Optional, Callable
+import threading
+import time
 from enum import Enum
+from typing import Callable, Optional
 
-from macro_manager import Macro, MacroStep, MacroStepType, MacroManager
+from macro_manager import Macro, MacroManager, MacroStep, MacroStepType
 
 logger = logging.getLogger(__name__)
 
 # Try to import input simulation library
 try:
-    from pynput import mouse, keyboard
-    from pynput.keyboard import Key, KeyCode, Controller as KeyboardController
+    from pynput import keyboard, mouse
+    from pynput.keyboard import Controller as KeyboardController
+    from pynput.keyboard import Key, KeyCode
+
     PYNPUT_AVAILABLE = True
 except ImportError:
     PYNPUT_AVAILABLE = False
@@ -32,6 +34,7 @@ except ImportError:
 
 class MacroExecutionState(Enum):
     """States of macro execution"""
+
     IDLE = "idle"
     RUNNING = "running"
     PAUSED = "paused"
@@ -46,7 +49,9 @@ class MacroRunner:
     Runs in background thread to keep UI responsive
     """
 
-    def __init__(self, enabled: bool = True, macro_manager: Optional[MacroManager] = None, config=None):
+    def __init__(
+        self, enabled: bool = True, macro_manager: Optional[MacroManager] = None, config=None
+    ):
         """
         Initialize the macro runner
 
@@ -71,7 +76,9 @@ class MacroRunner:
         self.keyboard_controller = None
         self.mouse_controller = None
 
-        logger.info(f"MacroRunner initialized (enabled={enabled}, macro_manager={'present' if macro_manager else 'None'})")
+        logger.info(
+            f"MacroRunner initialized (enabled={enabled}, macro_manager={'present' if macro_manager else 'None'})"
+        )
 
     def execute_macro(self, macro: Macro) -> bool:
         """
@@ -91,8 +98,9 @@ class MacroRunner:
         # the library isn't installed in the environment.
         if self.keyboard_controller is None or self.mouse_controller is None:
             try:
-                from pynput.keyboard import Controller as KeyboardController
                 from pynput import mouse as pynput_mouse
+                from pynput.keyboard import Controller as KeyboardController
+
                 self.keyboard_controller = KeyboardController()
                 self.mouse_controller = pynput_mouse.Controller()
             except Exception:
@@ -104,13 +112,15 @@ class MacroRunner:
 
         # Validate repeat count against configured maximum (global or per-macro)
         max_repeat = 100  # Default safety limit
-        if self.config and hasattr(self.config, 'max_macro_repeat'):
+        if self.config and hasattr(self.config, "max_macro_repeat"):
             max_repeat = self.config.max_macro_repeat
-        if getattr(macro, 'max_repeat', None) is not None:
+        if getattr(macro, "max_repeat", None) is not None:
             max_repeat = macro.max_repeat
 
         if macro.repeat > max_repeat:
-            error_msg = f"Macro repeat count ({macro.repeat}) exceeds maximum allowed ({max_repeat})"
+            error_msg = (
+                f"Macro repeat count ({macro.repeat}) exceeds maximum allowed ({max_repeat})"
+            )
             logger.error(error_msg)
             if self.on_error:
                 self.on_error(error_msg)
@@ -130,7 +140,7 @@ class MacroRunner:
 
         # If macro is very short (no delays and single repeat), execute synchronously
         try:
-            total_ms = macro.get_total_duration() if hasattr(macro, 'get_total_duration') else 0
+            total_ms = macro.get_total_duration() if hasattr(macro, "get_total_duration") else 0
         except Exception:
             total_ms = 0
 
@@ -143,30 +153,11 @@ class MacroRunner:
             return True
 
         # Otherwise start execution in background thread
-        self.execution_thread = threading.Thread(
-            target=self._execute_macro_thread,
-            daemon=True
-        )
+        self.execution_thread = threading.Thread(target=self._execute_macro_thread, daemon=True)
         self.execution_thread.start()
 
         logger.info(f"Started executing macro: {macro.name}")
         return True
-
-    def is_running(self) -> bool:
-        """Return True if a macro is currently running."""
-        return self.state == MacroExecutionState.RUNNING
-
-    def stop_macro(self) -> None:
-        """Stop any running macro execution."""
-        if self.state == MacroExecutionState.RUNNING:
-            self.state = MacroExecutionState.STOPPED
-
-        # Join background thread if present
-        if self.execution_thread and self.execution_thread.is_alive():
-            try:
-                self.execution_thread.join(timeout=1.0)
-            except Exception:
-                pass
 
     def _execute_macro_thread(self):
         """Execute macro in background thread"""
@@ -177,9 +168,9 @@ class MacroRunner:
 
             # Get timeout setting (default: 30 seconds). Macro-level override takes precedence.
             timeout_seconds = 30
-            if self.config and hasattr(self.config, 'macro_execution_timeout'):
+            if self.config and hasattr(self.config, "macro_execution_timeout"):
                 timeout_seconds = self.config.macro_execution_timeout
-            if getattr(macro, 'execution_timeout', None) is not None:
+            if getattr(macro, "execution_timeout", None) is not None:
                 timeout_seconds = macro.execution_timeout
 
             # Track start time for timeout enforcement
@@ -190,7 +181,9 @@ class MacroRunner:
                 # Check for timeout
                 elapsed_time = time.monotonic() - start_time
                 if elapsed_time > timeout_seconds:
-                    error_msg = f"Macro exceeded {timeout_seconds}s timeout (elapsed: {elapsed_time:.1f}s)"
+                    error_msg = (
+                        f"Macro exceeded {timeout_seconds}s timeout (elapsed: {elapsed_time:.1f}s)"
+                    )
                     logger.error(error_msg)
                     if self.on_error:
                         self.on_error(error_msg)
@@ -321,7 +314,7 @@ class MacroRunner:
                 # For SEND_MESSAGE action, the text would be stored in 'key' field
                 params = {}
                 if step.type == MacroStepType.SEND_MESSAGE.value and step.key:
-                    params['message'] = step.key
+                    params["message"] = step.key
 
                 # Execute the handler
                 handler(**params)
@@ -404,9 +397,9 @@ class MacroRunner:
 
         # Click button
         button_map = {
-            'left': mouse.Button.left,
-            'right': mouse.Button.right,
-            'middle': mouse.Button.middle
+            "left": mouse.Button.left,
+            "right": mouse.Button.right,
+            "middle": mouse.Button.middle,
         }
 
         click_button = button_map.get(button, mouse.Button.left)
@@ -450,39 +443,48 @@ class MacroRunner:
             return []
 
         keys = []
-        parts = key_combo.lower().split('+')
+        parts = key_combo.lower().split("+")
 
         for part in parts:
             part = part.strip()
 
             # Map common key names
             key_map = {
-                'ctrl': Key.ctrl_l,
-                'control': Key.ctrl_l,
-                'shift': Key.shift_l,
-                'alt': Key.alt_l,
-                'win': Key.cmd,
-                'cmd': Key.cmd,
-                'super': Key.cmd,
-                'tab': Key.tab,
-                'esc': Key.esc,
-                'escape': Key.esc,
-                'enter': Key.enter,
-                'return': Key.enter,
-                'space': Key.space,
-                'backspace': Key.backspace,
-                'delete': Key.delete,
-                'up': Key.up,
-                'down': Key.down,
-                'left': Key.left,
-                'right': Key.right,
-                'home': Key.home,
-                'end': Key.end,
-                'pageup': Key.page_up,
-                'pagedown': Key.page_down,
-                'f1': Key.f1, 'f2': Key.f2, 'f3': Key.f3, 'f4': Key.f4,
-                'f5': Key.f5, 'f6': Key.f6, 'f7': Key.f7, 'f8': Key.f8,
-                'f9': Key.f9, 'f10': Key.f10, 'f11': Key.f11, 'f12': Key.f12,
+                "ctrl": Key.ctrl_l,
+                "control": Key.ctrl_l,
+                "shift": Key.shift_l,
+                "alt": Key.alt_l,
+                "win": Key.cmd,
+                "cmd": Key.cmd,
+                "super": Key.cmd,
+                "tab": Key.tab,
+                "esc": Key.esc,
+                "escape": Key.esc,
+                "enter": Key.enter,
+                "return": Key.enter,
+                "space": Key.space,
+                "backspace": Key.backspace,
+                "delete": Key.delete,
+                "up": Key.up,
+                "down": Key.down,
+                "left": Key.left,
+                "right": Key.right,
+                "home": Key.home,
+                "end": Key.end,
+                "pageup": Key.page_up,
+                "pagedown": Key.page_down,
+                "f1": Key.f1,
+                "f2": Key.f2,
+                "f3": Key.f3,
+                "f4": Key.f4,
+                "f5": Key.f5,
+                "f6": Key.f6,
+                "f7": Key.f7,
+                "f8": Key.f8,
+                "f9": Key.f9,
+                "f10": Key.f10,
+                "f11": Key.f11,
+                "f12": Key.f12,
             }
 
             if part in key_map:

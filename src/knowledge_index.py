@@ -3,15 +3,14 @@ Knowledge Index Module
 Handles embedding generation and semantic search over knowledge packs
 """
 
-import logging
-import json
 import hashlib
-from pathlib import Path
-from typing import List, Dict, Optional, Tuple
-from datetime import datetime
+import json
+import logging
 import math
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 
-from knowledge_pack import KnowledgePack, KnowledgeSource, RetrievedChunk
+from knowledge_pack import KnowledgePack, RetrievedChunk
 from knowledge_store import get_knowledge_pack_store
 
 logger = logging.getLogger(__name__)
@@ -19,6 +18,7 @@ logger = logging.getLogger(__name__)
 # Import pickle only for backward compatibility with legacy index files
 try:
     import pickle
+
     PICKLE_AVAILABLE = True
 except ImportError:
     PICKLE_AVAILABLE = False
@@ -54,27 +54,28 @@ class SimpleTFIDFEmbedding(EmbeddingProvider):
     def to_dict(self) -> Dict:
         """Serialize to dictionary for JSON storage"""
         return {
-            'type': 'SimpleTFIDFEmbedding',
-            'vocabulary': self.vocabulary,
-            'idf': self.idf,
-            'documents': self.documents
+            "type": "SimpleTFIDFEmbedding",
+            "vocabulary": self.vocabulary,
+            "idf": self.idf,
+            "documents": self.documents,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict) -> 'SimpleTFIDFEmbedding':
+    def from_dict(cls, data: Dict) -> "SimpleTFIDFEmbedding":
         """Deserialize from dictionary"""
         instance = cls()
-        instance.vocabulary = data.get('vocabulary', {})
-        instance.idf = data.get('idf', {})
-        instance.documents = data.get('documents', [])
+        instance.vocabulary = data.get("vocabulary", {})
+        instance.idf = data.get("idf", {})
+        instance.documents = data.get("documents", [])
         return instance
 
     def _tokenize(self, text: str) -> List[str]:
         """Simple tokenization"""
         # Convert to lowercase and split on whitespace/punctuation
         import re
+
         text = text.lower()
-        tokens = re.findall(r'\w+', text)
+        tokens = re.findall(r"\w+", text)
         return tokens
 
     def _compute_tf(self, tokens: List[str]) -> Dict[str, float]:
@@ -177,6 +178,7 @@ class OpenAIEmbedding(EmbeddingProvider):
         """Check if OpenAI library is available"""
         try:
             import openai
+
             self.openai = openai
         except ImportError:
             logger.warning("OpenAI library not available. Install with: pip install openai")
@@ -189,12 +191,10 @@ class OpenAIEmbedding(EmbeddingProvider):
 
         try:
             from openai import OpenAI
+
             client = OpenAI(api_key=self.api_key)
 
-            response = client.embeddings.create(
-                input=text,
-                model=self.model
-            )
+            response = client.embeddings.create(input=text, model=self.model)
             return response.data[0].embedding
 
         except Exception as e:
@@ -208,12 +208,10 @@ class OpenAIEmbedding(EmbeddingProvider):
 
         try:
             from openai import OpenAI
+
             client = OpenAI(api_key=self.api_key)
 
-            response = client.embeddings.create(
-                input=texts,
-                model=self.model
-            )
+            response = client.embeddings.create(input=texts, model=self.model)
             return [item.embedding for item in response.data]
 
         except Exception as e:
@@ -243,7 +241,7 @@ class KnowledgeIndex:
                             Injecting this dependency makes testing much easier.
         """
         if config_dir is None:
-            config_dir = Path.home() / '.gaming_ai_assistant'
+            config_dir = Path.home() / ".gaming_ai_assistant"
         else:
             config_dir = Path(config_dir)
 
@@ -279,38 +277,44 @@ class KnowledgeIndex:
         try:
             # Try loading from JSON first (new secure format)
             if self.index_file.exists():
-                with open(self.index_file, 'r', encoding='utf-8') as f:
+                with open(self.index_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
 
                 # Restore index
-                self.index = data.get('index', {})
+                self.index = data.get("index", {})
 
                 # Restore embedding provider if present
-                if data.get('embedding_provider'):
-                    provider_data = data['embedding_provider']
-                    if provider_data.get('type') == 'SimpleTFIDFEmbedding':
+                if data.get("embedding_provider"):
+                    provider_data = data["embedding_provider"]
+                    if provider_data.get("type") == "SimpleTFIDFEmbedding":
                         self.embedding_provider = SimpleTFIDFEmbedding.from_dict(provider_data)
                         logger.info("Loaded TF-IDF model from disk (JSON)")
 
-                logger.info(f"Loaded knowledge index with {sum(len(chunks) for chunks in self.index.values())} chunks")
+                logger.info(
+                    f"Loaded knowledge index with {sum(len(chunks) for chunks in self.index.values())} chunks"
+                )
                 return
 
             # Backward compatibility: Try loading legacy pickle file
             if self.legacy_index_file.exists():
                 if not PICKLE_AVAILABLE:
-                    logger.error("Found legacy pickle index file but pickle module not available - cannot migrate")
+                    logger.error(
+                        "Found legacy pickle index file but pickle module not available - cannot migrate"
+                    )
                     logger.error("Please manually delete the pickle file or install pickle module")
                     return
 
                 logger.warning("Found legacy pickle index file - migrating to secure JSON format")
-                with open(self.legacy_index_file, 'rb') as f:
+                with open(self.legacy_index_file, "rb") as f:
                     data = pickle.load(f)
 
                 # Handle legacy format (if file just contains the dict) or new format
-                if isinstance(data, dict) and 'index' in data:
-                    self.index = data['index']
-                    if data.get('embedding_provider') and isinstance(data['embedding_provider'], SimpleTFIDFEmbedding):
-                        self.embedding_provider = data['embedding_provider']
+                if isinstance(data, dict) and "index" in data:
+                    self.index = data["index"]
+                    if data.get("embedding_provider") and isinstance(
+                        data["embedding_provider"], SimpleTFIDFEmbedding
+                    ):
+                        self.embedding_provider = data["embedding_provider"]
                         logger.info("Migrated TF-IDF model from legacy pickle format")
                 else:
                     # Legacy fallback: data is just the index dict
@@ -321,7 +325,9 @@ class KnowledgeIndex:
                 self._save_index()
                 self.legacy_index_file.unlink()
                 logger.info("Successfully migrated to secure JSON format and removed pickle file")
-                logger.info(f"Loaded knowledge index with {sum(len(chunks) for chunks in self.index.values())} chunks")
+                logger.info(
+                    f"Loaded knowledge index with {sum(len(chunks) for chunks in self.index.values())} chunks"
+                )
 
         except Exception as e:
             logger.error(f"Failed to load index: {e}")
@@ -331,11 +337,15 @@ class KnowledgeIndex:
         """Save index AND embedding model to disk (JSON format)"""
         try:
             data = {
-                'index': self.index,
+                "index": self.index,
                 # Save the provider if it's our local TF-IDF one
-                'embedding_provider': self.embedding_provider.to_dict() if isinstance(self.embedding_provider, SimpleTFIDFEmbedding) else None
+                "embedding_provider": (
+                    self.embedding_provider.to_dict()
+                    if isinstance(self.embedding_provider, SimpleTFIDFEmbedding)
+                    else None
+                ),
             }
-            with open(self.index_file, 'w', encoding='utf-8') as f:
+            with open(self.index_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2)
             logger.info("Saved knowledge index and model to disk (JSON)")
         except Exception as e:
@@ -444,7 +454,9 @@ class KnowledgeIndex:
 
         # Fit TF-IDF on entire corpus for this game
         if isinstance(self.embedding_provider, SimpleTFIDFEmbedding) and all_texts:
-            logger.info(f"Fitting TF-IDF model on {len(all_texts)} chunks from {len(all_packs)} packs")
+            logger.info(
+                f"Fitting TF-IDF model on {len(all_texts)} chunks from {len(all_packs)} packs"
+            )
             self.embedding_provider.fit(all_texts)
 
         # Now index each pack
@@ -489,20 +501,14 @@ class KnowledgeIndex:
 
                 # Store in index
                 meta = {
-                    'source_title': source.title,
-                    'source_type': source.type,
-                    'pack_name': pack.name,
-                    'chunk_index': idx,
-                    'total_chunks': len(chunks)
+                    "source_title": source.title,
+                    "source_type": source.type,
+                    "pack_name": pack.name,
+                    "chunk_index": idx,
+                    "total_chunks": len(chunks),
                 }
 
-                self.index[game_profile_id][chunk_id] = (
-                    chunk,
-                    source.id,
-                    pack.id,
-                    embedding,
-                    meta
-                )
+                self.index[game_profile_id][chunk_id] = (chunk, source.id, pack.id, embedding, meta)
 
     def add_pack(self, pack: KnowledgePack) -> None:
         """
@@ -576,7 +582,9 @@ class KnowledgeIndex:
 
         # Score all chunks
         scores = []
-        for chunk_id, (text, source_id, pack_id, embedding, meta) in self.index[game_profile_id].items():
+        for chunk_id, (text, source_id, pack_id, embedding, meta) in self.index[
+            game_profile_id
+        ].items():
             score = self._cosine_similarity(query_embedding, embedding)
             scores.append((score, text, source_id, meta))
 
@@ -586,12 +594,7 @@ class KnowledgeIndex:
         # Return top K
         results = []
         for score, text, source_id, meta in scores[:top_k]:
-            chunk = RetrievedChunk(
-                text=text,
-                source_id=source_id,
-                score=score,
-                meta=meta
-            )
+            chunk = RetrievedChunk(text=text, source_id=source_id, score=score, meta=meta)
             results.append(chunk)
 
         logger.debug(f"Retrieved {len(results)} chunks for query in game '{game_profile_id}'")
@@ -603,9 +606,9 @@ class KnowledgeIndex:
         game_profiles = list(self.index.keys())
 
         return {
-            'total_chunks': total_chunks,
-            'game_profiles': game_profiles,
-            'embedding_provider': type(self.embedding_provider).__name__
+            "total_chunks": total_chunks,
+            "game_profiles": game_profiles,
+            "embedding_provider": type(self.embedding_provider).__name__,
         }
 
 

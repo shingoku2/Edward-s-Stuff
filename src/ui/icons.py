@@ -9,9 +9,10 @@ Provides access to SVG-based icons and icon utilities.
 from typing import Optional
 
 try:
-    from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor
-    from PyQt6.QtCore import Qt, QSize
+    from PyQt6.QtCore import QSize, Qt
+    from PyQt6.QtGui import QColor, QIcon, QPainter, QPixmap
     from PyQt6.QtSvg import QSvgRenderer
+
     _PYQT_AVAILABLE = True
     _PYQT_IMPORT_ERROR = None
 except ImportError as exc:  # pragma: no cover - exercised in headless CI
@@ -204,7 +205,7 @@ class OmnixIcons:
             color = COLORS.accent_primary
 
         svg_template = OmnixIcons._SVG_ICONS.get(name, OmnixIcons._SVG_ICONS["omnix_logo"])
-        svg_data = svg_template.format(color=color).encode('utf-8')
+        svg_data = svg_template.format(color=color).encode("utf-8")
 
         # Create QPixmap from SVG
         renderer = QSvgRenderer(svg_data)

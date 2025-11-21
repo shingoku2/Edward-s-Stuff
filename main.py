@@ -3,10 +3,10 @@ Gaming AI Assistant - Main Application Entry Point
 """
 
 import logging
-from pathlib import Path
-from datetime import datetime
 import sys
 import traceback
+from datetime import datetime
+from pathlib import Path
 
 # Add src to path
 src_path = Path(__file__).parent / "src"
@@ -41,7 +41,7 @@ def setup_logging() -> Path:
             level=logging.INFO,
             format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
             handlers=[
-                logging.FileHandler(log_file, encoding='utf-8'),
+                logging.FileHandler(log_file, encoding="utf-8"),
                 logging.StreamHandler(sys.stdout),
             ],
             force=True,
@@ -104,6 +104,7 @@ def cleanup_logging():
 
 
 import atexit
+
 atexit.register(cleanup_logging)
 
 
@@ -144,16 +145,26 @@ sys.excepthook = global_exception_handler
 def main():
     """Main application entry point with improved error handling."""
 
+    try:
+        from PyQt6.QtWebEngineWidgets import QWebEngineView
+    except ImportError:
+        logger.critical("PyQt6.QtWebEngineWidgets not found.")
+        print("\n❌ Missing Dependency: PyQtWebEngine")
+        print("\nPlease install it by running: pip install PyQt6-WebEngine")
+        print()
+        input("Press Enter to exit...")
+        sys.exit(1)
+
     print("=" * 60)
     print("🎮 Gaming AI Assistant")
     print("=" * 60)
     print(f"📝 Logging to: {log_file_path}")
     print()
 
+    from ai_assistant import AIAssistant
     from config import Config
     from credential_store import CredentialStore
     from game_detector import GameDetector
-    from ai_assistant import AIAssistant
     from gui import run_gui
     from ui.design_system import design_system
 

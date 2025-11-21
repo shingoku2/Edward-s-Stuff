@@ -3,9 +3,11 @@ Test suite for utility functions
 
 Tests helper functions and utilities.
 """
-import pytest
-import os
+
+
 from pathlib import Path
+
+import pytest
 
 
 @pytest.mark.unit
@@ -16,6 +18,7 @@ class TestUtilsModule:
         """Test importing utils module"""
         try:
             from src import utils
+
             assert utils is not None
         except ImportError:
             # Utils module may not exist yet
@@ -28,7 +31,7 @@ class TestUtilsModule:
 
             # Test any utility functions that exist
             # This is a placeholder for actual utility testing
-            assert hasattr(utils, '__name__')
+            assert hasattr(utils, "__name__")
         except ImportError:
             pytest.skip("Utils module not found")
 
@@ -65,11 +68,7 @@ class TestStringHelpers:
     def test_normalize_process_name(self):
         """Test process name normalization"""
         # Example normalization
-        names = [
-            ("Game.exe", "game.exe"),
-            ("GAME.EXE", "game.exe"),
-            ("game.EXE", "game.exe")
-        ]
+        names = [("Game.exe", "game.exe"), ("GAME.EXE", "game.exe"), ("game.EXE", "game.exe")]
 
         for input_name, expected in names:
             normalized = input_name.lower()
@@ -80,7 +79,7 @@ class TestStringHelpers:
         test_cases = [
             ("Elden Ring", "elden_ring"),
             ("The Legend of Zelda", "the_legend_of_zelda"),
-            ("Game Name!", "game_name")
+            ("Game Name!", "game_name"),
         ]
 
         for input_text, expected in test_cases:
@@ -96,11 +95,7 @@ class TestValidation:
 
     def test_validate_api_key_format(self):
         """Test API key format validation"""
-        valid_keys = [
-            "sk-1234567890abcdef",
-            "sk-ant-1234567890",
-            "test-key-123"
-        ]
+        valid_keys = ["sk-1234567890abcdef", "sk-ant-1234567890", "test-key-123"]
 
         for key in valid_keys:
             # Key should be non-empty string
@@ -109,11 +104,7 @@ class TestValidation:
 
     def test_validate_game_id_format(self):
         """Test game ID format validation"""
-        valid_ids = [
-            "elden_ring",
-            "cyberpunk_2077",
-            "test_game"
-        ]
+        valid_ids = ["elden_ring", "cyberpunk_2077", "test_game"]
 
         for game_id in valid_ids:
             # Should be valid slug
@@ -134,11 +125,11 @@ class TestFileOperations:
         test_data = {"key": "value", "number": 42}
 
         # Write test file
-        with open(test_file, 'w') as f:
+        with open(test_file, "w") as f:
             json.dump(test_data, f)
 
         # Read it back
-        with open(test_file, 'r') as f:
+        with open(test_file, "r") as f:
             loaded = json.load(f)
 
         assert loaded == test_data
@@ -151,14 +142,14 @@ class TestFileOperations:
         test_data = {"test": "data"}
 
         # Write file
-        with open(test_file, 'w') as f:
+        with open(test_file, "w") as f:
             json.dump(test_data, f)
 
         # Verify it exists
         assert test_file.exists()
 
         # Verify content
-        with open(test_file, 'r') as f:
+        with open(test_file, "r") as f:
             loaded = json.load(f)
 
         assert loaded == test_data

@@ -3,11 +3,12 @@ Test helper functions and utilities
 
 Provides common utilities used across multiple test files.
 """
-import os
+
 import json
-import tempfile
+import os
+import tempfile  # noqa: F401
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 
 def create_test_config_file(config_dir: str, config_data: Optional[Dict[str, Any]] = None) -> Path:
@@ -29,10 +30,10 @@ def create_test_config_file(config_dir: str, config_data: Optional[Dict[str, Any
             "overlay_x": 100,
             "overlay_y": 100,
             "overlay_width": 800,
-            "overlay_height": 600
+            "overlay_height": 600,
         }
 
-    with open(config_path, 'w') as f:
+    with open(config_path, "w") as f:
         json.dump(config_data, f, indent=2)
 
     return config_path
@@ -78,11 +79,9 @@ def has_any_api_key() -> bool:
     Returns:
         True if at least one API key is available
     """
-    return any([
-        os.getenv("ANTHROPIC_API_KEY"),
-        os.getenv("OPENAI_API_KEY"),
-        os.getenv("GEMINI_API_KEY")
-    ])
+    return any(
+        [os.getenv("ANTHROPIC_API_KEY"), os.getenv("OPENAI_API_KEY"), os.getenv("GEMINI_API_KEY")]
+    )
 
 
 def is_headless_environment() -> bool:
@@ -108,11 +107,11 @@ def assert_valid_game_profile(profile):
         profile: GameProfile instance to validate
     """
     assert profile is not None
-    assert hasattr(profile, 'id')
-    assert hasattr(profile, 'display_name')
-    assert hasattr(profile, 'exe_names')
-    assert hasattr(profile, 'system_prompt')
-    assert hasattr(profile, 'default_provider')
+    assert hasattr(profile, "id")
+    assert hasattr(profile, "display_name")
+    assert hasattr(profile, "exe_names")
+    assert hasattr(profile, "system_prompt")
+    assert hasattr(profile, "default_provider")
     assert isinstance(profile.exe_names, list)
 
 
@@ -124,10 +123,10 @@ def assert_valid_macro(macro):
         macro: Macro instance to validate
     """
     assert macro is not None
-    assert hasattr(macro, 'id')
-    assert hasattr(macro, 'name')
-    assert hasattr(macro, 'description')
-    assert hasattr(macro, 'steps')
+    assert hasattr(macro, "id")
+    assert hasattr(macro, "name")
+    assert hasattr(macro, "description")
+    assert hasattr(macro, "steps")
     assert isinstance(macro.steps, list)
 
 
@@ -139,11 +138,11 @@ def assert_valid_knowledge_pack(pack):
         pack: KnowledgePack instance to validate
     """
     assert pack is not None
-    assert hasattr(pack, 'id')
-    assert hasattr(pack, 'name')
-    assert hasattr(pack, 'description')
-    assert hasattr(pack, 'game_profile_id')
-    assert hasattr(pack, 'sources')
+    assert hasattr(pack, "id")
+    assert hasattr(pack, "name")
+    assert hasattr(pack, "description")
+    assert hasattr(pack, "game_profile_id")
+    assert hasattr(pack, "sources")
     assert isinstance(pack.sources, list)
 
 
@@ -157,7 +156,7 @@ def normalize_line_endings(text: str) -> str:
     Returns:
         Text with normalized line endings
     """
-    return text.replace('\r\n', '\n').replace('\r', '\n')
+    return text.replace("\r\n", "\n").replace("\r", "\n")
 
 
 def strip_ansi_codes(text: str) -> str:
@@ -171,5 +170,6 @@ def strip_ansi_codes(text: str) -> str:
         Text without ANSI codes
     """
     import re
-    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
-    return ansi_escape.sub('', text)
+
+    ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+    return ansi_escape.sub("", text)

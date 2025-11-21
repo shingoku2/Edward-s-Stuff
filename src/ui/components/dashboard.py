@@ -6,14 +6,14 @@ Main dashboard overlay with status card and action grid.
 Implements the futuristic gaming companion interface.
 """
 
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QGridLayout
-)
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QFont
 from typing import Optional
-from ..tokens import COLORS, SPACING, RADIUS, TYPOGRAPHY
+
+from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtGui import QFont  # noqa: F401
+from PyQt6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QVBoxLayout, QWidget
+
 from ..icons import icons
+from ..tokens import COLORS, RADIUS, SPACING, TYPOGRAPHY
 from .dashboard_button import OmnixDashboardButton
 
 
@@ -45,14 +45,16 @@ class OmnixStatusCard(QFrame):
         self.setFrameShape(QFrame.Shape.StyledPanel)
 
         # Apply glassmorphism styling
-        self.setStyleSheet(f"""
+        self.setStyleSheet(
+            f"""
             OmnixStatusCard {{
                 background-color: {COLORS.bg_secondary};
                 border: 1px solid {COLORS.border_default};
                 border-radius: {RADIUS.lg}px;
                 padding: {SPACING.lg}px;
             }}
-        """)
+        """
+        )
 
         # Main layout
         layout = QVBoxLayout(self)
@@ -63,7 +65,8 @@ class OmnixStatusCard(QFrame):
         # Title: "Omnix AI Assistant"
         self.title_label = QLabel("Omnix AI Assistant")
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.title_label.setStyleSheet(f"""
+        self.title_label.setStyleSheet(
+            f"""
             QLabel {{
                 color: {COLORS.accent_primary};
                 font-size: {TYPOGRAPHY.size_3xl}pt;
@@ -72,7 +75,8 @@ class OmnixStatusCard(QFrame):
                 background: transparent;
                 border: none;
             }}
-        """)
+        """
+        )
         layout.addWidget(self.title_label)
 
         # Status indicator container
@@ -84,19 +88,22 @@ class OmnixStatusCard(QFrame):
 
         # Status dot
         self.status_dot = QLabel("●")
-        self.status_dot.setStyleSheet(f"""
+        self.status_dot.setStyleSheet(
+            f"""
             QLabel {{
                 color: {COLORS.accent_secondary};
                 font-size: {TYPOGRAPHY.size_xl}pt;
                 background: transparent;
                 border: none;
             }}
-        """)
+        """
+        )
         status_layout.addWidget(self.status_dot)
 
         # Status text
         self.status_label = QLabel("Active")
-        self.status_label.setStyleSheet(f"""
+        self.status_label.setStyleSheet(
+            f"""
             QLabel {{
                 color: {COLORS.accent_secondary};
                 font-size: {TYPOGRAPHY.size_lg}pt;
@@ -104,7 +111,8 @@ class OmnixStatusCard(QFrame):
                 background: transparent;
                 border: none;
             }}
-        """)
+        """
+        )
         status_layout.addWidget(self.status_label)
 
         layout.addWidget(status_container)
@@ -125,14 +133,16 @@ class OmnixStatusCard(QFrame):
 
         # Activity text
         self.activity_label = QLabel("Playing: No Game Detected")
-        self.activity_label.setStyleSheet(f"""
+        self.activity_label.setStyleSheet(
+            f"""
             QLabel {{
                 color: {COLORS.text_secondary};
                 font-size: {TYPOGRAPHY.size_md}pt;
                 background: transparent;
                 border: none;
             }}
-        """)
+        """
+        )
         activity_layout.addWidget(self.activity_label)
 
         layout.addWidget(activity_container)
@@ -148,15 +158,18 @@ class OmnixStatusCard(QFrame):
         """
         if active:
             self.status_label.setText("Active")
-            self.status_dot.setStyleSheet(f"""
+            self.status_dot.setStyleSheet(
+                f"""
                 QLabel {{
                     color: {COLORS.accent_secondary};
                     font-size: {TYPOGRAPHY.size_xl}pt;
                     background: transparent;
                     border: none;
                 }}
-            """)
-            self.status_label.setStyleSheet(f"""
+            """
+            )
+            self.status_label.setStyleSheet(
+                f"""
                 QLabel {{
                     color: {COLORS.accent_secondary};
                     font-size: {TYPOGRAPHY.size_lg}pt;
@@ -164,18 +177,22 @@ class OmnixStatusCard(QFrame):
                     background: transparent;
                     border: none;
                 }}
-            """)
+            """
+            )
         else:
             self.status_label.setText("Inactive")
-            self.status_dot.setStyleSheet(f"""
+            self.status_dot.setStyleSheet(
+                f"""
                 QLabel {{
                     color: {COLORS.text_muted};
                     font-size: {TYPOGRAPHY.size_xl}pt;
                     background: transparent;
                     border: none;
                 }}
-            """)
-            self.status_label.setStyleSheet(f"""
+            """
+            )
+            self.status_label.setStyleSheet(
+                f"""
                 QLabel {{
                     color: {COLORS.text_muted};
                     font-size: {TYPOGRAPHY.size_lg}pt;
@@ -183,7 +200,8 @@ class OmnixStatusCard(QFrame):
                     background: transparent;
                     border: none;
                 }}
-            """)
+            """
+            )
 
     def set_game(self, game_name: Optional[str]):
         """
@@ -252,13 +270,15 @@ class OmnixDashboard(QWidget):
 
         # Action grid container
         grid_container = QWidget()
-        grid_container.setStyleSheet(f"""
+        grid_container.setStyleSheet(
+            f"""
             QWidget {{
                 background-color: {COLORS.bg_secondary};
                 border: 1px solid {COLORS.border_default};
                 border-radius: {RADIUS.lg}px;
             }}
-        """)
+        """
+        )
 
         grid_layout = QGridLayout(grid_container)
         grid_layout.setContentsMargins(SPACING.lg, SPACING.lg, SPACING.lg, SPACING.lg)
@@ -266,29 +286,29 @@ class OmnixDashboard(QWidget):
 
         # Create dashboard buttons (3 columns x 2 rows)
         self.buttons = {
-            'chat': OmnixDashboardButton("chat", "Chat"),
-            'provider': OmnixDashboardButton("ai", "AI Provider"),
-            'settings': OmnixDashboardButton("settings", "Settings"),
-            'profiles': OmnixDashboardButton("game", "Game Profiles"),
-            'knowledge': OmnixDashboardButton("knowledge", "Knowledge Pack"),
-            'coaching': OmnixDashboardButton("session", "Session Coaching"),
+            "chat": OmnixDashboardButton("chat", "Chat"),
+            "provider": OmnixDashboardButton("ai", "AI Provider"),
+            "settings": OmnixDashboardButton("settings", "Settings"),
+            "profiles": OmnixDashboardButton("game", "Game Profiles"),
+            "knowledge": OmnixDashboardButton("knowledge", "Knowledge Pack"),
+            "coaching": OmnixDashboardButton("session", "Session Coaching"),
         }
 
         # Connect signals
-        self.buttons['chat'].clicked.connect(self.chat_clicked.emit)
-        self.buttons['provider'].clicked.connect(self.provider_clicked.emit)
-        self.buttons['settings'].clicked.connect(self.settings_clicked.emit)
-        self.buttons['profiles'].clicked.connect(self.profiles_clicked.emit)
-        self.buttons['knowledge'].clicked.connect(self.knowledge_clicked.emit)
-        self.buttons['coaching'].clicked.connect(self.coaching_clicked.emit)
+        self.buttons["chat"].clicked.connect(self.chat_clicked.emit)
+        self.buttons["provider"].clicked.connect(self.provider_clicked.emit)
+        self.buttons["settings"].clicked.connect(self.settings_clicked.emit)
+        self.buttons["profiles"].clicked.connect(self.profiles_clicked.emit)
+        self.buttons["knowledge"].clicked.connect(self.knowledge_clicked.emit)
+        self.buttons["coaching"].clicked.connect(self.coaching_clicked.emit)
 
         # Add buttons to grid (3 columns x 2 rows)
-        grid_layout.addWidget(self.buttons['chat'], 0, 0)
-        grid_layout.addWidget(self.buttons['provider'], 0, 1)
-        grid_layout.addWidget(self.buttons['settings'], 0, 2)
-        grid_layout.addWidget(self.buttons['profiles'], 1, 0)
-        grid_layout.addWidget(self.buttons['knowledge'], 1, 1)
-        grid_layout.addWidget(self.buttons['coaching'], 1, 2)
+        grid_layout.addWidget(self.buttons["chat"], 0, 0)
+        grid_layout.addWidget(self.buttons["provider"], 0, 1)
+        grid_layout.addWidget(self.buttons["settings"], 0, 2)
+        grid_layout.addWidget(self.buttons["profiles"], 1, 0)
+        grid_layout.addWidget(self.buttons["knowledge"], 1, 1)
+        grid_layout.addWidget(self.buttons["coaching"], 1, 2)
 
         main_layout.addWidget(grid_container)
 

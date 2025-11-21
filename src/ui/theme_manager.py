@@ -13,16 +13,20 @@ This implementation:
 - Provides real-time UI updates
 """
 
-import os
 import json
 import logging
+import os
 import shutil
-from datetime import datetime
-from typing import Dict, Any, Optional, Callable, List
 from dataclasses import asdict
+from datetime import datetime
+from typing import Any, Callable, Dict, List, Optional
 
-from .tokens import OmnixDesignTokens, COLORS, TYPOGRAPHY, SPACING, RADIUS
 from .design_system import OmnixDesignSystem
+from .tokens import OmnixDesignTokens
+from .tokens import colors as default_colors  # noqa: F401
+from .tokens import radius as default_radius  # noqa: F401
+from .tokens import spacing as default_spacing  # noqa: F401
+from .tokens import typography as default_typography  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -72,11 +76,11 @@ class OmnixThemeManager:
                 logger.info("No theme configuration found, using defaults")
                 return
 
-            with open(self.config_file, 'r') as f:
+            with open(self.config_file, "r") as f:
                 data = json.load(f)
 
             # Check version and migrate if needed
-            version = data.get('version', 1)
+            version = data.get("version", 1)
 
             if version == 1:
                 logger.info("Migrating legacy theme configuration to v2")
@@ -99,32 +103,32 @@ class OmnixThemeManager:
         Args:
             data: Theme configuration dictionary
         """
-        tokens_data = data.get('tokens', {})
+        tokens_data = data.get("tokens", {})
 
         # Load color customizations
-        if 'colors' in tokens_data:
-            for key, value in tokens_data['colors'].items():
+        if "colors" in tokens_data:
+            for key, value in tokens_data["colors"].items():
                 if hasattr(self.tokens.colors, key):
                     setattr(self.tokens.colors, key, value)
                     self._customized_tokens.add(f"colors.{key}")
 
         # Load typography customizations
-        if 'typography' in tokens_data:
-            for key, value in tokens_data['typography'].items():
+        if "typography" in tokens_data:
+            for key, value in tokens_data["typography"].items():
                 if hasattr(self.tokens.typography, key):
                     setattr(self.tokens.typography, key, value)
                     self._customized_tokens.add(f"typography.{key}")
 
         # Load spacing customizations
-        if 'spacing' in tokens_data:
-            for key, value in tokens_data['spacing'].items():
+        if "spacing" in tokens_data:
+            for key, value in tokens_data["spacing"].items():
                 if hasattr(self.tokens.spacing, key):
                     setattr(self.tokens.spacing, key, value)
                     self._customized_tokens.add(f"spacing.{key}")
 
         # Load radius customizations
-        if 'radius' in tokens_data:
-            for key, value in tokens_data['radius'].items():
+        if "radius" in tokens_data:
+            for key, value in tokens_data["radius"].items():
                 if hasattr(self.tokens.radius, key):
                     setattr(self.tokens.radius, key, value)
                     self._customized_tokens.add(f"radius.{key}")
@@ -143,22 +147,22 @@ class OmnixThemeManager:
 
             # Prepare theme data
             theme_data = {
-                'version': 2,
-                'timestamp': datetime.now().isoformat(),
-                'tokens': {
-                    'colors': asdict(self.tokens.colors),
-                    'typography': asdict(self.tokens.typography),
-                    'spacing': asdict(self.tokens.spacing),
-                    'radius': asdict(self.tokens.radius),
+                "version": 2,
+                "timestamp": datetime.now().isoformat(),
+                "tokens": {
+                    "colors": asdict(self.tokens.colors),
+                    "typography": asdict(self.tokens.typography),
+                    "spacing": asdict(self.tokens.spacing),
+                    "radius": asdict(self.tokens.radius),
                 },
-                'customizations': {
-                    'modified_tokens': list(self._customized_tokens),
-                    'count': len(self._customized_tokens)
-                }
+                "customizations": {
+                    "modified_tokens": list(self._customized_tokens),
+                    "count": len(self._customized_tokens),
+                },
             }
 
             # Write to file
-            with open(self.config_file, 'w') as f:
+            with open(self.config_file, "w") as f:
                 json.dump(theme_data, f, indent=2)
 
             logger.info(f"Theme saved successfully ({len(self._customized_tokens)} customizations)")
@@ -175,19 +179,19 @@ class OmnixThemeManager:
         """
         logger.info("Migrating legacy theme configuration")
 
-        legacy_theme = legacy_data.get('theme', {})
+        legacy_theme = legacy_data.get("theme", {})
 
         # Map legacy colors to new tokens
         color_mapping = {
-            'primary_color': 'accent_primary',
-            'secondary_color': 'accent_secondary',
-            'background_color': 'bg_primary',
-            'surface_color': 'bg_secondary',
-            'text_color': 'text_primary',
-            'text_secondary_color': 'text_secondary',
-            'error_color': 'error',
-            'success_color': 'success',
-            'warning_color': 'warning',
+            "primary_color": "accent_primary",
+            "secondary_color": "accent_secondary",
+            "background_color": "bg_primary",
+            "surface_color": "bg_secondary",
+            "text_color": "text_primary",
+            "text_secondary_color": "text_secondary",
+            "error_color": "error",
+            "success_color": "success",
+            "warning_color": "warning",
         }
 
         for legacy_key, new_key in color_mapping.items():
@@ -198,22 +202,22 @@ class OmnixThemeManager:
                 logger.debug(f"Migrated {legacy_key} -> {new_key}: {value}")
 
         # Map legacy typography
-        if 'font_family' in legacy_theme:
-            self.tokens.typography.font_primary = legacy_theme['font_family']
-            self._customized_tokens.add('typography.font_primary')
+        if "font_family" in legacy_theme:
+            self.tokens.typography.font_primary = legacy_theme["font_family"]
+            self._customized_tokens.add("typography.font_primary")
 
-        if 'font_size' in legacy_theme:
-            self.tokens.typography.size_base = legacy_theme['font_size']
-            self._customized_tokens.add('typography.size_base')
+        if "font_size" in legacy_theme:
+            self.tokens.typography.size_base = legacy_theme["font_size"]
+            self._customized_tokens.add("typography.size_base")
 
         # Map legacy spacing
-        if 'spacing' in legacy_theme:
-            self.tokens.spacing.base = legacy_theme['spacing']
-            self._customized_tokens.add('spacing.base')
+        if "spacing" in legacy_theme:
+            self.tokens.spacing.base = legacy_theme["spacing"]
+            self._customized_tokens.add("spacing.base")
 
-        if 'border_radius' in legacy_theme:
-            self.tokens.radius.base = legacy_theme['border_radius']
-            self._customized_tokens.add('radius.base')
+        if "border_radius" in legacy_theme:
+            self.tokens.radius.base = legacy_theme["border_radius"]
+            self._customized_tokens.add("radius.base")
 
         # Save migrated theme
         self.save_theme()
@@ -303,28 +307,28 @@ class OmnixThemeManager:
         # Create temporary default tokens
         defaults = OmnixDesignTokens()
 
-        if category == 'colors' and hasattr(defaults.colors, key):
+        if category == "colors" and hasattr(defaults.colors, key):
             default_value = getattr(defaults.colors, key)
             setattr(self.tokens.colors, key, default_value)
             self._customized_tokens.discard(f"colors.{key}")
             self._notify_observers()
             logger.info(f"Reset colors.{key} to default: {default_value}")
 
-        elif category == 'typography' and hasattr(defaults.typography, key):
+        elif category == "typography" and hasattr(defaults.typography, key):
             default_value = getattr(defaults.typography, key)
             setattr(self.tokens.typography, key, default_value)
             self._customized_tokens.discard(f"typography.{key}")
             self._notify_observers()
             logger.info(f"Reset typography.{key} to default: {default_value}")
 
-        elif category == 'spacing' and hasattr(defaults.spacing, key):
+        elif category == "spacing" and hasattr(defaults.spacing, key):
             default_value = getattr(defaults.spacing, key)
             setattr(self.tokens.spacing, key, default_value)
             self._customized_tokens.discard(f"spacing.{key}")
             self._notify_observers()
             logger.info(f"Reset spacing.{key} to default: {default_value}")
 
-        elif category == 'radius' and hasattr(defaults.radius, key):
+        elif category == "radius" and hasattr(defaults.radius, key):
             default_value = getattr(defaults.radius, key)
             setattr(self.tokens.radius, key, default_value)
             self._customized_tokens.discard(f"radius.{key}")
@@ -401,17 +405,17 @@ class OmnixThemeManager:
         customizations = {}
 
         for token_path in self._customized_tokens:
-            category, key = token_path.split('.')
+            category, key = token_path.split(".")
             if category not in customizations:
                 customizations[category] = {}
 
-            if category == 'colors':
+            if category == "colors":
                 customizations[category][key] = getattr(self.tokens.colors, key)
-            elif category == 'typography':
+            elif category == "typography":
                 customizations[category][key] = getattr(self.tokens.typography, key)
-            elif category == 'spacing':
+            elif category == "spacing":
                 customizations[category][key] = getattr(self.tokens.spacing, key)
-            elif category == 'radius':
+            elif category == "radius":
                 customizations[category][key] = getattr(self.tokens.radius, key)
 
         return customizations
@@ -440,13 +444,13 @@ class OmnixThemeManager:
         Returns:
             Token value or None if not found
         """
-        if category == 'colors' and hasattr(self.tokens.colors, key):
+        if category == "colors" and hasattr(self.tokens.colors, key):
             return getattr(self.tokens.colors, key)
-        elif category == 'typography' and hasattr(self.tokens.typography, key):
+        elif category == "typography" and hasattr(self.tokens.typography, key):
             return getattr(self.tokens.typography, key)
-        elif category == 'spacing' and hasattr(self.tokens.spacing, key):
+        elif category == "spacing" and hasattr(self.tokens.spacing, key):
             return getattr(self.tokens.spacing, key)
-        elif category == 'radius' and hasattr(self.tokens.radius, key):
+        elif category == "radius" and hasattr(self.tokens.radius, key):
             return getattr(self.tokens.radius, key)
         return None
 
@@ -459,18 +463,18 @@ class OmnixThemeManager:
         """
         try:
             theme_data = {
-                'version': 2,
-                'name': 'Exported Theme',
-                'exported': datetime.now().isoformat(),
-                'tokens': {
-                    'colors': asdict(self.tokens.colors),
-                    'typography': asdict(self.tokens.typography),
-                    'spacing': asdict(self.tokens.spacing),
-                    'radius': asdict(self.tokens.radius),
-                }
+                "version": 2,
+                "name": "Exported Theme",
+                "exported": datetime.now().isoformat(),
+                "tokens": {
+                    "colors": asdict(self.tokens.colors),
+                    "typography": asdict(self.tokens.typography),
+                    "spacing": asdict(self.tokens.spacing),
+                    "radius": asdict(self.tokens.radius),
+                },
             }
 
-            with open(filepath, 'w') as f:
+            with open(filepath, "w") as f:
                 json.dump(theme_data, f, indent=2)
 
             logger.info(f"Theme exported to {filepath}")
@@ -486,10 +490,10 @@ class OmnixThemeManager:
             filepath: Path to import file
         """
         try:
-            with open(filepath, 'r') as f:
+            with open(filepath, "r") as f:
                 data = json.load(f)
 
-            if data.get('version') == 2:
+            if data.get("version") == 2:
                 self._load_v2_theme(data)
                 self._notify_observers()
                 logger.info(f"Theme imported from {filepath}")

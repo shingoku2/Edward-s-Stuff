@@ -4,11 +4,11 @@ Manages per-game knowledge sources for grounded Q&A
 """
 
 import logging
-from dataclasses import dataclass, asdict, field
-from datetime import datetime
-from typing import List, Dict, Optional
-from pathlib import Path
 import sys
+from dataclasses import asdict, dataclass, field
+from datetime import datetime
+
+from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +27,7 @@ class KnowledgeSource:
         tags: List of tags for organization
         content: Raw text content (for type="note", or cached content)
     """
+
     id: str
     type: str  # "file", "url", "note"
     title: str
@@ -71,6 +72,7 @@ class KnowledgePack:
         updated_at: Last modification timestamp
         extra_settings: Extensibility dictionary for future features
     """
+
     id: str
     name: str
     description: str
@@ -102,8 +104,8 @@ class KnowledgePack:
         """Convert to dictionary for JSON serialization"""
         data = asdict(self)
         # Convert datetime objects to ISO format strings
-        data['created_at'] = self.created_at.isoformat()
-        data['updated_at'] = self.updated_at.isoformat()
+        data["created_at"] = self.created_at.isoformat()
+        data["updated_at"] = self.updated_at.isoformat()
         return data
 
     @classmethod
@@ -150,6 +152,7 @@ class RetrievedChunk:
         score: Relevance score (higher is better)
         meta: Additional metadata (source title, pack name, etc.)
     """
+
     text: str
     source_id: str
     score: float

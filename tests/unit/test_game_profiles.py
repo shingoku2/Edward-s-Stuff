@@ -3,8 +3,10 @@ Unit tests for game profile system
 
 Tests game profile creation, management, storage, and matching.
 """
+
+from pathlib import Path  # noqa: F401
+
 import pytest
-from pathlib import Path
 
 
 @pytest.mark.unit
@@ -21,7 +23,7 @@ class TestGameProfile:
             exe_names=["test.exe"],
             system_prompt="Test prompt",
             default_provider="anthropic",
-            overlay_mode_default="compact"
+            overlay_mode_default="compact",
         )
         assert profile.id == "test_game"
         assert profile.display_name == "Test Game"
@@ -33,16 +35,13 @@ class TestGameProfile:
         from game_profile import GameProfile
 
         profile = GameProfile(
-            id="test",
-            display_name="Test",
-            exe_names=["test.exe"],
-            system_prompt="Prompt"
+            id="test", display_name="Test", exe_names=["test.exe"], system_prompt="Prompt"
         )
 
         # Serialize
         profile_dict = profile.to_dict()
         assert isinstance(profile_dict, dict)
-        assert profile_dict['id'] == 'test'
+        assert profile_dict["id"] == "test"
 
         # Deserialize
         restored = GameProfile.from_dict(profile_dict)
@@ -57,7 +56,7 @@ class TestGameProfile:
             id="elden_ring",
             display_name="Elden Ring",
             exe_names=["eldenring.exe", "elden_ring.exe"],
-            system_prompt="Prompt"
+            system_prompt="Prompt",
         )
 
         # Should match case-insensitively
@@ -75,14 +74,14 @@ class TestGameProfile:
             display_name="Generic",
             exe_names=[],
             system_prompt="Prompt",
-            is_builtin=True
+            is_builtin=True,
         )
         custom = GameProfile(
             id="custom",
             display_name="Custom",
             exe_names=["custom.exe"],
             system_prompt="Prompt",
-            is_builtin=False
+            is_builtin=False,
         )
 
         assert builtin.is_builtin is True
@@ -146,7 +145,7 @@ class TestGameProfileStore:
 
     def test_create_custom_profile(self, temp_dir):
         """Test creating a custom profile"""
-        from game_profile import GameProfileStore, GameProfile
+        from game_profile import GameProfile, GameProfileStore
 
         store = GameProfileStore()
         test_id = "test_custom_unique"
@@ -160,7 +159,7 @@ class TestGameProfileStore:
             display_name="My Game",
             exe_names=["mygame.exe"],
             system_prompt="Custom prompt",
-            is_builtin=False
+            is_builtin=False,
         )
 
         success = store.create_profile(profile)
@@ -175,7 +174,7 @@ class TestGameProfileStore:
 
     def test_duplicate_profile_fails(self):
         """Test that creating duplicate profile fails"""
-        from game_profile import GameProfileStore, GameProfile
+        from game_profile import GameProfile, GameProfileStore
 
         store = GameProfileStore()
 
@@ -183,7 +182,7 @@ class TestGameProfileStore:
             id="dup_test_unique",
             display_name="Duplicate Test",
             exe_names=["dup.exe"],
-            system_prompt="Prompt"
+            system_prompt="Prompt",
         )
 
         # Clean up if exists
@@ -239,7 +238,7 @@ class TestOverlayModes:
 
         config = OverlayModeConfig.get_mode_config("compact")
         assert config is not None
-        assert config['display_name'] == 'Compact'
+        assert config["display_name"] == "Compact"
 
     def test_default_dimensions(self):
         """Test getting default dimensions"""

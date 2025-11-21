@@ -9,10 +9,9 @@ This wrapper makes OmnixThemeManager compatible with legacy ThemeManager API.
 """
 
 import logging
-from typing import Dict, Any, Optional
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 
-from ui.theme_manager import OmnixThemeManager, get_theme_manager
+from ui.theme_manager import OmnixThemeManager, get_theme_manager  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +22,7 @@ class LegacyTheme:
     Legacy Theme dataclass for backward compatibility.
     Maps to OmnixDesignTokens under the hood.
     """
+
     # Theme mode (not used in new system, kept for compatibility)
     mode: str = "dark"
 
@@ -57,7 +57,7 @@ class LegacyTheme:
         return asdict(self)
 
     @staticmethod
-    def from_dict(data: dict) -> 'LegacyTheme':
+    def from_dict(data: dict) -> "LegacyTheme":
         """Create LegacyTheme from dictionary."""
         return LegacyTheme(**data)
 
@@ -65,6 +65,7 @@ class LegacyTheme:
 @dataclass
 class LegacyOverlayAppearance:
     """Legacy OverlayAppearance for backward compatibility."""
+
     position_preset: str = "top_right"
     custom_x: int = 100
     custom_y: int = 100
@@ -102,12 +103,9 @@ class LegacyOverlayAppearance:
             "bottom_left": (margin, screen_height - self.height - margin),
             "bottom_right": (
                 screen_width - self.width - margin,
-                screen_height - self.height - margin
+                screen_height - self.height - margin,
             ),
-            "center": (
-                (screen_width - self.width) // 2,
-                (screen_height - self.height) // 2
-            ),
+            "center": ((screen_width - self.width) // 2, (screen_height - self.height) // 2),
             "custom": (self.custom_x, self.custom_y),
         }
 
@@ -117,7 +115,7 @@ class LegacyOverlayAppearance:
         return asdict(self)
 
     @staticmethod
-    def from_dict(data: dict) -> 'LegacyOverlayAppearance':
+    def from_dict(data: dict) -> "LegacyOverlayAppearance":
         return LegacyOverlayAppearance(**data)
 
 
@@ -165,7 +163,7 @@ class ThemeManagerCompat:
             layout_mode="comfortable",
             border_radius=tokens.radius.base,
             spacing=tokens.spacing.base,
-            transparency=1.0
+            transparency=1.0,
         )
 
     def _legacy_theme_to_tokens(self, theme: LegacyTheme):
@@ -176,23 +174,23 @@ class ThemeManagerCompat:
             theme: LegacyTheme object
         """
         # Update color tokens
-        self.omnix_manager.update_color('accent_primary', theme.primary_color)
-        self.omnix_manager.update_color('accent_secondary', theme.secondary_color)
-        self.omnix_manager.update_color('bg_primary', theme.background_color)
-        self.omnix_manager.update_color('bg_secondary', theme.surface_color)
-        self.omnix_manager.update_color('text_primary', theme.text_color)
-        self.omnix_manager.update_color('text_secondary', theme.text_secondary_color)
-        self.omnix_manager.update_color('error', theme.error_color)
-        self.omnix_manager.update_color('success', theme.success_color)
-        self.omnix_manager.update_color('warning', theme.warning_color)
+        self.omnix_manager.update_color("accent_primary", theme.primary_color)
+        self.omnix_manager.update_color("accent_secondary", theme.secondary_color)
+        self.omnix_manager.update_color("bg_primary", theme.background_color)
+        self.omnix_manager.update_color("bg_secondary", theme.surface_color)
+        self.omnix_manager.update_color("text_primary", theme.text_color)
+        self.omnix_manager.update_color("text_secondary", theme.text_secondary_color)
+        self.omnix_manager.update_color("error", theme.error_color)
+        self.omnix_manager.update_color("success", theme.success_color)
+        self.omnix_manager.update_color("warning", theme.warning_color)
 
         # Update typography tokens
-        self.omnix_manager.update_typography('font_primary', theme.font_family)
-        self.omnix_manager.update_typography('size_base', theme.font_size)
+        self.omnix_manager.update_typography("font_primary", theme.font_family)
+        self.omnix_manager.update_typography("size_base", theme.font_size)
 
         # Update layout tokens
-        self.omnix_manager.update_radius('base', theme.border_radius)
-        self.omnix_manager.update_spacing('base', theme.spacing)
+        self.omnix_manager.update_radius("base", theme.border_radius)
+        self.omnix_manager.update_spacing("base", theme.spacing)
 
     def set_theme(self, theme: LegacyTheme):
         """
@@ -226,7 +224,7 @@ class ThemeManagerCompat:
             QSS stylesheet string
         """
         if for_overlay:
-            opacity = getattr(self.overlay_appearance, 'opacity', 0.95)
+            opacity = getattr(self.overlay_appearance, "opacity", 0.95)
             return self.omnix_manager.get_overlay_stylesheet(opacity)
         else:
             return self.omnix_manager.get_stylesheet()
@@ -239,8 +237,8 @@ class ThemeManagerCompat:
             Dictionary with theme and overlay_appearance keys
         """
         return {
-            'theme': self.current_theme.to_dict(),
-            'overlay_appearance': self.overlay_appearance.to_dict()
+            "theme": self.current_theme.to_dict(),
+            "overlay_appearance": self.overlay_appearance.to_dict(),
         }
 
     def load_from_dict(self, data: dict):
@@ -250,12 +248,12 @@ class ThemeManagerCompat:
         Args:
             data: Dictionary with theme and/or overlay_appearance keys
         """
-        if 'theme' in data:
-            self.current_theme = LegacyTheme.from_dict(data['theme'])
+        if "theme" in data:
+            self.current_theme = LegacyTheme.from_dict(data["theme"])
             self._legacy_theme_to_tokens(self.current_theme)
 
-        if 'overlay_appearance' in data:
-            self.overlay_appearance = LegacyOverlayAppearance.from_dict(data['overlay_appearance'])
+        if "overlay_appearance" in data:
+            self.overlay_appearance = LegacyOverlayAppearance.from_dict(data["overlay_appearance"])
 
         logger.info("Theme loaded from dictionary via compatibility layer")
 
@@ -268,7 +266,7 @@ DEFAULT_DARK_THEME = LegacyTheme(
     background_color="#1A1A2E",
     surface_color="#2C2C4A",
     text_color="#FFFFFF",
-    text_secondary_color="#E0E0E0"
+    text_secondary_color="#E0E0E0",
 )
 
 DEFAULT_LIGHT_THEME = LegacyTheme(
@@ -278,7 +276,7 @@ DEFAULT_LIGHT_THEME = LegacyTheme(
     background_color="#FFFFFF",
     surface_color="#F3F4F6",
     text_color="#1F2937",
-    text_secondary_color="#6B7280"
+    text_secondary_color="#6B7280",
 )
 
 

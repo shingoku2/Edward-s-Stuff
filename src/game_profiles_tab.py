@@ -5,13 +5,25 @@ Provides UI for managing game profiles in Settings dialog
 
 import logging
 from typing import Optional
+
+from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtGui import QFont  # noqa: F401
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTableWidget,
-    QTableWidgetItem, QDialog, QLabel, QLineEdit, QTextEdit, QComboBox,
-    QMessageBox, QHeaderView, QAbstractItemView, QSpinBox, QCheckBox
+    QAbstractItemView,
+    QComboBox,
+    QDialog,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QTableWidget,
+    QTableWidgetItem,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt6.QtCore import pyqtSignal, Qt, QSize
-from PyQt6.QtGui import QFont
 
 from game_profile import GameProfile, get_profile_store
 
@@ -21,7 +33,9 @@ logger = logging.getLogger(__name__)
 class GameProfileDialog(QDialog):
     """Dialog for creating/editing game profiles"""
 
-    def __init__(self, parent=None, profile: Optional[GameProfile] = None, available_providers: list = None):
+    def __init__(
+        self, parent=None, profile: Optional[GameProfile] = None, available_providers: list = None
+    ):
         """
         Initialize profile dialog.
 
@@ -131,9 +145,7 @@ class GameProfileDialog(QDialog):
             return None
 
         exe_names = [
-            line.strip()
-            for line in self.exe_input.toPlainText().split("\n")
-            if line.strip()
+            line.strip() for line in self.exe_input.toPlainText().split("\n") if line.strip()
         ]
 
         # Generate ID if new profile
@@ -266,13 +278,16 @@ class GameProfilesTab(QWidget):
             profile = dialog.get_profile()
             if profile:
                 if self.store.create_profile(profile):
-                    QMessageBox.information(self, "Success", f"Profile '{profile.display_name}' created")
+                    QMessageBox.information(
+                        self, "Success", f"Profile '{profile.display_name}' created"
+                    )
                     self.refresh_profile_list()
                     self.profile_changed.emit()
                 else:
                     QMessageBox.warning(
-                        self, "Error",
-                        f"Failed to create profile. ID '{profile.id}' may already exist."
+                        self,
+                        "Error",
+                        f"Failed to create profile. ID '{profile.id}' may already exist.",
                     )
 
     def edit_profile(self) -> None:
@@ -288,21 +303,22 @@ class GameProfilesTab(QWidget):
         # Cannot edit built-in profiles
         if profile.is_builtin:
             QMessageBox.information(
-                self, "Built-in Profile",
-                "Built-in profiles cannot be edited. You can duplicate and customize instead."
+                self,
+                "Built-in Profile",
+                "Built-in profiles cannot be edited. You can duplicate and customize instead.",
             )
             return
 
         dialog = GameProfileDialog(
-            self,
-            profile=profile,
-            available_providers=self.available_providers
+            self, profile=profile, available_providers=self.available_providers
         )
         if dialog.exec() == QDialog.DialogCode.Accepted:
             updated = dialog.get_profile()
             if updated:
                 if self.store.update_profile(updated):
-                    QMessageBox.information(self, "Success", f"Profile '{updated.display_name}' updated")
+                    QMessageBox.information(
+                        self, "Success", f"Profile '{updated.display_name}' updated"
+                    )
                     self.refresh_profile_list()
                     self.profile_changed.emit()
                 else:
@@ -320,9 +336,7 @@ class GameProfilesTab(QWidget):
 
         # Create a copy dialog
         dialog = GameProfileDialog(
-            self,
-            profile=None,  # New profile
-            available_providers=self.available_providers
+            self, profile=None, available_providers=self.available_providers  # New profile
         )
 
         # Pre-fill with data from original
@@ -339,8 +353,7 @@ class GameProfilesTab(QWidget):
             if new_profile:
                 if self.store.create_profile(new_profile):
                     QMessageBox.information(
-                        self, "Success",
-                        f"Profile '{new_profile.display_name}' created as copy"
+                        self, "Success", f"Profile '{new_profile.display_name}' created as copy"
                     )
                     self.refresh_profile_list()
                     self.profile_changed.emit()
@@ -360,19 +373,23 @@ class GameProfilesTab(QWidget):
         # Cannot delete built-in profiles
         if profile.is_builtin:
             QMessageBox.information(
-                self, "Built-in Profile",
-                "Built-in profiles cannot be deleted."
+                self, "Built-in Profile", "Built-in profiles cannot be deleted."
             )
             return
 
-        if QMessageBox.question(
-            self,
-            "Confirm Delete",
-            f"Are you sure you want to delete '{profile.display_name}'?\n\nThis cannot be undone.",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        ) == QMessageBox.StandardButton.Yes:
+        if (
+            QMessageBox.question(
+                self,
+                "Confirm Delete",
+                f"Are you sure you want to delete '{profile.display_name}'?\n\nThis cannot be undone.",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            )
+            == QMessageBox.StandardButton.Yes
+        ):
             if self.store.delete_profile(profile.id):
-                QMessageBox.information(self, "Deleted", f"Profile '{profile.display_name}' deleted")
+                QMessageBox.information(
+                    self, "Deleted", f"Profile '{profile.display_name}' deleted"
+                )
                 self.refresh_profile_list()
                 self.profile_changed.emit()
             else:

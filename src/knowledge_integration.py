@@ -4,12 +4,11 @@ Integrates knowledge packs, session logging, and coaching into the AI assistant
 """
 
 import logging
-from typing import Optional, List, Dict
+from typing import Dict, Optional
 
-from src.knowledge_pack import RetrievedChunk
-from src.knowledge_index import get_knowledge_index, KnowledgeIndex
-from src.knowledge_store import get_knowledge_pack_store, KnowledgePackStore
-from src.session_logger import get_session_logger, SessionLogger
+from src.knowledge_index import KnowledgeIndex, get_knowledge_index
+from src.knowledge_store import KnowledgePackStore, get_knowledge_pack_store
+from src.session_logger import SessionLogger, get_session_logger
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +22,7 @@ class KnowledgeIntegration:
         self,
         knowledge_index: Optional[KnowledgeIndex] = None,
         knowledge_store: Optional[KnowledgePackStore] = None,
-        session_logger: Optional[SessionLogger] = None
+        session_logger: Optional[SessionLogger] = None,
     ):
         """
         Initialize knowledge integration
@@ -51,7 +50,7 @@ class KnowledgeIntegration:
             True if knowledge packs should be used
         """
         # Check profile setting
-        use_knowledge = extra_settings.get('use_knowledge_packs', True)
+        use_knowledge = extra_settings.get("use_knowledge_packs", True)
 
         # Check if there are any enabled packs for this game
         enabled_packs = self.knowledge_store.get_enabled_packs_for_game(game_profile_id)
@@ -59,10 +58,7 @@ class KnowledgeIntegration:
         return use_knowledge and len(enabled_packs) > 0
 
     def get_knowledge_context(
-        self,
-        game_profile_id: str,
-        question: str,
-        extra_settings: Dict
+        self, game_profile_id: str, question: str, extra_settings: Dict
     ) -> Optional[str]:
         """
         Retrieve knowledge context for a question
@@ -77,13 +73,11 @@ class KnowledgeIntegration:
         """
         try:
             # Get context depth setting (default: 5)
-            top_k = extra_settings.get('knowledge_context_depth', 5)
+            top_k = extra_settings.get("knowledge_context_depth", 5)
 
             # Query the index
             chunks = self.knowledge_index.query(
-                game_profile_id=game_profile_id,
-                question=question,
-                top_k=top_k
+                game_profile_id=game_profile_id, question=question, top_k=top_k
             )
 
             if not chunks:
@@ -91,7 +85,7 @@ class KnowledgeIntegration:
                 return None
 
             # Filter by minimum score threshold (0.3 out of 1.0)
-            min_score = extra_settings.get('knowledge_min_score', 0.3)
+            min_score = extra_settings.get("knowledge_min_score", 0.3)
             relevant_chunks = [c for c in chunks if c.score >= min_score]
 
             if not relevant_chunks:
@@ -101,12 +95,12 @@ class KnowledgeIntegration:
             # Format context
             context_parts = [
                 "=== Knowledge Pack Context ===",
-                "The following information from your knowledge packs may be relevant:\n"
+                "The following information from your knowledge packs may be relevant:\n",
             ]
 
             for i, chunk in enumerate(relevant_chunks, 1):
-                source_title = chunk.meta.get('source_title', 'Unknown')
-                pack_name = chunk.meta.get('pack_name', 'Unknown Pack')
+                source_title = chunk.meta.get("source_title", "Unknown")
+                pack_name = chunk.meta.get("pack_name", "Unknown Pack")
 
                 context_parts.append(f"[Source {i}: {source_title} from {pack_name}]")
                 context_parts.append(chunk.text)
@@ -120,9 +114,9 @@ class KnowledgeIntegration:
             # Log the knowledge query event
             self.session_logger.log_event(
                 game_profile_id=game_profile_id,
-                event_type='knowledge_query',
+                event_type="knowledge_query",
                 content=question,
-                meta={'chunks_retrieved': len(relevant_chunks)}
+                meta={"chunks_retrieved": len(relevant_chunks)},
             )
 
             return context
@@ -131,12 +125,7 @@ class KnowledgeIntegration:
             logger.error(f"Failed to get knowledge context: {e}", exc_info=True)
             return None
 
-    def log_conversation(
-        self,
-        game_profile_id: str,
-        question: str,
-        answer: str
-    ) -> None:
+    def log_conversation(self, game_profile_id: str, question: str, answer: str) -> None:
         """
         Log a conversation interaction
 
@@ -148,27 +137,19 @@ class KnowledgeIntegration:
         try:
             # Log question
             self.session_logger.log_event(
-                game_profile_id=game_profile_id,
-                event_type='question',
-                content=question
+                game_profile_id=game_profile_id, event_type="question", content=question
             )
 
             # Log answer (truncate to save space)
             answer_summary = answer[:200] + "..." if len(answer) > 200 else answer
             self.session_logger.log_event(
-                game_profile_id=game_profile_id,
-                event_type='answer',
-                content=answer_summary
+                game_profile_id=game_profile_id, event_type="answer", content=answer_summary
             )
 
         except Exception as e:
             logger.error(f"Failed to log conversation: {e}")
 
-    def log_macro_execution(
-        self,
-        game_profile_id: str,
-        macro_name: str
-    ) -> None:
+    def log_macro_execution(self, game_profile_id: str, macro_name: str) -> None:
         """
         Log a macro execution
 
@@ -178,9 +159,7 @@ class KnowledgeIntegration:
         """
         try:
             self.session_logger.log_event(
-                game_profile_id=game_profile_id,
-                event_type='macro',
-                content=macro_name
+                game_profile_id=game_profile_id, event_type="macro", content=macro_name
             )
         except Exception as e:
             logger.error(f"Failed to log macro execution: {e}")

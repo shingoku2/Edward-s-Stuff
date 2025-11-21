@@ -9,36 +9,37 @@ Run this file to see a live demo of the design system:
 """
 
 import sys
+
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QApplication,
-    QMainWindow,
-    QWidget,
     QLabel,
+    QMainWindow,
     QStackedWidget,
+    QWidget,
 )
-from PyQt6.QtCore import Qt
 
 # Import design system
-sys.path.insert(0, '/home/user/Omnix-All-knowing-gaming-companion')
-from src.ui import design_system, tokens, COLORS, SPACING
-from src.ui.components import (
+sys.path.insert(0, "/home/user/Omnix-All-knowing-gaming-companion")
+from src.ui import COLORS, SPACING, design_system, tokens  # noqa: F401
+from src.ui.components import (  # noqa: F401
     OmnixButton,
-    OmnixIconButton,
-    OmnixLineEdit,
-    OmnixTextEdit,
-    OmnixComboBox,
     OmnixCard,
-    OmnixPanel,
-    OmnixInfoCard,
-    OmnixVBox,
-    OmnixHBox,
-    OmnixGrid,
-    OmnixFormLayout,
-    OmnixSidebar,
-    OmnixHeaderBar,
+    OmnixComboBox,
     OmnixConfirmDialog,
-    OmnixMessageDialog,
+    OmnixFormLayout,
+    OmnixGrid,
+    OmnixHBox,
+    OmnixHeaderBar,
+    OmnixIconButton,
+    OmnixInfoCard,
     OmnixInputDialog,
+    OmnixLineEdit,
+    OmnixMessageDialog,
+    OmnixPanel,
+    OmnixSidebar,
+    OmnixTextEdit,
+    OmnixVBox,
 )
 from src.ui.icons import icons
 
@@ -97,7 +98,9 @@ class OmnixDemoWindow(QMainWindow):
 
     def _create_buttons_page(self) -> QWidget:
         """Create buttons demo page."""
-        page = OmnixVBox(spacing=SPACING.lg, margins=(SPACING.lg, SPACING.lg, SPACING.lg, SPACING.lg))
+        page = OmnixVBox(
+            spacing=SPACING.lg, margins=(SPACING.lg, SPACING.lg, SPACING.lg, SPACING.lg)
+        )
 
         # Title
         title = QLabel("Buttons")
@@ -147,7 +150,9 @@ class OmnixDemoWindow(QMainWindow):
 
     def _create_inputs_page(self) -> QWidget:
         """Create inputs demo page."""
-        page = OmnixVBox(spacing=SPACING.lg, margins=(SPACING.lg, SPACING.lg, SPACING.lg, SPACING.lg))
+        page = OmnixVBox(
+            spacing=SPACING.lg, margins=(SPACING.lg, SPACING.lg, SPACING.lg, SPACING.lg)
+        )
 
         # Title
         title = QLabel("Input Fields")
@@ -170,7 +175,9 @@ class OmnixDemoWindow(QMainWindow):
 
     def _create_cards_page(self) -> QWidget:
         """Create cards demo page."""
-        page = OmnixVBox(spacing=SPACING.lg, margins=(SPACING.lg, SPACING.lg, SPACING.lg, SPACING.lg))
+        page = OmnixVBox(
+            spacing=SPACING.lg, margins=(SPACING.lg, SPACING.lg, SPACING.lg, SPACING.lg)
+        )
 
         # Title
         title = QLabel("Cards & Panels")
@@ -182,20 +189,10 @@ class OmnixDemoWindow(QMainWindow):
 
         # Info cards
         card1 = OmnixInfoCard(
-            title="Total Sessions",
-            description="156 sessions completed",
-            icon="📊"
+            title="Total Sessions", description="156 sessions completed", icon="📊"
         )
-        card2 = OmnixInfoCard(
-            title="Win Rate",
-            description="67.3% overall",
-            icon="🏆"
-        )
-        card3 = OmnixInfoCard(
-            title="Play Time",
-            description="234 hours tracked",
-            icon="⏱️"
-        )
+        card2 = OmnixInfoCard(title="Win Rate", description="67.3% overall", icon="🏆")
+        card3 = OmnixInfoCard(title="Play Time", description="234 hours tracked", icon="⏱️")
 
         grid.add_widget(card1, 0, 0)
         grid.add_widget(card2, 0, 1)
@@ -216,7 +213,9 @@ class OmnixDemoWindow(QMainWindow):
 
     def _create_dialogs_page(self) -> QWidget:
         """Create dialogs demo page."""
-        page = OmnixVBox(spacing=SPACING.lg, margins=(SPACING.lg, SPACING.lg, SPACING.lg, SPACING.lg))
+        page = OmnixVBox(
+            spacing=SPACING.lg, margins=(SPACING.lg, SPACING.lg, SPACING.lg, SPACING.lg)
+        )
 
         # Title
         title = QLabel("Dialogs & Modals")
@@ -250,7 +249,9 @@ class OmnixDemoWindow(QMainWindow):
 
     def _create_colors_page(self) -> QWidget:
         """Create colors demo page."""
-        page = OmnixVBox(spacing=SPACING.lg, margins=(SPACING.lg, SPACING.lg, SPACING.lg, SPACING.lg))
+        page = OmnixVBox(
+            spacing=SPACING.lg, margins=(SPACING.lg, SPACING.lg, SPACING.lg, SPACING.lg)
+        )
 
         # Title
         title = QLabel("Color Palette")
@@ -272,13 +273,15 @@ class OmnixDemoWindow(QMainWindow):
         for i, (name, color) in enumerate(colors):
             swatch = QWidget()
             swatch.setFixedSize(120, 80)
-            swatch.setStyleSheet(f"""
+            swatch.setStyleSheet(
+                f"""
                 QWidget {{
                     background-color: {color};
                     border: 1px solid {COLORS.border_default};
                     border-radius: 8px;
                 }}
-            """)
+            """
+            )
 
             label = QLabel(f"{name}\n{color}")
             label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -298,14 +301,14 @@ class OmnixDemoWindow(QMainWindow):
             message="Are you sure you want to delete this profile? This action cannot be undone.",
             confirm_text="Delete",
             is_dangerous=True,
-            parent=self
+            parent=self,
         )
         if dialog.exec():
             OmnixMessageDialog(
                 title="Deleted",
                 message="Profile has been deleted.",
                 message_type="success",
-                parent=self
+                parent=self,
             ).exec()
 
     def _show_message_dialog(self):
@@ -314,7 +317,7 @@ class OmnixDemoWindow(QMainWindow):
             title="Welcome!",
             message="This is a message dialog with an info icon.",
             message_type="info",
-            parent=self
+            parent=self,
         ).exec()
 
     def _show_input_dialog(self):
@@ -323,7 +326,7 @@ class OmnixDemoWindow(QMainWindow):
             title="New Profile",
             label="Enter profile name:",
             placeholder="My Gaming Profile",
-            parent=self
+            parent=self,
         )
         if dialog.exec():
             name = dialog.get_value()
@@ -331,7 +334,7 @@ class OmnixDemoWindow(QMainWindow):
                 title="Profile Created",
                 message=f"Profile '{name}' has been created!",
                 message_type="success",
-                parent=self
+                parent=self,
             ).exec()
 
 
@@ -341,6 +344,7 @@ def main():
 
     # Set application-wide font
     from PyQt6.QtGui import QFont
+
     font = QFont("Roboto", 11)
     app.setFont(font)
 

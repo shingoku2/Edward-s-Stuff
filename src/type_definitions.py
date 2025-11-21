@@ -2,8 +2,8 @@
 Type definitions for better code clarity
 """
 
-from typing import Protocol, TypedDict, List, Dict, Any, Optional, Union
 from enum import Enum
+from typing import Any, Dict, List, Optional, Protocol, TypedDict
 
 
 class GameInfo(TypedDict):
@@ -57,14 +57,11 @@ class OverlayMode(Enum):
 class GameDetectorProtocol(Protocol):
     """Protocol for game detector interface"""
 
-    def detect_running_game(self) -> Optional[GameInfo]:
-        ...
+    def detect_running_game(self) -> Optional[GameInfo]: ...
 
-    def get_running_games(self) -> List[GameInfo]:
-        ...
+    def get_running_games(self) -> List[GameInfo]: ...
 
-    def is_game_running(self, game_name: str) -> bool:
-        ...
+    def is_game_running(self, game_name: str) -> bool: ...
 
 
 class AIAssistantProtocol(Protocol):
@@ -72,8 +69,6 @@ class AIAssistantProtocol(Protocol):
 
     provider: str
 
-    def ask_question(self, question: str, context: Optional[Dict[str, Any]] = None) -> str:
-        ...
+    def ask_question(self, question: str, context: Optional[Dict[str, Any]] = None) -> str: ...
 
-    def set_current_game(self, game: Optional[GameInfo]) -> None:
-        ...
+    def set_current_game(self, game: Optional[GameInfo]) -> None: ...

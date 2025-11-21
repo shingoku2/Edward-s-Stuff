@@ -9,6 +9,7 @@ import os
 import sys
 from pathlib import Path
 from typing import Dict, Optional
+
 from dotenv import load_dotenv
 
 from credential_store import CredentialDecryptionError, CredentialStore, CredentialStoreError
@@ -16,17 +17,22 @@ from credential_store import CredentialDecryptionError, CredentialStore, Credent
 logger = logging.getLogger(__name__)
 
 # Configuration directory
-CONFIG_DIR = Path.home() / '.gaming_ai_assistant'
-KEYBINDS_FILE = CONFIG_DIR / 'keybinds.json'
-MACROS_FILE = CONFIG_DIR / 'macros.json'
-THEME_FILE = CONFIG_DIR / 'theme.json'
+CONFIG_DIR = Path.home() / ".gaming_ai_assistant"
+KEYBINDS_FILE = CONFIG_DIR / "keybinds.json"
+MACROS_FILE = CONFIG_DIR / "macros.json"
+THEME_FILE = CONFIG_DIR / "theme.json"
 
 
 class Config:
     """Application configuration"""
 
-    def __init__(self, env_file: Optional[str] = None, require_keys: bool = False,
-                 config_path: Optional[str] = None, config_dir: Optional[str] = None):
+    def __init__(
+        self,
+        env_file: Optional[str] = None,
+        require_keys: bool = False,
+        config_path: Optional[str] = None,
+        config_dir: Optional[str] = None,
+    ):
         """
         Initialize configuration
 
@@ -45,16 +51,16 @@ class Config:
             # Try multiple locations for .env file
             # This handles both development and PyInstaller bundled scenarios
             possible_paths = [
-                Path('.env'),  # Current working directory
-                Path(__file__).parent.parent / '.env',  # Relative to this file
-                Path(sys.executable).parent / '.env',  # Next to executable
+                Path(".env"),  # Current working directory
+                Path(__file__).parent.parent / ".env",  # Relative to this file
+                Path(sys.executable).parent / ".env",  # Next to executable
             ]
 
             # For PyInstaller, also check sys._MEIPASS
-            if getattr(sys, 'frozen', False):
+            if getattr(sys, "frozen", False):
                 # Running in a bundle
                 bundle_dir = Path(sys.executable).parent
-                possible_paths.insert(0, bundle_dir / '.env')
+                possible_paths.insert(0, bundle_dir / ".env")
 
             for env_path in possible_paths:
                 if env_path.exists():
@@ -67,34 +73,38 @@ class Config:
         credentials = self._load_secure_credentials()
 
         # AI Configuration
-        self.ai_provider = os.getenv('AI_PROVIDER', 'anthropic').lower()
-        self.openai_api_key = credentials.get('OPENAI_API_KEY') or os.getenv('OPENAI_API_KEY')
-        self.anthropic_api_key = credentials.get('ANTHROPIC_API_KEY') or os.getenv('ANTHROPIC_API_KEY')
-        self.gemini_api_key = credentials.get('GEMINI_API_KEY') or os.getenv('GEMINI_API_KEY')
+        self.ai_provider = os.getenv("AI_PROVIDER", "anthropic").lower()
+        self.openai_api_key = credentials.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY")
+        self.anthropic_api_key = credentials.get("ANTHROPIC_API_KEY") or os.getenv(
+            "ANTHROPIC_API_KEY"
+        )
+        self.gemini_api_key = credentials.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")
 
         # Session tokens - load from secure storage instead of .env
         self.session_tokens: Dict[str, dict] = {}
         self._load_session_tokens_from_secure_storage(credentials)
 
         # Application Settings
-        self.overlay_hotkey = os.getenv('OVERLAY_HOTKEY', 'ctrl+shift+g')
-        self.check_interval = int(os.getenv('CHECK_INTERVAL', '5'))
+        self.overlay_hotkey = os.getenv("OVERLAY_HOTKEY", "ctrl+shift+g")
+        self.check_interval = int(os.getenv("CHECK_INTERVAL", "5"))
 
         # Overlay Window Settings
-        self.overlay_x = int(os.getenv('OVERLAY_X', '100'))
-        self.overlay_y = int(os.getenv('OVERLAY_Y', '100'))
-        self.overlay_width = int(os.getenv('OVERLAY_WIDTH', '900'))
-        self.overlay_height = int(os.getenv('OVERLAY_HEIGHT', '700'))
-        self.overlay_minimized = os.getenv('OVERLAY_MINIMIZED', 'false').lower() == 'true'
+        self.overlay_x = int(os.getenv("OVERLAY_X", "100"))
+        self.overlay_y = int(os.getenv("OVERLAY_Y", "100"))
+        self.overlay_width = int(os.getenv("OVERLAY_WIDTH", "900"))
+        self.overlay_height = int(os.getenv("OVERLAY_HEIGHT", "700"))
+        self.overlay_minimized = os.getenv("OVERLAY_MINIMIZED", "false").lower() == "true"
         # Validate opacity is in valid range [0.0, 1.0]
-        opacity = float(os.getenv('OVERLAY_OPACITY', '0.95'))
+        opacity = float(os.getenv("OVERLAY_OPACITY", "0.95"))
         self.overlay_opacity = max(0.0, min(1.0, opacity))
 
         # Macro & Keybind Settings
-        self.macros_enabled = os.getenv('MACROS_ENABLED', 'false').lower() == 'true'
-        self.macro_safety_understood = os.getenv('MACRO_SAFETY_UNDERSTOOD', 'false').lower() == 'true'
-        self.max_macro_repeat = int(os.getenv('MAX_MACRO_REPEAT', '10'))
-        self.macro_execution_timeout = int(os.getenv('MACRO_EXECUTION_TIMEOUT', '30'))  # seconds
+        self.macros_enabled = os.getenv("MACROS_ENABLED", "false").lower() == "true"
+        self.macro_safety_understood = (
+            os.getenv("MACRO_SAFETY_UNDERSTOOD", "false").lower() == "true"
+        )
+        self.max_macro_repeat = int(os.getenv("MAX_MACRO_REPEAT", "10"))
+        self.macro_execution_timeout = int(os.getenv("MACRO_EXECUTION_TIMEOUT", "30"))  # seconds
 
         # Extended Settings (stored in separate JSON files)
         self.keybinds: Dict = {}
@@ -121,7 +131,7 @@ class Config:
             credentials: Dictionary of credentials from credential store
         """
         # Try to load consolidated session tokens JSON first
-        session_tokens_json = credentials.get('SESSION_TOKENS_JSON')
+        session_tokens_json = credentials.get("SESSION_TOKENS_JSON")
         if session_tokens_json:
             try:
                 self.session_tokens = json.loads(session_tokens_json)
@@ -133,11 +143,11 @@ class Config:
         # Fallback: Try loading individual provider tokens from .env (legacy support)
         # This allows migration from old .env-based storage
         # Only load from .env if not already present in secure storage (secure storage has priority)
-        for provider in ['openai', 'anthropic', 'gemini']:
+        for provider in ["openai", "anthropic", "gemini"]:
             if provider in self.session_tokens:
                 continue  # Skip if already loaded from secure storage
 
-            env_key = f'{provider.upper()}_SESSION_DATA'
+            env_key = f"{provider.upper()}_SESSION_DATA"
             raw_value = os.getenv(env_key)
             if raw_value:
                 try:
@@ -150,17 +160,19 @@ class Config:
     def _validate(self):
         """Validate configuration - raises ValueError if invalid"""
         # Check if we have the required API key for the provider
-        if self.ai_provider == 'openai' and not self.openai_api_key:
+        if self.ai_provider == "openai" and not self.openai_api_key:
             raise ValueError("OpenAI API key not found. Please add it via the Settings dialog.")
 
-        if self.ai_provider == 'anthropic' and not self.anthropic_api_key:
+        if self.ai_provider == "anthropic" and not self.anthropic_api_key:
             raise ValueError("Anthropic API key not found. Please add it via the Settings dialog.")
 
-        if self.ai_provider == 'gemini' and not self.gemini_api_key:
+        if self.ai_provider == "gemini" and not self.gemini_api_key:
             raise ValueError("Gemini API key not found. Please add it via the Settings dialog.")
 
-        if self.ai_provider not in ['openai', 'anthropic', 'gemini']:
-            raise ValueError(f"Invalid AI provider: {self.ai_provider}. Must be 'openai', 'anthropic', or 'gemini'")
+        if self.ai_provider not in ["openai", "anthropic", "gemini"]:
+            raise ValueError(
+                f"Invalid AI provider: {self.ai_provider}. Must be 'openai', 'anthropic', or 'gemini'"
+            )
 
     def _load_secure_credentials(self) -> dict:
         """Load credentials from the encrypted store with graceful fallbacks."""
@@ -177,7 +189,7 @@ class Config:
         """Load keybinds from JSON file"""
         try:
             if KEYBINDS_FILE.exists():
-                with open(KEYBINDS_FILE, 'r', encoding='utf-8') as f:
+                with open(KEYBINDS_FILE, "r", encoding="utf-8") as f:
                     self.keybinds = json.load(f)
                     logger.info(f"Loaded {len(self.keybinds)} keybinds from {KEYBINDS_FILE}")
             else:
@@ -191,7 +203,7 @@ class Config:
         """Load macros from JSON file"""
         try:
             if MACROS_FILE.exists():
-                with open(MACROS_FILE, 'r', encoding='utf-8') as f:
+                with open(MACROS_FILE, "r", encoding="utf-8") as f:
                     self.macros = json.load(f)
                     logger.info(f"Loaded {len(self.macros)} macros from {MACROS_FILE}")
             else:
@@ -205,7 +217,7 @@ class Config:
         """Load theme from JSON file"""
         try:
             if THEME_FILE.exists():
-                with open(THEME_FILE, 'r', encoding='utf-8') as f:
+                with open(THEME_FILE, "r", encoding="utf-8") as f:
                     self.theme = json.load(f)
                     logger.info(f"Loaded theme from {THEME_FILE}")
             else:
@@ -229,7 +241,7 @@ class Config:
             # Ensure config directory exists
             CONFIG_DIR.mkdir(parents=True, exist_ok=True)
 
-            with open(KEYBINDS_FILE, 'w', encoding='utf-8') as f:
+            with open(KEYBINDS_FILE, "w", encoding="utf-8") as f:
                 json.dump(keybinds, f, indent=2)
 
             self.keybinds = keybinds
@@ -253,7 +265,7 @@ class Config:
             # Ensure config directory exists
             CONFIG_DIR.mkdir(parents=True, exist_ok=True)
 
-            with open(MACROS_FILE, 'w', encoding='utf-8') as f:
+            with open(MACROS_FILE, "w", encoding="utf-8") as f:
                 json.dump(macros, f, indent=2)
 
             self.macros = macros
@@ -277,7 +289,7 @@ class Config:
             # Ensure config directory exists
             CONFIG_DIR.mkdir(parents=True, exist_ok=True)
 
-            with open(THEME_FILE, 'w', encoding='utf-8') as f:
+            with open(THEME_FILE, "w", encoding="utf-8") as f:
                 json.dump(theme, f, indent=2)
 
             self.theme = theme
@@ -295,19 +307,16 @@ class Config:
             True if at least one API key or session token is configured, False otherwise
         """
         # Check API keys
-        has_api_key = bool(
-            self.openai_api_key or
-            self.anthropic_api_key or
-            self.gemini_api_key
-        )
+        has_api_key = bool(self.openai_api_key or self.anthropic_api_key or self.gemini_api_key)
 
         # Check session tokens
-        has_session = bool(self.session_tokens.get('openai') or
-                          self.session_tokens.get('anthropic') or
-                          self.session_tokens.get('gemini'))
+        has_session = bool(
+            self.session_tokens.get("openai")
+            or self.session_tokens.get("anthropic")
+            or self.session_tokens.get("gemini")
+        )
 
         return has_api_key or has_session
-
 
     def get_api_key(self, provider: Optional[str] = None) -> Optional[str]:
         """
@@ -322,11 +331,11 @@ class Config:
         """
         target_provider = (provider or self.ai_provider).lower()
 
-        if target_provider == 'openai':
+        if target_provider == "openai":
             return self.openai_api_key
-        elif target_provider == 'anthropic':
+        elif target_provider == "anthropic":
             return self.anthropic_api_key
-        elif target_provider == 'gemini':
+        elif target_provider == "gemini":
             return self.gemini_api_key
         return None
 
@@ -342,11 +351,11 @@ class Config:
 
         if api_key:
             # Save to both in-memory and secure storage
-            if provider == 'openai':
+            if provider == "openai":
                 self.openai_api_key = api_key
-            elif provider == 'anthropic':
+            elif provider == "anthropic":
                 self.anthropic_api_key = api_key
-            elif provider == 'gemini':
+            elif provider == "gemini":
                 self.gemini_api_key = api_key
             else:
                 logger.warning(f"Unknown provider: {provider}")
@@ -354,7 +363,7 @@ class Config:
 
             # Persist to secure credential store
             try:
-                self.credential_store.save_credentials({f'{provider.upper()}_API_KEY': api_key})
+                self.credential_store.save_credentials({f"{provider.upper()}_API_KEY": api_key})
                 logger.info(f"Saved API key for provider: {provider}")
             except Exception as e:
                 logger.error(f"Failed to save API key for {provider}: {e}")
@@ -372,13 +381,13 @@ class Config:
         try:
             if self.session_tokens:
                 session_tokens_json = json.dumps(self.session_tokens)
-                self.credential_store.save_credentials({'SESSION_TOKENS_JSON': session_tokens_json})
+                self.credential_store.save_credentials({"SESSION_TOKENS_JSON": session_tokens_json})
                 logger.info("Saved session tokens to secure storage")
                 return True
             else:
                 # Clear session tokens if empty
                 try:
-                    self.credential_store.delete('SESSION_TOKENS_JSON')
+                    self.credential_store.delete("SESSION_TOKENS_JSON")
                 except Exception:
                     pass  # Ignore if doesn't exist
                 return True
@@ -396,11 +405,11 @@ class Config:
         provider = provider.lower()
 
         # Clear from memory
-        if provider == 'openai':
+        if provider == "openai":
             self.openai_api_key = None
-        elif provider == 'anthropic':
+        elif provider == "anthropic":
             self.anthropic_api_key = None
-        elif provider == 'gemini':
+        elif provider == "gemini":
             self.gemini_api_key = None
         else:
             logger.warning(f"Unknown provider: {provider}")
@@ -408,7 +417,7 @@ class Config:
 
         # Remove from secure storage
         try:
-            self.credential_store.delete(f'{provider.upper()}_API_KEY')
+            self.credential_store.delete(f"{provider.upper()}_API_KEY")
             logger.info(f"Cleared API key for provider: {provider}")
         except Exception as e:
             logger.error(f"Failed to clear API key for {provider}: {e}")
@@ -428,7 +437,7 @@ class Config:
             return self.ai_provider
 
         # Try other providers in order
-        for provider in ['anthropic', 'openai', 'gemini']:
+        for provider in ["anthropic", "openai", "gemini"]:
             if self.has_provider_key(provider):
                 return provider
 
@@ -449,11 +458,11 @@ class Config:
         has_api_key = False
         has_session = bool(self.session_tokens.get(target_provider))
 
-        if target_provider == 'openai':
+        if target_provider == "openai":
             has_api_key = bool(self.openai_api_key)
-        elif target_provider == 'anthropic':
+        elif target_provider == "anthropic":
             has_api_key = bool(self.anthropic_api_key)
-        elif target_provider == 'gemini':
+        elif target_provider == "gemini":
             has_api_key = bool(self.gemini_api_key)
 
         return has_api_key or has_session
@@ -479,22 +488,22 @@ class Config:
 
         try:
             config_data = {
-                'ai_provider': self.ai_provider,
-                'overlay_hotkey': self.overlay_hotkey,
-                'check_interval': self.check_interval,
-                'overlay_x': self.overlay_x,
-                'overlay_y': self.overlay_y,
-                'overlay_width': self.overlay_width,
-                'overlay_height': self.overlay_height,
-                'overlay_minimized': self.overlay_minimized,
-                'overlay_opacity': self.overlay_opacity,
-                'macros_enabled': self.macros_enabled,
-                'macro_safety_understood': self.macro_safety_understood,
-                'max_macro_repeat': self.max_macro_repeat,
-                'macro_execution_timeout': self.macro_execution_timeout
+                "ai_provider": self.ai_provider,
+                "overlay_hotkey": self.overlay_hotkey,
+                "check_interval": self.check_interval,
+                "overlay_x": self.overlay_x,
+                "overlay_y": self.overlay_y,
+                "overlay_width": self.overlay_width,
+                "overlay_height": self.overlay_height,
+                "overlay_minimized": self.overlay_minimized,
+                "overlay_opacity": self.overlay_opacity,
+                "macros_enabled": self.macros_enabled,
+                "macro_safety_understood": self.macro_safety_understood,
+                "max_macro_repeat": self.max_macro_repeat,
+                "macro_execution_timeout": self.macro_execution_timeout,
             }
 
-            with open(self.config_path, 'w', encoding='utf-8') as f:
+            with open(self.config_path, "w", encoding="utf-8") as f:
                 json.dump(config_data, f, indent=2)
 
             logger.info(f"Saved configuration to {self.config_path}")
@@ -509,7 +518,7 @@ class Config:
             return
 
         try:
-            with open(self.config_path, 'r', encoding='utf-8') as f:
+            with open(self.config_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
             # Update attributes from loaded data
@@ -525,8 +534,8 @@ class Config:
 
     def reset_to_defaults(self):
         """Reset configuration to default values"""
-        self.ai_provider = 'anthropic'
-        self.overlay_hotkey = 'ctrl+shift+g'
+        self.ai_provider = "anthropic"
+        self.overlay_hotkey = "ctrl+shift+g"
         self.check_interval = 5
         self.overlay_x = 100
         self.overlay_y = 100
@@ -540,12 +549,18 @@ class Config:
         self.macro_execution_timeout = 30
 
     @staticmethod
-    def save_to_env(provider: str,
-                    session_tokens: Optional[Dict[str, dict]] = None,
-                    overlay_hotkey: str = 'ctrl+shift+g', check_interval: int = 5,
-                    overlay_x: int = None, overlay_y: int = None,
-                    overlay_width: int = None, overlay_height: int = None,
-                    overlay_minimized: bool = None, overlay_opacity: float = None):
+    def save_to_env(
+        provider: str,
+        session_tokens: Optional[Dict[str, dict]] = None,
+        overlay_hotkey: str = "ctrl+shift+g",
+        check_interval: int = 5,
+        overlay_x: int = None,
+        overlay_y: int = None,
+        overlay_width: int = None,
+        overlay_height: int = None,
+        overlay_minimized: bool = None,
+        overlay_opacity: float = None,
+    ):
         """
         Save configuration to .env file
 
@@ -566,80 +581,77 @@ class Config:
         """
         # Determine .env file location
         # Try multiple locations, prioritizing the most appropriate one
-        possible_paths = [
-            Path('.env'),  # Current working directory
-            Path(__file__).parent.parent / '.env',  # Relative to this file (project root)
-            Path(sys.executable).parent / '.env',  # Next to executable (for bundled app)
-        ]
 
         # For PyInstaller bundles, use directory next to executable
-        if getattr(sys, 'frozen', False):
-            env_path = Path(sys.executable).parent / '.env'
+        if getattr(sys, "frozen", False):
+            env_path = Path(sys.executable).parent / ".env"
         else:
             # In development, use project root
-            env_path = Path(__file__).parent.parent / '.env'
+            env_path = Path(__file__).parent.parent / ".env"
 
         # Read existing .env file if it exists
         existing_content = {}
         if env_path.exists():
-            with open(env_path, 'r', encoding='utf-8') as f:
+            with open(env_path, "r", encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
-                    if line and not line.startswith('#') and '=' in line:
-                        key, value = line.split('=', 1)
+                    if line and not line.startswith("#") and "=" in line:
+                        key, value = line.split("=", 1)
                         existing_content[key.strip()] = value.strip()
 
         # Update with new values
-        existing_content['AI_PROVIDER'] = provider
+        existing_content["AI_PROVIDER"] = provider
 
         # IMPORTANT: Preserve existing API keys if present
         # This allows users who prefer .env configuration to continue using it
         # while also supporting the encrypted credential store for better security
         # Only set empty placeholder if key doesn't exist
-        if 'OPENAI_API_KEY' not in existing_content:
-            existing_content['OPENAI_API_KEY'] = ''
+        if "OPENAI_API_KEY" not in existing_content:
+            existing_content["OPENAI_API_KEY"] = ""
         # else: preserve existing value from .env file
 
-        if 'ANTHROPIC_API_KEY' not in existing_content:
-            existing_content['ANTHROPIC_API_KEY'] = ''
+        if "ANTHROPIC_API_KEY" not in existing_content:
+            existing_content["ANTHROPIC_API_KEY"] = ""
         # else: preserve existing value from .env file
 
-        if 'GEMINI_API_KEY' not in existing_content:
-            existing_content['GEMINI_API_KEY'] = ''
+        if "GEMINI_API_KEY" not in existing_content:
+            existing_content["GEMINI_API_KEY"] = ""
         # else: preserve existing value from .env file
 
-        existing_content['OVERLAY_HOTKEY'] = overlay_hotkey
-        existing_content['CHECK_INTERVAL'] = str(check_interval)
+        existing_content["OVERLAY_HOTKEY"] = overlay_hotkey
+        existing_content["CHECK_INTERVAL"] = str(check_interval)
 
         # Session tokens are now stored in secure credential store, not .env
         # Remove legacy session token entries if they exist
-        for key in ['OPENAI_SESSION_DATA', 'ANTHROPIC_SESSION_DATA', 'GEMINI_SESSION_DATA']:
+        for key in ["OPENAI_SESSION_DATA", "ANTHROPIC_SESSION_DATA", "GEMINI_SESSION_DATA"]:
             if key in existing_content:
                 del existing_content[key]
 
         # Update overlay settings if provided
         if overlay_x is not None:
-            existing_content['OVERLAY_X'] = str(overlay_x)
+            existing_content["OVERLAY_X"] = str(overlay_x)
         if overlay_y is not None:
-            existing_content['OVERLAY_Y'] = str(overlay_y)
+            existing_content["OVERLAY_Y"] = str(overlay_y)
         if overlay_width is not None:
-            existing_content['OVERLAY_WIDTH'] = str(overlay_width)
+            existing_content["OVERLAY_WIDTH"] = str(overlay_width)
         if overlay_height is not None:
-            existing_content['OVERLAY_HEIGHT'] = str(overlay_height)
+            existing_content["OVERLAY_HEIGHT"] = str(overlay_height)
         if overlay_minimized is not None:
-            existing_content['OVERLAY_MINIMIZED'] = str(overlay_minimized).lower()
+            existing_content["OVERLAY_MINIMIZED"] = str(overlay_minimized).lower()
         if overlay_opacity is not None:
-            existing_content['OVERLAY_OPACITY'] = str(overlay_opacity)
+            existing_content["OVERLAY_OPACITY"] = str(overlay_opacity)
 
         # Write to .env file
-        with open(env_path, 'w', encoding='utf-8') as f:
+        with open(env_path, "w", encoding="utf-8") as f:
             f.write("# Gaming AI Assistant Configuration\n")
             f.write("# This file was generated by the Settings dialog\n\n")
 
             f.write("# AI Provider Selection\n")
             f.write(f"AI_PROVIDER={existing_content['AI_PROVIDER']}\n\n")
 
-            f.write("# API Keys and Session Tokens are stored securely using the encrypted credential store\n")
+            f.write(
+                "# API Keys and Session Tokens are stored securely using the encrypted credential store\n"
+            )
             f.write(f"OPENAI_API_KEY={existing_content.get('OPENAI_API_KEY', '')}\n")
             f.write(f"ANTHROPIC_API_KEY={existing_content.get('ANTHROPIC_API_KEY', '')}\n")
             f.write(f"GEMINI_API_KEY={existing_content.get('GEMINI_API_KEY', '')}\n\n")
@@ -649,7 +661,7 @@ class Config:
             f.write(f"CHECK_INTERVAL={existing_content['CHECK_INTERVAL']}\n\n")
 
             # Write overlay settings if they exist
-            if 'OVERLAY_X' in existing_content:
+            if "OVERLAY_X" in existing_content:
                 f.write("# Overlay Window Settings\n")
                 f.write(f"OVERLAY_X={existing_content.get('OVERLAY_X', '100')}\n")
                 f.write(f"OVERLAY_Y={existing_content.get('OVERLAY_Y', '100')}\n")

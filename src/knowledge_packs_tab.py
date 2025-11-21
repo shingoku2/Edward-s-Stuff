@@ -4,24 +4,39 @@ Allows users to create and manage knowledge packs for games
 """
 
 import logging
-from pathlib import Path
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView,
-    QDialog, QLineEdit, QTextEdit, QComboBox, QFileDialog,
-    QMessageBox, QListWidget, QListWidgetItem, QGroupBox,
-    QProgressDialog, QCheckBox, QSpinBox
-)
-from PyQt6.QtCore import pyqtSignal, Qt, QThread
-from PyQt6.QtGui import QFont
-
-from knowledge_pack import KnowledgePack, KnowledgeSource
-from knowledge_store import get_knowledge_pack_store
-from knowledge_index import get_knowledge_index
-from knowledge_ingestion import get_ingestion_pipeline, IngestionError
-from game_profile import get_profile_store
 import uuid
 from datetime import datetime
+from pathlib import Path
+
+from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtGui import QFont  # noqa: F401
+from PyQt6.QtWidgets import (
+    QAbstractItemView,
+    QComboBox,
+    QDialog,
+    QFileDialog,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QListWidget,
+    QListWidgetItem,
+    QMessageBox,
+    QProgressDialog,
+    QPushButton,
+    QTableWidget,
+    QTableWidgetItem,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
+
+from game_profile import get_profile_store
+from knowledge_index import get_knowledge_index
+from knowledge_ingestion import IngestionError, get_ingestion_pipeline
+from knowledge_pack import KnowledgePack, KnowledgeSource
+from knowledge_store import get_knowledge_pack_store
 
 logger = logging.getLogger(__name__)
 
@@ -57,10 +72,10 @@ class IngestionWorker(QThread):
 
                 # Ingest based on type
                 try:
-                    if source.type == 'file':
-                        source.content = self.pipeline.ingest('file', file_path=source.path)
-                    elif source.type == 'url':
-                        source.content = self.pipeline.ingest('url', url=source.url)
+                    if source.type == "file":
+                        source.content = self.pipeline.ingest("file", file_path=source.path)
+                    elif source.type == "url":
+                        source.content = self.pipeline.ingest("url", url=source.url)
                     # Notes already have content
                 except IngestionError as e:
                     logger.error(f"Failed to ingest {source.title}: {e}")
@@ -224,15 +239,12 @@ class KnowledgePackDialog(QDialog):
             self,
             "Select Knowledge File",
             "",
-            "All Files (*);;Text Files (*.txt);;Markdown Files (*.md);;PDF Files (*.pdf)"
+            "All Files (*);;Text Files (*.txt);;Markdown Files (*.md);;PDF Files (*.pdf)",
         )
 
         if file_path:
             source = KnowledgeSource(
-                id=str(uuid.uuid4()),
-                type="file",
-                title=Path(file_path).name,
-                path=file_path
+                id=str(uuid.uuid4()), type="file", title=Path(file_path).name, path=file_path
             )
             self.sources.append(source)
             self.refresh_sources_list()
@@ -241,27 +253,17 @@ class KnowledgePackDialog(QDialog):
         """Add a URL source"""
         from PyQt6.QtWidgets import QInputDialog
 
-        url, ok = QInputDialog.getText(
-            self,
-            "Add URL Source",
-            "Enter URL:"
-        )
+        url, ok = QInputDialog.getText(self, "Add URL Source", "Enter URL:")
 
         if ok and url:
             # Get title
             title, ok = QInputDialog.getText(
-                self,
-                "Source Title",
-                "Enter a title for this source:",
-                text=url
+                self, "Source Title", "Enter a title for this source:", text=url
             )
 
             if ok:
                 source = KnowledgeSource(
-                    id=str(uuid.uuid4()),
-                    type="url",
-                    title=title or url,
-                    url=url
+                    id=str(uuid.uuid4()), type="url", title=title or url, url=url
                 )
                 self.sources.append(source)
                 self.refresh_sources_list()
@@ -308,10 +310,7 @@ class KnowledgePackDialog(QDialog):
 
             if content:
                 source = KnowledgeSource(
-                    id=str(uuid.uuid4()),
-                    type="note",
-                    title=title,
-                    content=content
+                    id=str(uuid.uuid4()), type="note", title=title, content=content
                 )
                 self.sources.append(source)
                 self.refresh_sources_list()
@@ -337,7 +336,7 @@ class KnowledgePackDialog(QDialog):
             sources=self.sources,
             enabled=self.enabled_checkbox.isChecked(),
             created_at=self.pack.created_at if self.pack else datetime.now(),
-            updated_at=datetime.now()
+            updated_at=datetime.now(),
         )
 
         return pack
@@ -383,7 +382,9 @@ class KnowledgePacksTab(QWidget):
             ["Pack Name", "Game", "Sources", "Status", "Last Updated", ""]
         )
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(
+            1, QHeaderView.ResizeMode.ResizeToContents
+        )
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         layout.addWidget(self.table)
@@ -453,11 +454,7 @@ class KnowledgePacksTab(QWidget):
         """Create a new knowledge pack"""
         game_profiles = self.profile_store.list_profiles()
 
-        dialog = KnowledgePackDialog(
-            parent=self,
-            pack=None,
-            game_profiles=game_profiles
-        )
+        dialog = KnowledgePackDialog(parent=self, pack=None, game_profiles=game_profiles)
 
         if dialog.exec() == QDialog.DialogCode.Accepted:
             pack = dialog.get_pack()
@@ -492,11 +489,7 @@ class KnowledgePacksTab(QWidget):
 
         game_profiles = self.profile_store.list_profiles()
 
-        dialog = KnowledgePackDialog(
-            parent=self,
-            pack=pack,
-            game_profiles=game_profiles
-        )
+        dialog = KnowledgePackDialog(parent=self, pack=pack, game_profiles=game_profiles)
 
         if dialog.exec() == QDialog.DialogCode.Accepted:
             updated_pack = dialog.get_pack()
@@ -544,7 +537,7 @@ class KnowledgePacksTab(QWidget):
             self,
             "Confirm Delete",
             f"Are you sure you want to delete the pack '{pack_name}'?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
 
         if reply == QMessageBox.StandardButton.Yes:
@@ -570,7 +563,9 @@ class KnowledgePacksTab(QWidget):
 
         # Connect signals
         worker.progress.connect(lambda p, msg: (progress.setValue(p), progress.setLabelText(msg)))
-        worker.finished.connect(lambda success, msg: self.on_ingestion_finished(success, msg, progress))
+        worker.finished.connect(
+            lambda success, msg: self.on_ingestion_finished(success, msg, progress)
+        )
 
         # Start worker
         worker.start()

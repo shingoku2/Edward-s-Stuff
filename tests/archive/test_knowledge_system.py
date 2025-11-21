@@ -2,19 +2,20 @@
 Unit tests for the Knowledge Pack & Coaching system
 """
 
-import unittest
-import tempfile
+import os  # noqa: F401
 import shutil
-import os
+import tempfile
+import unittest
+from datetime import datetime  # noqa: F401
 from pathlib import Path
-from datetime import datetime
+
+from src.knowledge_index import KnowledgeIndex, SimpleTFIDFEmbedding
+from src.knowledge_ingestion import FileIngestor, IngestionPipeline
 
 # Import modules to test
-from src.knowledge_pack import KnowledgeSource, KnowledgePack, RetrievedChunk
+from src.knowledge_pack import KnowledgePack, KnowledgeSource, RetrievedChunk
 from src.knowledge_store import KnowledgePackStore, get_knowledge_pack_store
-from src.knowledge_index import KnowledgeIndex, SimpleTFIDFEmbedding
-from src.knowledge_ingestion import IngestionPipeline, FileIngestor, NoteIngestor
-from src.session_logger import SessionLogger, SessionEvent
+from src.session_logger import SessionEvent, SessionLogger  # noqa: F401
 
 
 class TestKnowledgeModels(unittest.TestCase):
@@ -23,10 +24,7 @@ class TestKnowledgeModels(unittest.TestCase):
     def test_knowledge_source_creation(self):
         """Test creating a knowledge source"""
         source = KnowledgeSource(
-            id="test_source",
-            type="note",
-            title="Test Note",
-            content="This is test content"
+            id="test_source", type="note", title="Test Note", content="This is test content"
         )
 
         self.assertEqual(source.id, "test_source")
@@ -37,38 +35,24 @@ class TestKnowledgeModels(unittest.TestCase):
         """Test source validation"""
         # Valid file source
         file_source = KnowledgeSource(
-            id="file1",
-            type="file",
-            title="File",
-            path="/path/to/file.txt"
+            id="file1", type="file", title="File", path="/path/to/file.txt"
         )
         self.assertTrue(file_source.validate())
 
         # Invalid file source (no path)
-        invalid_file = KnowledgeSource(
-            id="file2",
-            type="file",
-            title="File"
-        )
+        invalid_file = KnowledgeSource(id="file2", type="file", title="File")
         self.assertFalse(invalid_file.validate())
 
     def test_knowledge_pack_creation(self):
         """Test creating a knowledge pack"""
-        sources = [
-            KnowledgeSource(
-                id="s1",
-                type="note",
-                title="Note 1",
-                content="Content 1"
-            )
-        ]
+        sources = [KnowledgeSource(id="s1", type="note", title="Note 1", content="Content 1")]
 
         pack = KnowledgePack(
             id="pack1",
             name="Test Pack",
             description="A test pack",
             game_profile_id="elden_ring",
-            sources=sources
+            sources=sources,
         )
 
         self.assertEqual(pack.id, "pack1")
@@ -82,16 +66,11 @@ class TestKnowledgeModels(unittest.TestCase):
             name="Test Pack",
             description="A test pack",
             game_profile_id="elden_ring",
-            sources=[]
+            sources=[],
         )
 
         # Add source
-        source = KnowledgeSource(
-            id="s1",
-            type="note",
-            title="Note 1",
-            content="Content 1"
-        )
+        source = KnowledgeSource(id="s1", type="note", title="Note 1", content="Content 1")
         pack.add_source(source)
         self.assertEqual(pack.get_source_count(), 1)
 
@@ -102,16 +81,12 @@ class TestKnowledgeModels(unittest.TestCase):
     def test_knowledge_pack_serialization(self):
         """Test pack to_dict and from_dict"""
         pack = KnowledgePack(
-            id="pack1",
-            name="Test Pack",
-            description="Test",
-            game_profile_id="game1",
-            sources=[]
+            id="pack1", name="Test Pack", description="Test", game_profile_id="game1", sources=[]
         )
 
         # Convert to dict
         pack_dict = pack.to_dict()
-        self.assertEqual(pack_dict['id'], 'pack1')
+        self.assertEqual(pack_dict["id"], "pack1")
 
         # Convert back from dict
         pack2 = KnowledgePack.from_dict(pack_dict)
@@ -134,11 +109,7 @@ class TestKnowledgeStore(unittest.TestCase):
     def test_save_and_load_pack(self):
         """Test saving and loading a pack"""
         pack = KnowledgePack(
-            id="pack1",
-            name="Test Pack",
-            description="Test",
-            game_profile_id="game1",
-            sources=[]
+            id="pack1", name="Test Pack", description="Test", game_profile_id="game1", sources=[]
         )
 
         # Save
@@ -154,11 +125,7 @@ class TestKnowledgeStore(unittest.TestCase):
     def test_delete_pack(self):
         """Test deleting a pack"""
         pack = KnowledgePack(
-            id="pack1",
-            name="Test Pack",
-            description="Test",
-            game_profile_id="game1",
-            sources=[]
+            id="pack1", name="Test Pack", description="Test", game_profile_id="game1", sources=[]
         )
 
         # Save and delete
@@ -173,18 +140,10 @@ class TestKnowledgeStore(unittest.TestCase):
     def test_get_packs_for_game(self):
         """Test filtering packs by game profile"""
         pack1 = KnowledgePack(
-            id="pack1",
-            name="Pack 1",
-            description="Test",
-            game_profile_id="game1",
-            sources=[]
+            id="pack1", name="Pack 1", description="Test", game_profile_id="game1", sources=[]
         )
         pack2 = KnowledgePack(
-            id="pack2",
-            name="Pack 2",
-            description="Test",
-            game_profile_id="game2",
-            sources=[]
+            id="pack2", name="Pack 2", description="Test", game_profile_id="game2", sources=[]
         )
 
         self.store.save_pack(pack1)
@@ -204,8 +163,7 @@ class TestKnowledgeIndex(unittest.TestCase):
         self.test_dir = tempfile.mkdtemp()
         self.embedding_provider = SimpleTFIDFEmbedding()
         self.index = KnowledgeIndex(
-            config_dir=self.test_dir,
-            embedding_provider=self.embedding_provider
+            config_dir=self.test_dir, embedding_provider=self.embedding_provider
         )
 
     def tearDown(self):
@@ -229,7 +187,7 @@ class TestKnowledgeIndex(unittest.TestCase):
             id="s1",
             type="note",
             title="Build Guide",
-            content="The best build for magic users is to focus on Intelligence stat and use Glintstone Sorcery."
+            content="The best build for magic users is to focus on Intelligence stat and use Glintstone Sorcery.",
         )
 
         pack = KnowledgePack(
@@ -237,7 +195,7 @@ class TestKnowledgeIndex(unittest.TestCase):
             name="Test Pack",
             description="Test",
             game_profile_id="elden_ring",
-            sources=[source]
+            sources=[source],
         )
 
         # Save pack to store first (required before indexing)
@@ -249,9 +207,7 @@ class TestKnowledgeIndex(unittest.TestCase):
 
         # Query
         results = self.index.query(
-            game_profile_id="elden_ring",
-            question="What is the best magic build?",
-            top_k=3
+            game_profile_id="elden_ring", question="What is the best magic build?", top_k=3
         )
 
         # Should find relevant chunks
@@ -261,19 +217,14 @@ class TestKnowledgeIndex(unittest.TestCase):
     def test_remove_pack(self):
         """Test removing a pack from index"""
         # Add pack
-        source = KnowledgeSource(
-            id="s1",
-            type="note",
-            title="Note",
-            content="Test content"
-        )
+        source = KnowledgeSource(id="s1", type="note", title="Note", content="Test content")
 
         pack = KnowledgePack(
             id="pack1",
             name="Test Pack",
             description="Test",
             game_profile_id="game1",
-            sources=[source]
+            sources=[source],
         )
 
         self.index.add_pack(pack)
@@ -282,11 +233,7 @@ class TestKnowledgeIndex(unittest.TestCase):
         self.index.remove_pack("pack1")
 
         # Query should return nothing
-        results = self.index.query(
-            game_profile_id="game1",
-            question="test",
-            top_k=3
-        )
+        results = self.index.query(game_profile_id="game1", question="test", top_k=3)
         self.assertEqual(len(results), 0)
 
 
@@ -310,13 +257,13 @@ class TestIngestion(unittest.TestCase):
         test_file.write_text(test_content)
 
         # Ingest
-        content = self.pipeline.ingest('file', file_path=str(test_file))
+        content = self.pipeline.ingest("file", file_path=str(test_file))
         self.assertEqual(content, test_content)
 
     def test_ingest_note(self):
         """Test ingesting a note"""
         note_content = "This is a test note."
-        content = self.pipeline.ingest('note', content=note_content)
+        content = self.pipeline.ingest("note", content=note_content)
         self.assertEqual(content.strip(), note_content)
 
     def test_ingest_batch(self):
@@ -326,8 +273,8 @@ class TestIngestion(unittest.TestCase):
         file1.write_text("Content 1")
 
         sources = [
-            {'type': 'file', 'file_path': str(file1)},
-            {'type': 'note', 'content': 'Note content'}
+            {"type": "file", "file_path": str(file1)},
+            {"type": "note", "content": "Note content"},
         ]
 
         results = self.pipeline.ingest_batch(sources)
@@ -351,9 +298,7 @@ class TestSessionLogger(unittest.TestCase):
     def test_log_event(self):
         """Test logging an event"""
         self.logger.log_event(
-            game_profile_id="elden_ring",
-            event_type="question",
-            content="How do I beat Malenia?"
+            game_profile_id="elden_ring", event_type="question", content="How do I beat Malenia?"
         )
 
         # Get events
@@ -366,28 +311,18 @@ class TestSessionLogger(unittest.TestCase):
         # Log some events
         for i in range(5):
             self.logger.log_event(
-                game_profile_id="elden_ring",
-                event_type="question",
-                content=f"Question {i}"
+                game_profile_id="elden_ring", event_type="question", content=f"Question {i}"
             )
 
         summary = self.logger.get_session_summary("elden_ring")
-        self.assertEqual(summary['total_events'], 5)
-        self.assertEqual(summary['event_types']['question'], 5)
+        self.assertEqual(summary["total_events"], 5)
+        self.assertEqual(summary["event_types"]["question"], 5)
 
     def test_multiple_sessions(self):
         """Test handling multiple game profiles"""
-        self.logger.log_event(
-            game_profile_id="game1",
-            event_type="question",
-            content="Q1"
-        )
+        self.logger.log_event(game_profile_id="game1", event_type="question", content="Q1")
 
-        self.logger.log_event(
-            game_profile_id="game2",
-            event_type="question",
-            content="Q2"
-        )
+        self.logger.log_event(game_profile_id="game2", event_type="question", content="Q2")
 
         events1 = self.logger.get_current_session_events("game1")
         events2 = self.logger.get_current_session_events("game2")
@@ -396,5 +331,5 @@ class TestSessionLogger(unittest.TestCase):
         self.assertEqual(len(events2), 1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -12,10 +12,10 @@ plugin.
 from __future__ import annotations
 
 import argparse
+import ctypes.util
 import os
 import sys
 import time
-import ctypes.util
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Tuple
@@ -64,11 +64,7 @@ class UITestReport:
 
     @property
     def passed(self) -> bool:
-        return (
-            self.response_completed
-            and self.user_bubbles >= 1
-            and self.ai_bubbles >= 1
-        )
+        return self.response_completed and self.user_bubbles >= 1 and self.ai_bubbles >= 1
 
 
 class EchoAssistant:
@@ -139,7 +135,9 @@ def capture_screenshot(widget: ChatWidget, path: Path) -> Path:
     return path
 
 
-def run_chat_smoke_test(message: str, width: int, height: int, wait_ms: int, screenshot: Optional[Path]) -> UITestReport:
+def run_chat_smoke_test(
+    message: str, width: int, height: int, wait_ms: int, screenshot: Optional[Path]
+) -> UITestReport:
     app = ensure_app()
 
     assistant = EchoAssistant()

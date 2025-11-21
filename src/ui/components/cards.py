@@ -5,10 +5,11 @@ Omnix Card and Panel Components
 Card and panel components for organizing content.
 """
 
-from PyQt6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QWidget
-from PyQt6.QtCore import Qt
 from typing import Optional
-from ..tokens import COLORS, SPACING, RADIUS
+
+from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
+
+from ..tokens import COLORS, RADIUS, SPACING
 
 
 class OmnixPanel(QFrame):
@@ -41,14 +42,16 @@ class OmnixPanel(QFrame):
         self.setFrameShadow(QFrame.Shadow.Raised)
 
         # Apply custom styling
-        self.setStyleSheet(f"""
+        self.setStyleSheet(
+            f"""
             QFrame {{
                 background-color: {COLORS.bg_secondary};
                 border: 1px solid {COLORS.border_subtle};
                 border-radius: {RADIUS.base}px;
                 padding: {padding}px;
             }}
-        """)
+        """
+        )
 
         # Create layout
         self._layout = QVBoxLayout(self)
@@ -121,20 +124,20 @@ class OmnixCard(QFrame):
         """Create card header with title."""
         header = QWidget()
         header_layout = QHBoxLayout(header)
-        header_layout.setContentsMargins(
-            SPACING.base, SPACING.md, SPACING.base, SPACING.md
-        )
+        header_layout.setContentsMargins(SPACING.base, SPACING.md, SPACING.base, SPACING.md)
 
         # Title label
         title_label = QLabel(title)
         title_label.setProperty("labelStyle", "subheading")
-        title_label.setStyleSheet(f"""
+        title_label.setStyleSheet(
+            f"""
             QLabel {{
                 color: {COLORS.accent_primary};
                 font-weight: 600;
                 font-size: 14pt;
             }}
-        """)
+        """
+        )
 
         header_layout.addWidget(title_label)
         header_layout.addStretch()
@@ -143,13 +146,15 @@ class OmnixCard(QFrame):
         separator = QFrame()
         separator.setFrameShape(QFrame.Shape.HLine)
         separator.setFrameShadow(QFrame.Shadow.Sunken)
-        separator.setStyleSheet(f"""
+        separator.setStyleSheet(
+            f"""
             QFrame {{
                 background-color: {COLORS.border_subtle};
                 border: none;
                 max-height: 1px;
             }}
-        """)
+        """
+        )
 
         self._main_layout.addWidget(header)
         self._main_layout.addWidget(separator)
@@ -242,12 +247,14 @@ class OmnixInfoCard(OmnixCard):
         # Icon (if provided)
         if icon:
             icon_label = QLabel(icon)
-            icon_label.setStyleSheet(f"""
+            icon_label.setStyleSheet(
+                f"""
                 QLabel {{
                     color: {COLORS.accent_primary};
                     font-size: 24pt;
                 }}
-            """)
+            """
+            )
             layout.addWidget(icon_label)
 
         # Text content
@@ -258,25 +265,29 @@ class OmnixInfoCard(OmnixCard):
 
         # Title
         title_label = QLabel(title)
-        title_label.setStyleSheet(f"""
+        title_label.setStyleSheet(
+            f"""
             QLabel {{
                 color: {COLORS.text_primary};
                 font-size: 14pt;
                 font-weight: 600;
             }}
-        """)
+        """
+        )
         text_layout.addWidget(title_label)
 
         # Description
         if description:
             desc_label = QLabel(description)
             desc_label.setWordWrap(True)
-            desc_label.setStyleSheet(f"""
+            desc_label.setStyleSheet(
+                f"""
                 QLabel {{
                     color: {COLORS.text_secondary};
                     font-size: 11pt;
                 }}
-            """)
+            """
+            )
             text_layout.addWidget(desc_label)
 
         layout.addWidget(text_widget)

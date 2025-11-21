@@ -6,25 +6,25 @@ Supports keyboard/mouse input, delays with jitter, and AI-assisted macro generat
 
 import logging
 import time
-from typing import List, Dict, Optional, Callable, Any
-from dataclasses import dataclass, field, asdict
-from enum import Enum
 import uuid
-from datetime import datetime
+from dataclasses import asdict, dataclass, field
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
 
 class MacroStepType(Enum):
     """Types of macro steps for keyboard/mouse automation"""
-    KEY_PRESS = "key_press"          # Press and release a key
-    KEY_DOWN = "key_down"            # Press key without releasing
-    KEY_UP = "key_up"                # Release a pressed key
-    KEY_SEQUENCE = "key_sequence"    # Type a sequence of keys
-    MOUSE_MOVE = "mouse_move"        # Move mouse to position
-    MOUSE_CLICK = "mouse_click"      # Click mouse button
-    MOUSE_SCROLL = "mouse_scroll"    # Scroll mouse wheel
-    DELAY = "delay"                  # Pause execution
+
+    KEY_PRESS = "key_press"  # Press and release a key
+    KEY_DOWN = "key_down"  # Press key without releasing
+    KEY_UP = "key_up"  # Release a pressed key
+    KEY_SEQUENCE = "key_sequence"  # Type a sequence of keys
+    MOUSE_MOVE = "mouse_move"  # Move mouse to position
+    MOUSE_CLICK = "mouse_click"  # Click mouse button
+    MOUSE_SCROLL = "mouse_scroll"  # Scroll mouse wheel
+    DELAY = "delay"  # Pause execution
 
     # Legacy UI actions (for backward compatibility)
     SHOW_TIPS = "show_tips"
@@ -40,55 +40,57 @@ class MacroStepType(Enum):
 @dataclass
 class MacroStep:
     """Represents a single step in a macro"""
-    type: str                      # MacroStepType enum value
+
+    type: str  # MacroStepType enum value
 
     # Keyboard parameters
-    key: Optional[str] = None      # Key name or combination (e.g., "a", "ctrl+shift+e")
-    duration_ms: int = 0           # For key hold duration or delay duration
+    key: Optional[str] = None  # Key name or combination (e.g., "a", "ctrl+shift+e")
+    duration_ms: int = 0  # For key hold duration or delay duration
 
     # Mouse parameters
-    button: Optional[str] = None   # "left", "right", "middle"
-    x: Optional[int] = None        # Mouse X coordinate
-    y: Optional[int] = None        # Mouse Y coordinate
-    scroll_amount: int = 0         # Scroll wheel amount
+    button: Optional[str] = None  # "left", "right", "middle"
+    x: Optional[int] = None  # Mouse X coordinate
+    y: Optional[int] = None  # Mouse Y coordinate
+    scroll_amount: int = 0  # Scroll wheel amount
 
     # General parameters
     meta: Dict[str, Any] = field(default_factory=dict)  # Additional metadata
-    delay_jitter_ms: int = 0       # Random delay jitter (0 to this value)
+    delay_jitter_ms: int = 0  # Random delay jitter (0 to this value)
 
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization"""
         return {
-            'type': self.type,
-            'key': self.key,
-            'duration_ms': self.duration_ms,
-            'button': self.button,
-            'x': self.x,
-            'y': self.y,
-            'scroll_amount': self.scroll_amount,
-            'meta': self.meta,
-            'delay_jitter_ms': self.delay_jitter_ms
+            "type": self.type,
+            "key": self.key,
+            "duration_ms": self.duration_ms,
+            "button": self.button,
+            "x": self.x,
+            "y": self.y,
+            "scroll_amount": self.scroll_amount,
+            "meta": self.meta,
+            "delay_jitter_ms": self.delay_jitter_ms,
         }
 
     @staticmethod
-    def from_dict(data: dict) -> 'MacroStep':
+    def from_dict(data: dict) -> "MacroStep":
         """Create MacroStep from dictionary"""
         return MacroStep(
-            type=data['type'],
-            key=data.get('key'),
-            duration_ms=data.get('duration_ms', 0),
-            button=data.get('button'),
-            x=data.get('x'),
-            y=data.get('y'),
-            scroll_amount=data.get('scroll_amount', 0),
-            meta=data.get('meta', {}),
-            delay_jitter_ms=data.get('delay_jitter_ms', 0)
+            type=data["type"],
+            key=data.get("key"),
+            duration_ms=data.get("duration_ms", 0),
+            button=data.get("button"),
+            x=data.get("x"),
+            y=data.get("y"),
+            scroll_amount=data.get("scroll_amount", 0),
+            meta=data.get("meta", {}),
+            delay_jitter_ms=data.get("delay_jitter_ms", 0),
         )
 
 
 # Legacy action type for backward compatibility
 class MacroActionType(Enum):
     """Types of macro actions (legacy - use MacroStepType instead)"""
+
     SHOW_TIPS = "show_tips"
     SHOW_OVERVIEW = "show_overview"
     CLEAR_CHAT = "clear_chat"
@@ -103,6 +105,7 @@ class MacroActionType(Enum):
 @dataclass
 class MacroAction:
     """Represents a single action in a macro (legacy - use MacroStep instead)"""
+
     action_type: str  # MacroActionType enum value
     parameters: Dict[str, Any] = field(default_factory=dict)
     delay_after: int = 0  # Delay in milliseconds after executing this action
@@ -112,7 +115,7 @@ class MacroAction:
         return asdict(self)
 
     @staticmethod
-    def from_dict(data: dict) -> 'MacroAction':
+    def from_dict(data: dict) -> "MacroAction":
         """Create MacroAction from dictionary"""
         return MacroAction(**data)
 
@@ -120,6 +123,7 @@ class MacroAction:
 @dataclass
 class Macro:
     """Represents a macro (sequence of steps for gaming automation)"""
+
     id: str
     name: str
     description: str
@@ -129,11 +133,11 @@ class Macro:
     game_profile_id: Optional[str] = None  # None = global macro
 
     # Execution parameters
-    repeat: int = 1                        # Number of times to repeat macro
-    randomize_delay: bool = False          # Add random jitter to delays
-    delay_jitter_ms: int = 0               # Max random jitter in milliseconds
+    repeat: int = 1  # Number of times to repeat macro
+    randomize_delay: bool = False  # Add random jitter to delays
+    delay_jitter_ms: int = 0  # Max random jitter in milliseconds
     # Optional per-macro safety overrides
-    max_repeat: Optional[int] = None      # Optional per-macro maximum repeat override
+    max_repeat: Optional[int] = None  # Optional per-macro maximum repeat override
     execution_timeout: Optional[int] = None  # Optional per-macro execution timeout (seconds)
 
     # Status
@@ -147,46 +151,46 @@ class Macro:
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization"""
         return {
-            'id': self.id,
-            'name': self.name,
-            'description': self.description,
-            'steps': [step.to_dict() for step in self.steps],
-            'game_profile_id': self.game_profile_id,
-            'repeat': self.repeat,
-            'randomize_delay': self.randomize_delay,
-            'delay_jitter_ms': self.delay_jitter_ms,
-            'enabled': self.enabled,
-            'created_at': self.created_at,
-            'updated_at': self.updated_at,
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "steps": [step.to_dict() for step in self.steps],
+            "game_profile_id": self.game_profile_id,
+            "repeat": self.repeat,
+            "randomize_delay": self.randomize_delay,
+            "delay_jitter_ms": self.delay_jitter_ms,
+            "enabled": self.enabled,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
             # Legacy
-            'actions': [action.to_dict() for action in self.actions]
+            "actions": [action.to_dict() for action in self.actions],
         }
 
     @staticmethod
-    def from_dict(data: dict) -> 'Macro':
+    def from_dict(data: dict) -> "Macro":
         """Create Macro from dictionary"""
         # Support both new 'steps' and legacy 'actions' format
         steps = []
-        if 'steps' in data:
-            steps = [MacroStep.from_dict(s) for s in data.get('steps', [])]
+        if "steps" in data:
+            steps = [MacroStep.from_dict(s) for s in data.get("steps", [])]
 
         actions = []
-        if 'actions' in data:
-            actions = [MacroAction.from_dict(a) for a in data.get('actions', [])]
+        if "actions" in data:
+            actions = [MacroAction.from_dict(a) for a in data.get("actions", [])]
 
         return Macro(
-            id=data['id'],
-            name=data['name'],
-            description=data['description'],
+            id=data["id"],
+            name=data["name"],
+            description=data["description"],
             steps=steps,
-            game_profile_id=data.get('game_profile_id'),
-            repeat=data.get('repeat', 1),
-            randomize_delay=data.get('randomize_delay', False),
-            delay_jitter_ms=data.get('delay_jitter_ms', 0),
-            enabled=data.get('enabled', True),
-            created_at=data.get('created_at', time.time()),
-            updated_at=data.get('updated_at', time.time()),
-            actions=actions
+            game_profile_id=data.get("game_profile_id"),
+            repeat=data.get("repeat", 1),
+            randomize_delay=data.get("randomize_delay", False),
+            delay_jitter_ms=data.get("delay_jitter_ms", 0),
+            enabled=data.get("enabled", True),
+            created_at=data.get("created_at", time.time()),
+            updated_at=data.get("updated_at", time.time()),
+            actions=actions,
         )
 
     def add_step(self, step: MacroStep):
@@ -217,7 +221,10 @@ class Macro:
         for step in self.steps:
             if step.type == MacroStepType.DELAY.value:
                 total += step.duration_ms
-            elif step.type == MacroStepType.KEY_DOWN.value or step.type == MacroStepType.KEY_PRESS.value:
+            elif (
+                step.type == MacroStepType.KEY_DOWN.value
+                or step.type == MacroStepType.KEY_PRESS.value
+            ):
                 if step.duration_ms > 0:
                     total += step.duration_ms
             # Add jitter
@@ -281,11 +288,7 @@ class MacroManager:
             Created Macro object
         """
         macro_id = str(uuid.uuid4())
-        macro = Macro(
-            id=macro_id,
-            name=name,
-            description=description
-        )
+        macro = Macro(id=macro_id, name=name, description=description)
         self.macros[macro_id] = macro
         logger.info(f"Created macro: {name} (ID: {macro_id})")
         return macro
@@ -315,7 +318,7 @@ class MacroManager:
             randomize_delay=original.randomize_delay,
             delay_jitter_ms=original.delay_jitter_ms,
             enabled=original.enabled,
-            actions=[MacroAction.from_dict(a.to_dict()) for a in original.actions]
+            actions=[MacroAction.from_dict(a.to_dict()) for a in original.actions],
         )
         self.macros[new_macro.id] = new_macro
         logger.info(f"Duplicated macro: {original.name} -> {new_macro.name}")
@@ -346,10 +349,14 @@ class MacroManager:
         """Get all macros"""
         return list(self.macros.values())
 
-    def update_macro(self, macro_id: str, name: Optional[str] = None,
-                    description: Optional[str] = None,
-                    actions: Optional[List[MacroAction]] = None,
-                    enabled: Optional[bool] = None) -> bool:
+    def update_macro(
+        self,
+        macro_id: str,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        actions: Optional[List[MacroAction]] = None,
+        enabled: Optional[bool] = None,
+    ) -> bool:
         """
         Update macro properties
 
@@ -423,7 +430,7 @@ class MacroManager:
                     handler = self.action_handlers[action.action_type]
                     handler(**action.parameters)
                 elif action.action_type == MacroActionType.WAIT.value:
-                    duration = action.parameters.get('duration', 0)
+                    duration = action.parameters.get("duration", 0)
                     time.sleep(duration / 1000.0)
                 else:
                     logger.warning(f"No handler for action type: {action.action_type}")
@@ -503,10 +510,7 @@ class MacroManager:
 
     def save_to_dict(self) -> dict:
         """Save all macros to dictionary for JSON serialization"""
-        return {
-            macro_id: macro.to_dict()
-            for macro_id, macro in self.macros.items()
-        }
+        return {macro_id: macro.to_dict() for macro_id, macro in self.macros.items()}
 
     def load_from_dict(self, data: dict):
         """Load macros from dictionary"""
@@ -554,7 +558,10 @@ class MacroManager:
                 errors.append(f"Step {i+1}: Invalid step type '{step.type}'")
 
             # Validate step-specific parameters
-            if step.type == MacroStepType.KEY_PRESS.value or step.type == MacroStepType.KEY_DOWN.value:
+            if (
+                step.type == MacroStepType.KEY_PRESS.value
+                or step.type == MacroStepType.KEY_DOWN.value
+            ):
                 if not step.key:
                     errors.append(f"Step {i+1}: KEY step requires key parameter")
 
@@ -564,7 +571,9 @@ class MacroManager:
 
             if step.type == MacroStepType.MOUSE_CLICK.value:
                 if not step.button or step.button not in ["left", "right", "middle"]:
-                    errors.append(f"Step {i+1}: MOUSE_CLICK requires valid button (left/right/middle)")
+                    errors.append(
+                        f"Step {i+1}: MOUSE_CLICK requires valid button (left/right/middle)"
+                    )
 
             if step.type == MacroStepType.MOUSE_MOVE.value:
                 if step.x is None or step.y is None:
@@ -588,31 +597,19 @@ class MacroManager:
 # Default macros (examples)
 DEFAULT_MACROS = [
     {
-        'name': 'Quick Tips',
-        'description': 'Request tips and pause',
-        'steps': [
-            MacroStep(
-                type=MacroStepType.SHOW_TIPS.value,
-                duration_ms=100
-            ),
-            MacroStep(
-                type=MacroStepType.DELAY.value,
-                duration_ms=2000
-            ),
-        ]
+        "name": "Quick Tips",
+        "description": "Request tips and pause",
+        "steps": [
+            MacroStep(type=MacroStepType.SHOW_TIPS.value, duration_ms=100),
+            MacroStep(type=MacroStepType.DELAY.value, duration_ms=2000),
+        ],
     },
     {
-        'name': 'Reset View',
-        'description': 'Clear chat and show overview',
-        'steps': [
-            MacroStep(
-                type=MacroStepType.CLEAR_CHAT.value,
-                duration_ms=100
-            ),
-            MacroStep(
-                type=MacroStepType.SHOW_OVERVIEW.value,
-                duration_ms=100
-            ),
-        ]
+        "name": "Reset View",
+        "description": "Clear chat and show overview",
+        "steps": [
+            MacroStep(type=MacroStepType.CLEAR_CHAT.value, duration_ms=100),
+            MacroStep(type=MacroStepType.SHOW_OVERVIEW.value, duration_ms=100),
+        ],
     },
 ]

@@ -3,20 +3,20 @@ Test suite for the macro and keybind system
 Tests macro creation, storage, execution, and AI generation
 """
 
-import sys
-import os
 import json
-import tempfile
 import logging
+import os
+import sys
+import tempfile
 from pathlib import Path
 
 # Add src to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
-from macro_manager import Macro, MacroStep, MacroStepType, MacroManager
+from keybind_manager import Keybind, KeybindAction, KeybindManager, MacroKeybind
+from macro_manager import Macro, MacroManager, MacroStep, MacroStepType
+from macro_runner import MacroExecutionState, MacroRunner
 from macro_store import MacroStore
-from macro_runner import MacroRunner, MacroExecutionState
-from keybind_manager import KeybindManager, Keybind, MacroKeybind, KeybindAction
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
@@ -27,30 +27,17 @@ def test_macro_step_creation():
     print("TEST: Macro step creation...")
 
     # Create a key press step
-    step1 = MacroStep(
-        type=MacroStepType.KEY_PRESS.value,
-        key="a",
-        duration_ms=0
-    )
+    step1 = MacroStep(type=MacroStepType.KEY_PRESS.value, key="a", duration_ms=0)
     assert step1.type == "key_press"
     assert step1.key == "a"
 
     # Create a mouse click step
-    step2 = MacroStep(
-        type=MacroStepType.MOUSE_CLICK.value,
-        button="left",
-        x=100,
-        y=200
-    )
+    step2 = MacroStep(type=MacroStepType.MOUSE_CLICK.value, button="left", x=100, y=200)
     assert step2.button == "left"
     assert step2.x == 100
 
     # Create a delay step
-    step3 = MacroStep(
-        type=MacroStepType.DELAY.value,
-        duration_ms=500,
-        delay_jitter_ms=100
-    )
+    step3 = MacroStep(type=MacroStepType.DELAY.value, duration_ms=500, delay_jitter_ms=100)
     assert step3.duration_ms == 500
 
     # Test serialization
@@ -68,26 +55,14 @@ def test_macro_creation():
     manager = MacroManager()
 
     # Create a macro
-    macro = manager.create_macro(
-        "Quick Attack",
-        "Press 1 then 2 with delay"
-    )
+    macro = manager.create_macro("Quick Attack", "Press 1 then 2 with delay")
     assert macro.name == "Quick Attack"
     assert len(manager.get_all_macros()) == 1
 
     # Add steps to macro
-    step1 = MacroStep(
-        type=MacroStepType.KEY_PRESS.value,
-        key="1"
-    )
-    step2 = MacroStep(
-        type=MacroStepType.DELAY.value,
-        duration_ms=100
-    )
-    step3 = MacroStep(
-        type=MacroStepType.KEY_PRESS.value,
-        key="2"
-    )
+    step1 = MacroStep(type=MacroStepType.KEY_PRESS.value, key="1")
+    step2 = MacroStep(type=MacroStepType.DELAY.value, duration_ms=100)
+    step3 = MacroStep(type=MacroStepType.KEY_PRESS.value, key="2")
 
     macro.add_step(step1)
     macro.add_step(step2)
@@ -145,8 +120,8 @@ def test_macro_store():
             steps=[
                 MacroStep(type=MacroStepType.KEY_PRESS.value, key="a"),
                 MacroStep(type=MacroStepType.DELAY.value, duration_ms=100),
-                MacroStep(type=MacroStepType.KEY_PRESS.value, key="b")
-            ]
+                MacroStep(type=MacroStepType.KEY_PRESS.value, key="b"),
+            ],
         )
 
         assert store.save_macro(macro), "Failed to save macro"
@@ -158,11 +133,7 @@ def test_macro_store():
         assert len(loaded.steps) == 3
 
         # Test save all / load all
-        macro2 = Macro(
-            id="test_macro_2",
-            name="Second Macro",
-            description="Another test"
-        )
+        macro2 = Macro(id="test_macro_2", name="Second Macro", description="Another test")
         all_macros = {"test_macro_1": macro, "test_macro_2": macro2}
         store.save_all_macros(all_macros)
 
@@ -188,7 +159,7 @@ def test_macro_search():
         macros = [
             Macro(id="m1", name="Quick Attack", description="Fast attack combo"),
             Macro(id="m2", name="Dodge Roll", description="Roll away from danger"),
-            Macro(id="m3", name="Quick Heal", description="Use healing spell")
+            Macro(id="m3", name="Quick Heal", description="Use healing spell"),
         ]
 
         for m in macros:
@@ -217,9 +188,9 @@ def test_macro_duration_calculation():
             MacroStep(type=MacroStepType.KEY_PRESS.value, key="a"),
             MacroStep(type=MacroStepType.DELAY.value, duration_ms=100),
             MacroStep(type=MacroStepType.KEY_PRESS.value, key="b"),
-            MacroStep(type=MacroStepType.DELAY.value, duration_ms=200)
+            MacroStep(type=MacroStepType.DELAY.value, duration_ms=200),
         ],
-        repeat=2
+        repeat=2,
     )
 
     duration = macro.get_total_duration()
@@ -240,7 +211,7 @@ def test_keybind_creation():
         keys="ctrl+shift+g",
         description="Toggle overlay",
         enabled=True,
-        system_wide=True
+        system_wide=True,
     )
 
     assert keybind.action == "toggle_overlay"
@@ -259,9 +230,7 @@ def test_macro_keybind_creation():
     print("TEST: Macro keybind creation...")
 
     macro_keybind = MacroKeybind(
-        macro_id="attack_combo",
-        keys="alt+1",
-        description="Execute attack combo"
+        macro_id="attack_combo", keys="alt+1", description="Execute attack combo"
     )
 
     assert macro_keybind.macro_id == "attack_combo"
@@ -281,17 +250,9 @@ def test_keybind_conflict_detection():
 
     manager = KeybindManager()
 
-    keybind1 = Keybind(
-        action="action1",
-        keys="ctrl+shift+g",
-        description="First"
-    )
+    keybind1 = Keybind(action="action1", keys="ctrl+shift+g", description="First")
 
-    keybind2 = Keybind(
-        action="action2",
-        keys="ctrl+shift+g",
-        description="Second (same keys)"
-    )
+    keybind2 = Keybind(action="action2", keys="ctrl+shift+g", description="Second (same keys)")
 
     # Register first keybind
     assert manager.register_keybind(keybind1, lambda: None)
@@ -333,8 +294,7 @@ def test_macro_validation_with_errors():
 
     # Add invalid step
     invalid_step = MacroStep(
-        type=MacroStepType.MOUSE_CLICK.value,
-        button="invalid_button"  # Invalid button
+        type=MacroStepType.MOUSE_CLICK.value, button="invalid_button"  # Invalid button
     )
     invalid_macro.add_step(invalid_step)
 
@@ -346,9 +306,9 @@ def test_macro_validation_with_errors():
 
 def run_all_tests():
     """Run all tests"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("RUNNING MACRO SYSTEM TEST SUITE")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
 
     tests = [
         test_macro_step_creation,
@@ -378,9 +338,9 @@ def run_all_tests():
             print(f"  ✗ ERROR: {e}")
             failed += 1
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print(f"TEST RESULTS: {passed} passed, {failed} failed")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
 
     return failed == 0
 

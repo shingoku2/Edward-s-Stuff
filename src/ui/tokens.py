@@ -7,7 +7,7 @@ Redesigned for a Futuristic/High-Tech aesthetic with Neon accents and Deep Space
 """
 
 from dataclasses import dataclass
-from typing import Dict, Literal
+from typing import Dict
 
 
 @dataclass
@@ -20,49 +20,55 @@ class ColorPalette:
 
     # Secondary Backgrounds - Glass/Holographic panels
     # Using hex with alpha channel for Qt compatibility (#RRGGBBAA)
-    bg_secondary: str = "#14192899"      # rgba(20, 25, 40, 0.6)
+    bg_secondary: str = "#14192899"  # rgba(20, 25, 40, 0.6)
     bg_secondary_alt: str = "#1e2332cc"  # rgba(30, 35, 50, 0.8)
 
     # Accent Colors - Neon / Laser
-    accent_primary: str = "#00F0FF"       # Cyber Cyan
-    accent_primary_bright: str = "#E0FFFF" # White-hot Cyan
-    accent_primary_dark: str = "#008B8B"   # Deep Teal
+    accent_primary: str = "#00F0FF"  # Cyber Cyan
+    accent_primary_bright: str = "#E0FFFF"  # White-hot Cyan
+    accent_primary_dark: str = "#008B8B"  # Deep Teal
 
-    accent_secondary: str = "#FF0055"     # Neon Magenta (Warnings/Active)
-    accent_tertiary: str = "#7000FF"      # Electric Violet
+    accent_secondary: str = "#FF0055"  # Neon Magenta (Warnings/Active)
+    accent_tertiary: str = "#7000FF"  # Electric Violet
 
     # Text Colors
     text_primary: str = "#FFFFFF"
-    text_secondary: str = "#A0A0B0"       # Cool Grey
+    text_secondary: str = "#A0A0B0"  # Cool Grey
     text_muted: str = "#505060"
     text_disabled: str = "#303040"
 
     # Status Colors - Neon variants
     success: str = "#00FF9D"  # Matrix Green
     warning: str = "#FFD700"  # Laser Gold
-    error: str = "#FF2A2A"    # Alert Red
-    info: str = "#00F0FF"     # Cyber Cyan
+    error: str = "#FF2A2A"  # Alert Red
+    info: str = "#00F0FF"  # Cyber Cyan
 
     # Border Colors
-    border_subtle: str = "#ffffff1a"    # rgba(255, 255, 255, 0.1)
-    border_default: str = "#00f0ff4d"   # rgba(0, 240, 255, 0.3)
+    border_subtle: str = "#ffffff1a"  # rgba(255, 255, 255, 0.1)
+    border_default: str = "#00f0ff4d"  # rgba(0, 240, 255, 0.3)
     border_accent: str = "#00F0FF"
 
     # Overlay Colors
-    overlay_dark: str = "#050508e6"     # rgba(5, 5, 8, 0.90)
-    overlay_medium: str = "#050508cc"   # rgba(5, 5, 8, 0.80)
-    overlay_light: str = "#05050899"    # rgba(5, 5, 8, 0.60)
+    overlay_dark: str = "#050508e6"  # rgba(5, 5, 8, 0.90)
+    overlay_medium: str = "#050508cc"  # rgba(5, 5, 8, 0.80)
+    overlay_light: str = "#05050899"  # rgba(5, 5, 8, 0.60)
 
     # Interactive States
-    hover_overlay: str = "#00f0ff1a"   # rgba(0, 240, 255, 0.1) - Cyan tint
+    hover_overlay: str = "#00f0ff1a"  # rgba(0, 240, 255, 0.1) - Cyan tint
     active_overlay: str = "#00f0ff33"  # rgba(0, 240, 255, 0.2) - Stronger cyan tint
-    focus_outline: str = "#00F0FF"     # Cyber Cyan
+    focus_outline: str = "#00F0FF"  # Cyber Cyan
 
     # Gradients
-    gradient_primary: str = "qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #00F0FF, stop:1 #7000FF)"
-    gradient_surface: str = "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1e2332e6, stop:1 #141928f2)"
+    gradient_primary: str = (
+        "qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #00F0FF, stop:1 #7000FF)"
+    )
+    gradient_surface: str = (
+        "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1e2332e6, stop:1 #141928f2)"
+    )
     gradient_dark: str = "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #0a0a12, stop:1 #050508)"
-    gradient_panel: str = "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1e2332cc, stop:1 #14192899)"
+    gradient_panel: str = (
+        "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1e2332cc, stop:1 #14192899)"
+    )
 
 
 @dataclass
@@ -79,7 +85,7 @@ class Typography:
     size_base: int = 11
     size_md: int = 12
     size_lg: int = 14
-    size_xl: int = 18    # Increased for headings
+    size_xl: int = 18  # Increased for headings
     size_2xl: int = 24
     size_3xl: int = 32
     size_4xl: int = 48
@@ -109,8 +115,8 @@ class Spacing:
     unit: int = 4
 
     # Spacing scale (multiples of base unit)
-    xs: int = 4   # 1 unit
-    sm: int = 8   # 2 units
+    xs: int = 4  # 1 unit
+    sm: int = 8  # 2 units
     md: int = 16  # 4 units - More breathing room
     base: int = 20  # 5 units
     lg: int = 32  # 8 units
@@ -228,49 +234,49 @@ class OmnixDesignTokens:
         Useful for theming and bulk operations.
         """
         return {
-            'bg_primary': self.colors.bg_primary,
-            'bg_primary_alt': self.colors.bg_primary_alt,
-            'bg_secondary': self.colors.bg_secondary,
-            'bg_secondary_alt': self.colors.bg_secondary_alt,
-            'accent_primary': self.colors.accent_primary,
-            'accent_primary_bright': self.colors.accent_primary_bright,
-            'accent_primary_dark': self.colors.accent_primary_dark,
-            'accent_secondary': self.colors.accent_secondary,
-            'accent_tertiary': self.colors.accent_tertiary,
-            'text_primary': self.colors.text_primary,
-            'text_secondary': self.colors.text_secondary,
-            'text_muted': self.colors.text_muted,
-            'success': self.colors.success,
-            'warning': self.colors.warning,
-            'error': self.colors.error,
-            'info': self.colors.info,
+            "bg_primary": self.colors.bg_primary,
+            "bg_primary_alt": self.colors.bg_primary_alt,
+            "bg_secondary": self.colors.bg_secondary,
+            "bg_secondary_alt": self.colors.bg_secondary_alt,
+            "accent_primary": self.colors.accent_primary,
+            "accent_primary_bright": self.colors.accent_primary_bright,
+            "accent_primary_dark": self.colors.accent_primary_dark,
+            "accent_secondary": self.colors.accent_secondary,
+            "accent_tertiary": self.colors.accent_tertiary,
+            "text_primary": self.colors.text_primary,
+            "text_secondary": self.colors.text_secondary,
+            "text_muted": self.colors.text_muted,
+            "success": self.colors.success,
+            "warning": self.colors.warning,
+            "error": self.colors.error,
+            "info": self.colors.info,
         }
 
     def get_spacing_scale(self) -> Dict[str, int]:
         """Get the spacing scale as a dictionary."""
         return {
-            'xs': self.spacing.xs,
-            'sm': self.spacing.sm,
-            'md': self.spacing.md,
-            'base': self.spacing.base,
-            'lg': self.spacing.lg,
-            'xl': self.spacing.xl,
-            'xl2': self.spacing.xl2,
-            'xl3': self.spacing.xl3,
+            "xs": self.spacing.xs,
+            "sm": self.spacing.sm,
+            "md": self.spacing.md,
+            "base": self.spacing.base,
+            "lg": self.spacing.lg,
+            "xl": self.spacing.xl,
+            "xl2": self.spacing.xl2,
+            "xl3": self.spacing.xl3,
         }
 
     def get_font_sizes(self) -> Dict[str, int]:
         """Get the font size scale as a dictionary."""
         return {
-            'xs': self.typography.size_xs,
-            'sm': self.typography.size_sm,
-            'base': self.typography.size_base,
-            'md': self.typography.size_md,
-            'lg': self.typography.size_lg,
-            'xl': self.typography.size_xl,
-            '2xl': self.typography.size_2xl,
-            '3xl': self.typography.size_3xl,
-            '4xl': self.typography.size_4xl,
+            "xs": self.typography.size_xs,
+            "sm": self.typography.size_sm,
+            "base": self.typography.size_base,
+            "md": self.typography.size_md,
+            "lg": self.typography.size_lg,
+            "xl": self.typography.size_xl,
+            "2xl": self.typography.size_2xl,
+            "3xl": self.typography.size_3xl,
+            "4xl": self.typography.size_4xl,
         }
 
 
@@ -286,3 +292,12 @@ RADIUS = tokens.radius
 SHADOWS = tokens.shadows
 ANIMATION = tokens.animation
 Z_INDEX = tokens.z_index
+
+# Lowercase aliases for compatibility with legacy imports
+colors = COLORS
+typography = TYPOGRAPHY
+spacing = SPACING
+radius = RADIUS
+shadows = SHADOWS
+animation = ANIMATION
+z_index = Z_INDEX

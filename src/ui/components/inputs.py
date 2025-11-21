@@ -5,9 +5,10 @@ Omnix Input Components
 Input field components following the Omnix design system.
 """
 
-from PyQt6.QtWidgets import QLineEdit, QTextEdit, QComboBox, QCompleter
+from typing import List, Optional
+
 from PyQt6.QtCore import Qt
-from typing import Optional, List
+from PyQt6.QtWidgets import QComboBox, QCompleter, QLineEdit, QTextEdit
 
 
 class OmnixLineEdit(QLineEdit):

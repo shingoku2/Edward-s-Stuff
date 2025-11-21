@@ -23,8 +23,7 @@ See THEME_MIGRATION_PLAN.md for full migration details.
 """
 
 import logging
-from typing import Dict, Optional
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from enum import Enum
 
 logger = logging.getLogger(__name__)
@@ -32,6 +31,7 @@ logger = logging.getLogger(__name__)
 
 class ThemeMode(Enum):
     """Theme modes"""
+
     LIGHT = "light"
     DARK = "dark"
     AUTO = "auto"  # Follow system theme
@@ -39,20 +39,23 @@ class ThemeMode(Enum):
 
 class UIScale(Enum):
     """UI scale presets"""
-    SMALL = "small"     # 0.85x
-    NORMAL = "normal"   # 1.0x
-    LARGE = "large"     # 1.15x
-    XLARGE = "xlarge"   # 1.3x
+
+    SMALL = "small"  # 0.85x
+    NORMAL = "normal"  # 1.0x
+    LARGE = "large"  # 1.15x
+    XLARGE = "xlarge"  # 1.3x
 
 
 class LayoutMode(Enum):
     """Layout density"""
+
     COMPACT = "compact"
     COMFORTABLE = "comfortable"
 
 
 class OverlayPosition(Enum):
     """Preset overlay positions"""
+
     TOP_LEFT = "top_left"
     TOP_RIGHT = "top_right"
     BOTTOM_LEFT = "bottom_left"
@@ -64,21 +67,22 @@ class OverlayPosition(Enum):
 @dataclass
 class Theme:
     """Theme configuration"""
+
     # Theme mode
     mode: str = ThemeMode.DARK.value
 
     # Colors (hex format)
-    primary_color: str = "#14b8a6"      # Teal
-    secondary_color: str = "#f59e0b"    # Amber
-    background_color: str = "#1e1e1e"   # Dark gray
-    surface_color: str = "#2d2d2d"      # Lighter gray
-    text_color: str = "#ffffff"         # White
+    primary_color: str = "#14b8a6"  # Teal
+    secondary_color: str = "#f59e0b"  # Amber
+    background_color: str = "#1e1e1e"  # Dark gray
+    surface_color: str = "#2d2d2d"  # Lighter gray
+    text_color: str = "#ffffff"  # White
     text_secondary_color: str = "#9ca3af"  # Gray
 
     # Error and success colors
-    error_color: str = "#ef4444"        # Red
-    success_color: str = "#10b981"      # Green
-    warning_color: str = "#f59e0b"      # Amber
+    error_color: str = "#ef4444"  # Red
+    success_color: str = "#10b981"  # Green
+    warning_color: str = "#f59e0b"  # Amber
 
     # Typography
     font_family: str = "Segoe UI, Arial, sans-serif"
@@ -96,7 +100,7 @@ class Theme:
         return asdict(self)
 
     @staticmethod
-    def from_dict(data: dict) -> 'Theme':
+    def from_dict(data: dict) -> "Theme":
         """Create Theme from dictionary"""
         return Theme(**data)
 
@@ -124,6 +128,7 @@ class Theme:
 @dataclass
 class OverlayAppearance:
     """Overlay-specific appearance settings"""
+
     # Position
     position_preset: str = OverlayPosition.TOP_RIGHT.value
     custom_x: int = 100
@@ -154,7 +159,7 @@ class OverlayAppearance:
         return asdict(self)
 
     @staticmethod
-    def from_dict(data: dict) -> 'OverlayAppearance':
+    def from_dict(data: dict) -> "OverlayAppearance":
         """Create OverlayAppearance from dictionary"""
         return OverlayAppearance(**data)
 
@@ -177,18 +182,20 @@ class OverlayAppearance:
             OverlayPosition.BOTTOM_LEFT.value: (margin, screen_height - self.height - margin),
             OverlayPosition.BOTTOM_RIGHT.value: (
                 screen_width - self.width - margin,
-                screen_height - self.height - margin
+                screen_height - self.height - margin,
             ),
             OverlayPosition.CENTER.value: (
                 (screen_width - self.width) // 2,
-                (screen_height - self.height) // 2
+                (screen_height - self.height) // 2,
             ),
             OverlayPosition.CUSTOM.value: (self.custom_x, self.custom_y),
         }
 
         return preset_map.get(self.position_preset, (self.custom_x, self.custom_y))
 
-    def apply_edge_snapping(self, x: int, y: int, screen_width: int, screen_height: int) -> tuple[int, int]:
+    def apply_edge_snapping(
+        self, x: int, y: int, screen_width: int, screen_height: int
+    ) -> tuple[int, int]:
         """
         Apply edge snapping to coordinates
 
@@ -618,7 +625,7 @@ QHeaderView::section {{
         """
         try:
             # Remove # if present
-            hex_color = hex_color.lstrip('#')
+            hex_color = hex_color.lstrip("#")
 
             # Convert to RGB
             r = int(hex_color[0:2], 16)
@@ -638,16 +645,16 @@ QHeaderView::section {{
     def save_to_dict(self) -> dict:
         """Save theme and overlay appearance to dictionary"""
         return {
-            'theme': self.current_theme.to_dict(),
-            'overlay_appearance': self.overlay_appearance.to_dict()
+            "theme": self.current_theme.to_dict(),
+            "overlay_appearance": self.overlay_appearance.to_dict(),
         }
 
     def load_from_dict(self, data: dict):
         """Load theme and overlay appearance from dictionary"""
-        if 'theme' in data:
-            self.current_theme = Theme.from_dict(data['theme'])
-        if 'overlay_appearance' in data:
-            self.overlay_appearance = OverlayAppearance.from_dict(data['overlay_appearance'])
+        if "theme" in data:
+            self.current_theme = Theme.from_dict(data["theme"])
+        if "overlay_appearance" in data:
+            self.overlay_appearance = OverlayAppearance.from_dict(data["overlay_appearance"])
 
 
 # Default themes
@@ -658,7 +665,7 @@ DEFAULT_DARK_THEME = Theme(
     background_color="#1e1e1e",
     surface_color="#2d2d2d",
     text_color="#ffffff",
-    text_secondary_color="#9ca3af"
+    text_secondary_color="#9ca3af",
 )
 
 DEFAULT_LIGHT_THEME = Theme(
@@ -668,5 +675,5 @@ DEFAULT_LIGHT_THEME = Theme(
     background_color="#ffffff",
     surface_color="#f3f4f6",
     text_color="#1f2937",
-    text_secondary_color="#6b7280"
+    text_secondary_color="#6b7280",
 )

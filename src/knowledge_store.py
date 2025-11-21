@@ -3,14 +3,14 @@ Knowledge Pack Store Module
 Handles persistence of knowledge packs to disk (JSON format)
 """
 
-import logging
 import json
+import logging
 import os
-from pathlib import Path
-from typing import List, Dict, Optional
 from datetime import datetime
+from pathlib import Path
+from typing import Dict, Optional
 
-from knowledge_pack import KnowledgePack, KnowledgeSource
+from knowledge_pack import KnowledgePack
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +59,7 @@ class KnowledgePackStore:
             # Save pack file
             pack_file = self.packs_dir / f"{pack.id}.json"
 
-            with open(pack_file, 'w') as f:
+            with open(pack_file, "w") as f:
                 json.dump(pack.to_dict(), f, indent=2)
 
             logger.info(f"Saved knowledge pack: {pack.name} (ID: {pack.id})")
@@ -86,7 +86,7 @@ class KnowledgePackStore:
                 logger.warning(f"Knowledge pack file not found: {pack_id}")
                 return None
 
-            with open(pack_file, 'r') as f:
+            with open(pack_file, "r") as f:
                 data = json.load(f)
 
             pack = KnowledgePack.from_dict(data)
@@ -138,7 +138,7 @@ class KnowledgePackStore:
 
             for pack_file in self.packs_dir.glob("*.json"):
                 try:
-                    with open(pack_file, 'r') as f:
+                    with open(pack_file, "r") as f:
                         data = json.load(f)
 
                     pack = KnowledgePack.from_dict(data)
@@ -208,13 +208,11 @@ class KnowledgePackStore:
             Dictionary of {pack_id: KnowledgePack} for that game (enabled only)
         """
         game_packs = self.get_packs_for_game(game_profile_id)
-        enabled_packs = {
-            pack_id: pack
-            for pack_id, pack in game_packs.items()
-            if pack.enabled
-        }
+        enabled_packs = {pack_id: pack for pack_id, pack in game_packs.items() if pack.enabled}
 
-        logger.debug(f"Found {len(enabled_packs)} enabled packs for game profile '{game_profile_id}'")
+        logger.debug(
+            f"Found {len(enabled_packs)} enabled packs for game profile '{game_profile_id}'"
+        )
         return enabled_packs
 
     def search_packs(self, query: str) -> Dict[str, KnowledgePack]:
@@ -263,11 +261,11 @@ class KnowledgePackStore:
                 source_types[source.type] += 1
 
         return {
-            'total_packs': len(all_packs),
-            'total_sources': total_sources,
-            'game_profiles': game_profiles,
-            'source_types': source_types,
-            'last_updated': datetime.now().isoformat()
+            "total_packs": len(all_packs),
+            "total_sources": total_sources,
+            "game_profiles": game_profiles,
+            "source_types": source_types,
+            "last_updated": datetime.now().isoformat(),
         }
 
     def export_pack(self, pack_id: str, export_path: str) -> bool:
@@ -287,7 +285,7 @@ class KnowledgePackStore:
                 logger.error(f"Knowledge pack not found: {pack_id}")
                 return False
 
-            with open(export_path, 'w') as f:
+            with open(export_path, "w") as f:
                 json.dump(pack.to_dict(), f, indent=2)
 
             logger.info(f"Exported knowledge pack {pack_id} to {export_path}")
@@ -308,7 +306,7 @@ class KnowledgePackStore:
             Imported KnowledgePack object or None if failed
         """
         try:
-            with open(import_path, 'r') as f:
+            with open(import_path, "r") as f:
                 data = json.load(f)
 
             pack = KnowledgePack.from_dict(data)

@@ -1,5 +1,5 @@
 import json
-import os
+
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -8,7 +8,7 @@ import pytest
 import config
 from config import Config
 from credential_store import CredentialStore
-from game_detector import GameDetector
+from game_detector import GameDetector  # noqa: F401
 
 
 class DummyCredentialStore:
@@ -78,7 +78,9 @@ def test_config_save_and_recovers_from_corrupted_json(tmp_path, monkeypatch):
 def test_credential_store_encrypts_and_decrypts(tmp_path, monkeypatch, mock_keyring):
     monkeypatch.setenv("OMNIX_MASTER_PASSWORD", "unit-pass")
 
-    store = CredentialStore(base_dir=tmp_path, master_password="unit-pass", allow_password_prompt=False)
+    store = CredentialStore(
+        base_dir=tmp_path, master_password="unit-pass", allow_password_prompt=False
+    )
     store.save_credentials({"TEST_KEY": "super-secret"})
 
     loaded = store.load_credentials()

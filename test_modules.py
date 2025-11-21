@@ -12,8 +12,8 @@ Usage:
     python -m pytest test_modules.py
 """
 
+import os  # noqa: F401
 import sys
-import os
 import unittest
 from pathlib import Path
 
@@ -29,8 +29,9 @@ class TestCoreModules(unittest.TestCase):
         """Test config module import"""
         try:
             from src import config
-            from src.config import Config
-            self.assertTrue(hasattr(config, 'Config'))
+            from src.config import Config  # noqa: F401
+
+            self.assertTrue(hasattr(config, "Config"))
         except ImportError as e:
             self.fail(f"Failed to import config: {e}")
 
@@ -38,8 +39,9 @@ class TestCoreModules(unittest.TestCase):
         """Test credential_store module import"""
         try:
             from src import credential_store
-            from src.credential_store import CredentialStore
-            self.assertTrue(hasattr(credential_store, 'CredentialStore'))
+            from src.credential_store import CredentialStore  # noqa: F401
+
+            self.assertTrue(hasattr(credential_store, "CredentialStore"))
         except ImportError as e:
             self.fail(f"Failed to import credential_store: {e}")
 
@@ -51,8 +53,9 @@ class TestGameDetectionModules(unittest.TestCase):
         """Test game_detector module import"""
         try:
             from src import game_detector
-            from src.game_detector import GameDetector
-            self.assertTrue(hasattr(game_detector, 'GameDetector'))
+            from src.game_detector import GameDetector  # noqa: F401
+
+            self.assertTrue(hasattr(game_detector, "GameDetector"))
         except ImportError as e:
             self.fail(f"Failed to import game_detector: {e}")
 
@@ -60,8 +63,9 @@ class TestGameDetectionModules(unittest.TestCase):
         """Test game_watcher module import"""
         try:
             from src import game_watcher
-            from src.game_watcher import GameWatcher
-            self.assertTrue(hasattr(game_watcher, 'GameWatcher'))
+            from src.game_watcher import GameWatcher  # noqa: F401
+
+            self.assertTrue(hasattr(game_watcher, "GameWatcher"))
         except ImportError as e:
             self.fail(f"Failed to import game_watcher: {e}")
 
@@ -69,9 +73,10 @@ class TestGameDetectionModules(unittest.TestCase):
         """Test game_profile module import"""
         try:
             from src import game_profile
-            from src.game_profile import GameProfile, GameProfileStore
-            self.assertTrue(hasattr(game_profile, 'GameProfile'))
-            self.assertTrue(hasattr(game_profile, 'GameProfileStore'))
+            from src.game_profile import GameProfile, GameProfileStore  # noqa: F401
+
+            self.assertTrue(hasattr(game_profile, "GameProfile"))
+            self.assertTrue(hasattr(game_profile, "GameProfileStore"))
         except ImportError as e:
             self.fail(f"Failed to import game_profile: {e}")
 
@@ -83,8 +88,9 @@ class TestAIIntegrationModules(unittest.TestCase):
         """Test ai_assistant module import"""
         try:
             from src import ai_assistant
-            from src.ai_assistant import AIAssistant
-            self.assertTrue(hasattr(ai_assistant, 'AIAssistant'))
+            from src.ai_assistant import AIAssistant  # noqa: F401
+
+            self.assertTrue(hasattr(ai_assistant, "AIAssistant"))
         except ImportError as e:
             self.fail(f"Failed to import ai_assistant: {e}")
 
@@ -92,8 +98,9 @@ class TestAIIntegrationModules(unittest.TestCase):
         """Test ai_router module import"""
         try:
             from src import ai_router
-            from src.ai_router import AIRouter
-            self.assertTrue(hasattr(ai_router, 'AIRouter'))
+            from src.ai_router import AIRouter  # noqa: F401
+
+            self.assertTrue(hasattr(ai_router, "AIRouter"))
         except ImportError as e:
             self.fail(f"Failed to import ai_router: {e}")
 
@@ -101,10 +108,11 @@ class TestAIIntegrationModules(unittest.TestCase):
         """Test providers module import"""
         try:
             from src import providers
-            from src.providers import OpenAIProvider, AnthropicProvider, GeminiProvider
-            self.assertTrue(hasattr(providers, 'OpenAIProvider'))
-            self.assertTrue(hasattr(providers, 'AnthropicProvider'))
-            self.assertTrue(hasattr(providers, 'GeminiProvider'))
+            from src.providers import AnthropicProvider, GeminiProvider, OpenAIProvider  # noqa: F401
+
+            self.assertTrue(hasattr(providers, "OpenAIProvider"))
+            self.assertTrue(hasattr(providers, "AnthropicProvider"))
+            self.assertTrue(hasattr(providers, "GeminiProvider"))
         except ImportError as e:
             self.fail(f"Failed to import providers: {e}")
 
@@ -112,8 +120,9 @@ class TestAIIntegrationModules(unittest.TestCase):
         """Test provider_tester module import"""
         try:
             from src import provider_tester
-            from src.provider_tester import ProviderTester
-            self.assertTrue(hasattr(provider_tester, 'ProviderTester'))
+            from src.provider_tester import ProviderTester  # noqa: F401
+
+            self.assertTrue(hasattr(provider_tester, "ProviderTester"))
         except ImportError as e:
             self.fail(f"Failed to import provider_tester: {e}")
 
@@ -125,9 +134,10 @@ class TestKnowledgeSystemModules(unittest.TestCase):
         """Test knowledge_pack module import"""
         try:
             from src import knowledge_pack
-            from src.knowledge_pack import KnowledgePack, KnowledgeSource
-            self.assertTrue(hasattr(knowledge_pack, 'KnowledgePack'))
-            self.assertTrue(hasattr(knowledge_pack, 'KnowledgeSource'))
+            from src.knowledge_pack import KnowledgePack, KnowledgeSource  # noqa: F401
+
+            self.assertTrue(hasattr(knowledge_pack, "KnowledgePack"))
+            self.assertTrue(hasattr(knowledge_pack, "KnowledgeSource"))
         except ImportError as e:
             self.fail(f"Failed to import knowledge_pack: {e}")
 
@@ -135,9 +145,10 @@ class TestKnowledgeSystemModules(unittest.TestCase):
         """Test knowledge_store module import"""
         try:
             from src import knowledge_store
-            from src.knowledge_store import KnowledgePackStore, get_knowledge_pack_store
-            self.assertTrue(hasattr(knowledge_store, 'KnowledgePackStore'))
-            self.assertTrue(hasattr(knowledge_store, 'get_knowledge_pack_store'))
+            from src.knowledge_store import KnowledgePackStore, get_knowledge_pack_store  # noqa: F401
+
+            self.assertTrue(hasattr(knowledge_store, "KnowledgePackStore"))
+            self.assertTrue(hasattr(knowledge_store, "get_knowledge_pack_store"))
         except ImportError as e:
             self.fail(f"Failed to import knowledge_store: {e}")
 
@@ -145,10 +156,15 @@ class TestKnowledgeSystemModules(unittest.TestCase):
         """Test knowledge_index module import"""
         try:
             from src import knowledge_index
-            from src.knowledge_index import KnowledgeIndex, SimpleTFIDFEmbedding, get_knowledge_index
-            self.assertTrue(hasattr(knowledge_index, 'KnowledgeIndex'))
-            self.assertTrue(hasattr(knowledge_index, 'SimpleTFIDFEmbedding'))
-            self.assertTrue(hasattr(knowledge_index, 'get_knowledge_index'))
+            from src.knowledge_index import (  # noqa: F401
+                KnowledgeIndex,
+                SimpleTFIDFEmbedding,
+                get_knowledge_index,
+            )
+
+            self.assertTrue(hasattr(knowledge_index, "KnowledgeIndex"))
+            self.assertTrue(hasattr(knowledge_index, "SimpleTFIDFEmbedding"))
+            self.assertTrue(hasattr(knowledge_index, "get_knowledge_index"))
         except ImportError as e:
             self.fail(f"Failed to import knowledge_index: {e}")
 
@@ -156,9 +172,10 @@ class TestKnowledgeSystemModules(unittest.TestCase):
         """Test knowledge_integration module import"""
         try:
             from src import knowledge_integration
-            from src.knowledge_integration import KnowledgeIntegration, get_knowledge_integration
-            self.assertTrue(hasattr(knowledge_integration, 'KnowledgeIntegration'))
-            self.assertTrue(hasattr(knowledge_integration, 'get_knowledge_integration'))
+            from src.knowledge_integration import KnowledgeIntegration, get_knowledge_integration  # noqa: F401
+
+            self.assertTrue(hasattr(knowledge_integration, "KnowledgeIntegration"))
+            self.assertTrue(hasattr(knowledge_integration, "get_knowledge_integration"))
         except ImportError as e:
             self.fail(f"Failed to import knowledge_integration: {e}")
 
@@ -166,16 +183,17 @@ class TestKnowledgeSystemModules(unittest.TestCase):
         """Test knowledge_ingestion module import"""
         try:
             from src import knowledge_ingestion
-            from src.knowledge_ingestion import (
-                IngestionPipeline,
+            from src.knowledge_ingestion import (  # noqa: F401
                 FileIngestor,
+                IngestionPipeline,
                 URLIngestor,
-                get_ingestion_pipeline
+                get_ingestion_pipeline,
             )
-            self.assertTrue(hasattr(knowledge_ingestion, 'IngestionPipeline'))
-            self.assertTrue(hasattr(knowledge_ingestion, 'FileIngestor'))
-            self.assertTrue(hasattr(knowledge_ingestion, 'URLIngestor'))
-            self.assertTrue(hasattr(knowledge_ingestion, 'get_ingestion_pipeline'))
+
+            self.assertTrue(hasattr(knowledge_ingestion, "IngestionPipeline"))
+            self.assertTrue(hasattr(knowledge_ingestion, "FileIngestor"))
+            self.assertTrue(hasattr(knowledge_ingestion, "URLIngestor"))
+            self.assertTrue(hasattr(knowledge_ingestion, "get_ingestion_pipeline"))
         except ImportError as e:
             self.fail(f"Failed to import knowledge_ingestion: {e}")
 
@@ -187,10 +205,11 @@ class TestMacroSystemModules(unittest.TestCase):
         """Test macro_manager module import"""
         try:
             from src import macro_manager
-            from src.macro_manager import Macro, MacroStep, MacroStepType
-            self.assertTrue(hasattr(macro_manager, 'Macro'))
-            self.assertTrue(hasattr(macro_manager, 'MacroStep'))
-            self.assertTrue(hasattr(macro_manager, 'MacroStepType'))
+            from src.macro_manager import Macro, MacroStep, MacroStepType  # noqa: F401
+
+            self.assertTrue(hasattr(macro_manager, "Macro"))
+            self.assertTrue(hasattr(macro_manager, "MacroStep"))
+            self.assertTrue(hasattr(macro_manager, "MacroStepType"))
         except ImportError as e:
             self.fail(f"Failed to import macro_manager: {e}")
 
@@ -198,8 +217,9 @@ class TestMacroSystemModules(unittest.TestCase):
         """Test macro_store module import"""
         try:
             from src import macro_store
-            from src.macro_store import MacroStore
-            self.assertTrue(hasattr(macro_store, 'MacroStore'))
+            from src.macro_store import MacroStore  # noqa: F401
+
+            self.assertTrue(hasattr(macro_store, "MacroStore"))
         except ImportError as e:
             self.fail(f"Failed to import macro_store: {e}")
 
@@ -207,9 +227,10 @@ class TestMacroSystemModules(unittest.TestCase):
         """Test macro_runner module import"""
         try:
             from src import macro_runner
-            from src.macro_runner import MacroRunner, MacroExecutionState
-            self.assertTrue(hasattr(macro_runner, 'MacroRunner'))
-            self.assertTrue(hasattr(macro_runner, 'MacroExecutionState'))
+            from src.macro_runner import MacroExecutionState, MacroRunner  # noqa: F401
+
+            self.assertTrue(hasattr(macro_runner, "MacroRunner"))
+            self.assertTrue(hasattr(macro_runner, "MacroExecutionState"))
         except ImportError as e:
             self.fail(f"Failed to import macro_runner: {e}")
 
@@ -217,8 +238,9 @@ class TestMacroSystemModules(unittest.TestCase):
         """Test macro_ai_generator module import"""
         try:
             from src import macro_ai_generator
-            from src.macro_ai_generator import MacroAIGenerator
-            self.assertTrue(hasattr(macro_ai_generator, 'MacroAIGenerator'))
+            from src.macro_ai_generator import MacroAIGenerator  # noqa: F401
+
+            self.assertTrue(hasattr(macro_ai_generator, "MacroAIGenerator"))
         except ImportError as e:
             self.fail(f"Failed to import macro_ai_generator: {e}")
 
@@ -226,11 +248,12 @@ class TestMacroSystemModules(unittest.TestCase):
         """Test keybind_manager module import"""
         try:
             from src import keybind_manager
-            from src.keybind_manager import KeybindManager, Keybind, MacroKeybind, KeybindAction
-            self.assertTrue(hasattr(keybind_manager, 'KeybindManager'))
-            self.assertTrue(hasattr(keybind_manager, 'Keybind'))
-            self.assertTrue(hasattr(keybind_manager, 'MacroKeybind'))
-            self.assertTrue(hasattr(keybind_manager, 'KeybindAction'))
+            from src.keybind_manager import Keybind, KeybindAction, KeybindManager, MacroKeybind  # noqa: F401
+
+            self.assertTrue(hasattr(keybind_manager, "KeybindManager"))
+            self.assertTrue(hasattr(keybind_manager, "Keybind"))
+            self.assertTrue(hasattr(keybind_manager, "MacroKeybind"))
+            self.assertTrue(hasattr(keybind_manager, "KeybindAction"))
         except ImportError as e:
             self.fail(f"Failed to import keybind_manager: {e}")
 
@@ -242,10 +265,11 @@ class TestSessionModules(unittest.TestCase):
         """Test session_logger module import"""
         try:
             from src import session_logger
-            from src.session_logger import SessionLogger, SessionEvent, get_session_logger
-            self.assertTrue(hasattr(session_logger, 'SessionLogger'))
-            self.assertTrue(hasattr(session_logger, 'SessionEvent'))
-            self.assertTrue(hasattr(session_logger, 'get_session_logger'))
+            from src.session_logger import SessionEvent, SessionLogger, get_session_logger  # noqa: F401
+
+            self.assertTrue(hasattr(session_logger, "SessionLogger"))
+            self.assertTrue(hasattr(session_logger, "SessionEvent"))
+            self.assertTrue(hasattr(session_logger, "get_session_logger"))
         except ImportError as e:
             self.fail(f"Failed to import session_logger: {e}")
 
@@ -253,8 +277,9 @@ class TestSessionModules(unittest.TestCase):
         """Test session_coaching module import"""
         try:
             from src import session_coaching
-            from src.session_coaching import SessionCoach
-            self.assertTrue(hasattr(session_coaching, 'SessionCoach'))
+            from src.session_coaching import SessionCoach  # noqa: F401
+
+            self.assertTrue(hasattr(session_coaching, "SessionCoach"))
         except ImportError as e:
             self.fail(f"Failed to import session_coaching: {e}")
 
@@ -265,8 +290,9 @@ class TestGUIModules(unittest.TestCase):
     def test_gui_import(self):
         """Test gui module import"""
         try:
-            from src import gui
-            self.assertTrue(hasattr(gui, 'OmnixMainWindow'))
+            from src import gui  # noqa: F401
+
+            self.assertTrue(hasattr(gui, "OmnixMainWindow"))
         except ImportError as e:
             # PyQt6 may not be available in all test environments
             if "PyQt6" in str(e) or "libEGL" in str(e):
@@ -278,12 +304,13 @@ class TestGUIModules(unittest.TestCase):
         """Test overlay_modes module import"""
         try:
             from src import overlay_modes
-            from src.overlay_modes import OverlayModeConfig, ModeTransitionHelper
-            from src.type_definitions import OverlayMode
-            self.assertTrue(hasattr(overlay_modes, 'OverlayModeConfig'))
-            self.assertTrue(hasattr(overlay_modes, 'ModeTransitionHelper'))
+            from src.overlay_modes import ModeTransitionHelper, OverlayModeConfig  # noqa: F401
+            from src.type_definitions import OverlayMode  # noqa: F401
+
+            self.assertTrue(hasattr(overlay_modes, "OverlayModeConfig"))
+            self.assertTrue(hasattr(overlay_modes, "ModeTransitionHelper"))
             # MODES is a class attribute, not a module-level constant
-            self.assertTrue(hasattr(OverlayModeConfig, 'MODES'))
+            self.assertTrue(hasattr(OverlayModeConfig, "MODES"))
         except ImportError as e:
             if "PyQt6" in str(e) or "libEGL" in str(e):
                 self.skipTest("PyQt6/GUI dependencies not available in test environment")
@@ -294,8 +321,9 @@ class TestGUIModules(unittest.TestCase):
         """Test settings_dialog module import"""
         try:
             from src import settings_dialog
-            from src.settings_dialog import SettingsDialog
-            self.assertTrue(hasattr(settings_dialog, 'SettingsDialog'))
+            from src.settings_dialog import SettingsDialog  # noqa: F401
+
+            self.assertTrue(hasattr(settings_dialog, "SettingsDialog"))
         except ImportError as e:
             if "PyQt6" in str(e) or "libEGL" in str(e):
                 self.skipTest("PyQt6/GUI dependencies not available in test environment")
@@ -310,15 +338,17 @@ class TestUIDesignSystem(unittest.TestCase):
         """Test ui/design_system module import"""
         try:
             # Import from the actual module file
-            from src.ui import design_system as ds_module_instance
             # Import classes from the module
-            import importlib
-            ds_module = importlib.import_module('src.ui.design_system')
+            import importlib  # noqa: F401  # noqa: F401
+
+            from src.ui import design_system as ds_module_instance  # noqa: F401
+
+            ds_module = importlib.import_module("src.ui.design_system")
 
             # Check the module has the class
-            self.assertTrue(hasattr(ds_module, 'OmnixDesignSystem'))
+            self.assertTrue(hasattr(ds_module, "OmnixDesignSystem"))
             # Check the instance is accessible from __init__.py
-            self.assertTrue(hasattr(ds_module_instance, 'generate_base_stylesheet'))
+            self.assertTrue(hasattr(ds_module_instance, "generate_base_stylesheet"))
         except ImportError as e:
             if "PyQt6" in str(e) or "libEGL" in str(e):
                 self.skipTest("PyQt6/GUI dependencies not available in test environment")
@@ -329,17 +359,19 @@ class TestUIDesignSystem(unittest.TestCase):
         """Test ui/tokens module import"""
         try:
             # Import using importlib to get actual module
-            import importlib
-            tokens_module = importlib.import_module('src.ui.tokens')
+            import importlib  # noqa: F401
+
+            tokens_module = importlib.import_module("src.ui.tokens")
 
             # Check module has the classes
-            self.assertTrue(hasattr(tokens_module, 'OmnixDesignTokens'))
-            self.assertTrue(hasattr(tokens_module, 'ColorPalette'))
-            self.assertTrue(hasattr(tokens_module, 'Typography'))
-            self.assertTrue(hasattr(tokens_module, 'Spacing'))
+            self.assertTrue(hasattr(tokens_module, "OmnixDesignTokens"))
+            self.assertTrue(hasattr(tokens_module, "ColorPalette"))
+            self.assertTrue(hasattr(tokens_module, "Typography"))
+            self.assertTrue(hasattr(tokens_module, "Spacing"))
 
             # Import instances and check they exist
-            from src.ui.tokens import tokens, COLORS, TYPOGRAPHY, SPACING
+            from src.ui.tokens import COLORS, SPACING, TYPOGRAPHY, tokens  # noqa: F401
+
             self.assertIsNotNone(tokens)
             self.assertIsNotNone(COLORS)
             self.assertIsNotNone(TYPOGRAPHY)
@@ -350,9 +382,10 @@ class TestUIDesignSystem(unittest.TestCase):
     def test_ui_components_import(self):
         """Test ui/components module import"""
         try:
-            from src.ui import components
+            from src.ui import components  # noqa: F401
+
             # Test that components package exists
-            self.assertTrue(hasattr(components, '__path__'))
+            self.assertTrue(hasattr(components, "__path__"))
         except ImportError as e:
             if "PyQt6" in str(e) or "libEGL" in str(e):
                 self.skipTest("PyQt6/GUI dependencies not available in test environment")
@@ -367,9 +400,10 @@ class TestThemeSystem(unittest.TestCase):
         """Test ui/theme_manager module import"""
         try:
             from src.ui import theme_manager
-            from src.ui.theme_manager import OmnixThemeManager, get_theme_manager
-            self.assertTrue(hasattr(theme_manager, 'OmnixThemeManager'))
-            self.assertTrue(hasattr(theme_manager, 'get_theme_manager'))
+            from src.ui.theme_manager import OmnixThemeManager, get_theme_manager  # noqa: F401
+
+            self.assertTrue(hasattr(theme_manager, "OmnixThemeManager"))
+            self.assertTrue(hasattr(theme_manager, "get_theme_manager"))
         except ImportError as e:
             if "PyQt6" in str(e) or "libEGL" in str(e):
                 self.skipTest("PyQt6/GUI dependencies not available in test environment")
@@ -383,10 +417,12 @@ class TestTypeDefinitions(unittest.TestCase):
     def test_type_definitions_import(self):
         """Test type_definitions module import"""
         try:
-            from src import type_definitions
             # Verify it doesn't shadow Python's built-in types module
-            import types as builtin_types
-            self.assertTrue(hasattr(builtin_types, 'FunctionType'))
+            import types as builtin_types  # noqa: F401
+
+            from src import type_definitions  # noqa: F401
+
+            self.assertTrue(hasattr(builtin_types, "FunctionType"))
         except ImportError as e:
             self.fail(f"Failed to import type_definitions: {e}")
 
@@ -414,15 +450,17 @@ def run_tests():
     result = runner.run(suite)
 
     # Print summary
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("MODULE IMPORT TEST SUMMARY")
-    print("="*70)
+    print("=" * 70)
     print(f"Tests run: {result.testsRun}")
-    print(f"Successes: {result.testsRun - len(result.failures) - len(result.errors) - len(result.skipped)}")
+    print(
+        f"Successes: {result.testsRun - len(result.failures) - len(result.errors) - len(result.skipped)}"
+    )
     print(f"Failures: {len(result.failures)}")
     print(f"Errors: {len(result.errors)}")
     print(f"Skipped: {len(result.skipped)}")
-    print("="*70)
+    print("=" * 70)
 
     # Exit with appropriate code
     sys.exit(0 if result.wasSuccessful() else 1)

@@ -5,7 +5,9 @@ A real-time AI companion for gamers
 
 __version__ = "1.0.0"
 __author__ = "Gaming AI Assistant Team"
-__description__ = "An intelligent gaming companion that detects games and provides AI-powered assistance"
+__description__ = (
+    "An intelligent gaming companion that detects games and provides AI-powered assistance"
+)
 
 # Ensure the package directory itself is on sys.path so that legacy absolute
 # imports (e.g., ``import config``) continue to work even when importing the
@@ -18,12 +20,12 @@ _SRC_DIR = str(_Path(__file__).resolve().parent)
 if _SRC_DIR not in _sys.path:
     _sys.path.insert(0, _SRC_DIR)
 
-from .game_detector import GameDetector
 from .ai_assistant import AIAssistant
 from .config import Config
+from .game_detector import GameDetector
 
 __all__ = [
-    'GameDetector',
-    'AIAssistant',
-    'Config',
+    "GameDetector",
+    "AIAssistant",
+    "Config",
 ]

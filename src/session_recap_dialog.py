@@ -4,16 +4,23 @@ Displays AI-powered session recap and coaching
 """
 
 import logging
-from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QTextEdit, QTabWidget, QWidget, QScrollArea, QFrame
-)
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QFont
 
-from session_coaching import get_session_coach, SessionCoach
-from session_logger import get_session_logger
+from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtGui import QFont  # noqa: F401
+from PyQt6.QtWidgets import (
+    QDialog,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QTabWidget,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
+
 from config import Config
+from session_coaching import get_session_coach
+from session_logger import get_session_logger
 
 logger = logging.getLogger(__name__)
 
@@ -36,14 +43,11 @@ class RecapWorker(QThread):
         try:
             if self.recap_type == "session":
                 recap = self.coach.generate_session_recap(
-                    game_profile_id=self.game_profile_id,
-                    game_name=self.game_name
+                    game_profile_id=self.game_profile_id, game_name=self.game_name
                 )
             elif self.recap_type == "progress":
                 recap = self.coach.get_progress_summary(
-                    game_profile_id=self.game_profile_id,
-                    game_name=self.game_name,
-                    days=7
+                    game_profile_id=self.game_profile_id, game_name=self.game_name, days=7
                 )
             else:
                 recap = "Unknown recap type"
@@ -131,7 +135,9 @@ class SessionRecapDialog(QDialog):
 
         self.progress_text = QTextEdit()
         self.progress_text.setReadOnly(True)
-        self.progress_text.setPlaceholderText("Click 'Generate Progress Summary' to analyze your weekly progress")
+        self.progress_text.setPlaceholderText(
+            "Click 'Generate Progress Summary' to analyze your weekly progress"
+        )
         progress_layout.addWidget(self.progress_text)
 
         generate_progress_btn = QPushButton("Generate Progress Summary")
@@ -183,14 +189,16 @@ class SessionRecapDialog(QDialog):
             self.session_text.setPlainText("No game profile selected")
             return
 
-        self.session_text.setPlainText("Generating session recap with AI...\n\nThis may take a few moments.")
+        self.session_text.setPlainText(
+            "Generating session recap with AI...\n\nThis may take a few moments."
+        )
 
         # Create worker
         self.recap_worker = RecapWorker(
             coach=self.coach,
             game_profile_id=self.game_profile_id,
             game_name=self.game_name,
-            recap_type="session"
+            recap_type="session",
         )
 
         # Connect signals
@@ -206,14 +214,16 @@ class SessionRecapDialog(QDialog):
             self.progress_text.setPlainText("No game profile selected")
             return
 
-        self.progress_text.setPlainText("Generating progress summary with AI...\n\nThis may take a few moments.")
+        self.progress_text.setPlainText(
+            "Generating progress summary with AI...\n\nThis may take a few moments."
+        )
 
         # Create worker
         self.progress_worker = RecapWorker(
             coach=self.coach,
             game_profile_id=self.game_profile_id,
             game_name=self.game_name,
-            recap_type="progress"
+            recap_type="progress",
         )
 
         # Connect signals
@@ -252,9 +262,9 @@ class SessionRecapDialog(QDialog):
         stats_lines.append(f"Duration: {summary['duration_minutes']} minutes")
         stats_lines.append(f"Total Events: {summary['total_events']}\n")
 
-        if summary['event_types']:
+        if summary["event_types"]:
             stats_lines.append("Event Breakdown:")
-            for event_type, count in summary['event_types'].items():
+            for event_type, count in summary["event_types"].items():
                 stats_lines.append(f"  - {event_type.title()}: {count}")
         else:
             stats_lines.append("No events logged yet in this session.")

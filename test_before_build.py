@@ -5,15 +5,16 @@ Test script to verify all components work before building .exe
 Run this BEFORE building to catch issues early
 """
 
-import sys
 import os
+import sys
 from pathlib import Path
 
 # Set UTF-8 encoding for Windows console
-if sys.platform == 'win32':
+if sys.platform == "win32":
     import codecs
-    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
-    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'strict')
+
+    sys.stdout = codecs.getwriter("utf-8")(sys.stdout.buffer, "strict")
+    sys.stderr = codecs.getwriter("utf-8")(sys.stderr.buffer, "strict")
 
 STRICT_ENV = os.getenv("STRICT_PREBUILD_CHECKS") == "1"
 HEADLESS_ENV = bool(
@@ -32,7 +33,7 @@ print("=" * 70)
 print()
 
 # Add src to path
-src_path = Path(__file__).parent / 'src'
+src_path = Path(__file__).parent / "src"
 sys.path.insert(0, str(src_path))
 
 errors = []
@@ -42,11 +43,12 @@ warnings = []
 print("[1/8] Checking API key configuration...")
 try:
     from config import Config
+
     test_config = Config(require_keys=False)  # Don't require keys for this test
 
-    anthropic_key = test_config.get_api_key('anthropic')
-    openai_key = test_config.get_api_key('openai')
-    gemini_key = test_config.get_api_key('gemini')
+    anthropic_key = test_config.get_api_key("anthropic")
+    openai_key = test_config.get_api_key("openai")
+    gemini_key = test_config.get_api_key("gemini")
 
     has_any_key = bool(anthropic_key or openai_key or gemini_key)
 
@@ -84,6 +86,7 @@ print()
 print("[3/8] Testing game_detector module...")
 try:
     from game_detector import GameDetector
+
     detector = GameDetector()
     print(f"  ✓ Game detector works")
     print(f"    Known games: {len(detector.KNOWN_GAMES)}")
@@ -96,7 +99,8 @@ print()
 # Test 4: Import AI assistant
 print("[4/8] Testing ai_assistant module...")
 try:
-    from ai_assistant import AIAssistant
+    from ai_assistant import AIAssistant  # noqa: F401
+
     # Don't initialize, just test import
     print(f"  ✓ AI assistant module works")
 except Exception as e:
@@ -108,7 +112,8 @@ print()
 # Test 5: Import GUI (without starting it)
 print("[5/7] Testing gui module...")
 try:
-    from gui import run_gui
+    from gui import run_gui  # noqa: F401
+
     print(f"  ✓ GUI module imports successfully")
 except Exception as e:
     message = f"GUI import failed: {e}"
@@ -124,9 +129,10 @@ print()
 # Test 6: Check PyQt6
 print("[6/7] Testing PyQt6...")
 try:
-    from PyQt6.QtWidgets import QApplication
-    from PyQt6.QtCore import Qt
-    from PyQt6.QtGui import QIcon
+    from PyQt6.QtCore import Qt  # noqa: F401
+    from PyQt6.QtGui import QIcon  # noqa: F401
+    from PyQt6.QtWidgets import QApplication  # noqa: F401
+
     print(f"  ✓ PyQt6 is installed and working")
 except Exception as e:
     message = f"PyQt6 not working: {e}"
@@ -142,7 +148,7 @@ print()
 # Test 7: Check all dependencies
 print("[7/7] Checking dependencies...")
 missing_deps = []
-required = ['psutil', 'requests', 'bs4', 'anthropic', 'openai', 'dotenv']
+required = ["psutil", "requests", "bs4", "anthropic", "openai", "dotenv"]
 
 for dep in required:
     try:
@@ -182,9 +188,8 @@ else:
     print("  - Or run BUILD_DEBUG.bat to see console messages")
     print()
 
-RUNNING_UNDER_PYTEST = (
-    os.getenv("PYTEST_CURRENT_TEST")
-    or any("pytest" in arg.lower() for arg in sys.argv)
+RUNNING_UNDER_PYTEST = os.getenv("PYTEST_CURRENT_TEST") or any(
+    "pytest" in arg.lower() for arg in sys.argv
 )
 
 if RUNNING_UNDER_PYTEST:

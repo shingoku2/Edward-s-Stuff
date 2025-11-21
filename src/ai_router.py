@@ -5,19 +5,16 @@ High-level abstraction for routing chat requests to the appropriate AI provider.
 Handles provider instantiation, error handling, and fallback logic.
 """
 
-import asyncio
 import logging
 from typing import Any, Dict, List, Optional
 
 from src.config import Config
 from src.providers import (
-    AIProvider,
-    AnthropicProvider,
-    create_provider,
     ProviderAuthError,
     ProviderError,
     ProviderQuotaError,
     ProviderRateLimitError,
+    create_provider,
 )
 
 logger = logging.getLogger(__name__)
@@ -43,10 +40,7 @@ class AIRouter:
             api_key = self.config.get_api_key(provider_name)
             if api_key:
                 try:
-                    self._providers[provider_name] = create_provider(
-                        provider_name,
-                        api_key=api_key
-                    )
+                    self._providers[provider_name] = create_provider(provider_name, api_key=api_key)
                     logger.debug(f"Initialized provider: {provider_name}")
                 except Exception as e:
                     logger.warning(f"Failed to initialize {provider_name}: {e}")
@@ -101,7 +95,7 @@ class AIRouter:
         messages: List[Dict[str, str]],
         provider: Optional[str] = None,
         model: Optional[str] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> Dict[str, Any]:
         """
         Send a chat request to the appropriate AI provider
@@ -156,9 +150,7 @@ class AIRouter:
                 f"Please try again in a moment."
             )
         except ProviderError as e:
-            raise ProviderError(
-                f"Request failed with {target_provider.name}: {str(e)}"
-            )
+            raise ProviderError(f"Request failed with {target_provider.name}: {str(e)}")
 
     def test_provider(self, provider_name: str) -> tuple[bool, str]:
         """
@@ -196,10 +188,7 @@ class AIRouter:
             self.config.set_api_key(provider_name, api_key)
 
             # Reinitialize the provider with the new key
-            self._providers[provider_name.lower()] = create_provider(
-                provider_name,
-                api_key=api_key
-            )
+            self._providers[provider_name.lower()] = create_provider(provider_name, api_key=api_key)
             logger.info(f"Updated API key for provider: {provider_name}")
             return True
         except Exception as e:
@@ -242,7 +231,7 @@ class AIRouter:
             return {
                 "name": provider_name,
                 "configured": False,
-                "message": f"Provider not configured"
+                "message": "Provider not configured",
             }
 
         health = provider.test_connection()
@@ -252,7 +241,7 @@ class AIRouter:
             "healthy": health.is_healthy,
             "message": health.message,
             "error_type": health.error_type,
-            "details": health.details or {}
+            "details": health.details or {},
         }
 
     def reload_providers(self) -> None:

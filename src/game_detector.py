@@ -5,7 +5,8 @@ Detects running games on the system
 
 import logging
 import os
-from typing import Optional, Dict, List, Set
+from typing import Dict, List, Optional, Set
+
 import psutil
 
 from src.type_definitions import GameInfo
@@ -133,9 +134,9 @@ class GameDetector:
         try:
             if not process_name:
                 return False
-            for proc in psutil.process_iter(['pid', 'name']):
+            for proc in psutil.process_iter(["pid", "name"]):
                 try:
-                    name = proc.info.get('name')
+                    name = proc.info.get("name")
                     if name and name.lower() == process_name.lower():
                         return True
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
@@ -149,6 +150,7 @@ class GameDetector:
     def _get_current_time(self) -> str:
         """Get current time as string"""
         from datetime import datetime
+
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     def get_running_games(self) -> List[GameInfo]:
@@ -186,9 +188,7 @@ class GameDetector:
     def _build_game_info(self, process: psutil.Process, game_name: str) -> GameInfo:
         """Build a structured game info object for a detected process."""
         try:
-            proc_info: Dict[str, Optional[str]] = process.as_dict(
-                attrs=["pid", "name", "exe"]
-            )
+            proc_info: Dict[str, Optional[str]] = process.as_dict(attrs=["pid", "name", "exe"])
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             proc_info = {"pid": process.pid, "name": process.name(), "exe": None}
 
@@ -204,9 +204,7 @@ class GameDetector:
             "path": os.path.dirname(exe_path) if exe_path else "",
         }
 
-    def add_custom_game(
-        self, game_name: Optional[str], process_names: Optional[List[str]]
-    ) -> bool:
+    def add_custom_game(self, game_name: Optional[str], process_names: Optional[List[str]]) -> bool:
         """
         Add a custom game to the detection list
 
@@ -272,7 +270,7 @@ class GameDetector:
 if __name__ == "__main__":
     detector = GameDetector()
     game = detector.detect_running_game()
-    
+
     if game:
         print(f"Game detected: {game['name']}")
     else:
