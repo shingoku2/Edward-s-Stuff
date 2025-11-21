@@ -5,6 +5,8 @@ Test core functionality of the Gaming AI Assistant
 
 import sys
 import os
+import ctypes.util
+import pytest
 from pathlib import Path
 
 # Add src to path
@@ -136,6 +138,8 @@ def test_ui_components():
 def test_gui_creation():
     """Test GUI window creation"""
     print("\nTesting GUI Creation...")
+    if ctypes.util.find_library("GL") is None:
+        pytest.skip("libGL.so.1 missing; GUI requires OpenGL runtime")
     from PyQt6.QtWidgets import QApplication
     from config import Config
     from credential_store import CredentialStore
