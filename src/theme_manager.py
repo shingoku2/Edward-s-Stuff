@@ -632,7 +632,8 @@ QHeaderView::section {{
 
             # Convert back to hex
             return f"#{r:02x}{g:02x}{b:02x}"
-        except:
+        except (ValueError, IndexError, TypeError):
+            # If color parsing fails, return original color
             return hex_color
 
     def save_to_dict(self) -> dict:

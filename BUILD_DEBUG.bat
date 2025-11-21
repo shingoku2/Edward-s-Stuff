@@ -29,10 +29,18 @@ if errorlevel 1 (
     exit /b 1
 )
 
-REM Copy example configuration
+REM Copy example configuration and documentation
 if exist ".env.example" (
     copy ".env.example" "dist\GamingAIAssistant_DEBUG\.env.example" >nul 2>&1
     echo Copied .env.example
+)
+if exist "README.md" (
+    copy "README.md" "dist\GamingAIAssistant_DEBUG\README.md" >nul 2>&1
+    echo Copied README.md
+)
+if exist "SETUP.md" (
+    copy "SETUP.md" "dist\GamingAIAssistant_DEBUG\SETUP.md" >nul 2>&1
+    echo Copied SETUP.md
 )
 
 echo.

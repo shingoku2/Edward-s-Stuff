@@ -19,7 +19,9 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 
 # Import design system
-sys.path.insert(0, '/home/user/Omnix-All-knowing-gaming-companion')
+# Add parent directory to path for imports
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
 from src.ui import design_system, tokens, COLORS, SPACING
 from src.ui.components import (
     OmnixButton,

@@ -7,6 +7,8 @@ a = Analysis(
     binaries=[],
     datas=[
         ('.env.example', '.'),
+        ('README.md', '.'),
+        ('SETUP.md', '.'),
         ('src/ui/omnix.qss', 'ui'),
     ],
     hiddenimports=[

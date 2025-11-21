@@ -766,7 +766,8 @@ class SetupWizard(QDialog):
             self.next_button.setText("Next →")
             try:
                 self.next_button.clicked.disconnect()
-            except:
+            except TypeError:
+                # No connections to disconnect
                 pass
             self.next_button.clicked.connect(self.next_page)
 
