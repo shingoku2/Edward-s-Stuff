@@ -3,18 +3,27 @@ First-Run Setup Wizard
 Guides users through initial API key configuration
 """
 
-import concurrent.futures
 import logging
-import threading
 import webbrowser
-from typing import Dict, Optional, Tuple
-from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QLineEdit, QCheckBox, QWidget, QTextEdit, QMessageBox,
-    QFrame, QStackedWidget, QGroupBox
-)
-from PyQt6.QtCore import Qt, pyqtSignal, QThread
+from typing import Optional
+
+from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import (
+    QCheckBox,
+    QDialog,
+    QFrame,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QStackedWidget,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
 
 from credential_store import CredentialStore
 from provider_tester import ProviderTester
@@ -24,9 +33,12 @@ logger = logging.getLogger(__name__)
 
 class TestConnectionThread(QThread):
     """Background thread for testing API connections"""
+
     test_complete = pyqtSignal(bool, str)  # success, message
 
-    def __init__(self, provider: str, api_key: str, base_url: Optional[str] = None, timeout: float = 15.0):
+    def __init__(
+        self, provider: str, api_key: str, base_url: Optional[str] = None, timeout: float = 15.0
+    ):
         super().__init__()
         self.provider = provider
         self.api_key = api_key
@@ -40,7 +52,9 @@ class TestConnectionThread(QThread):
                 return
 
             if self.provider == "openai":
-                success, message = ProviderTester.test_openai(self.api_key, self.base_url, timeout=self.timeout)
+                success, message = ProviderTester.test_openai(
+                    self.api_key, self.base_url, timeout=self.timeout
+                )
             elif self.provider == "anthropic":
                 success, message = ProviderTester.test_anthropic(self.api_key, timeout=self.timeout)
             elif self.provider == "gemini":
@@ -68,26 +82,12 @@ class SetupWizard(QDialog):
         self.connection_timeout = ProviderTester.DEFAULT_TIMEOUT
 
         # Track which providers are enabled and their keys
-        self.provider_enabled = {
-            'openai': False,
-            'anthropic': False,
-            'gemini': False
-        }
-        self.provider_keys = {
-            'openai': '',
-            'anthropic': '',
-            'gemini': ''
-        }
-        self.provider_base_urls = {
-            'openai': ''
-        }
-        self.provider_tested = {
-            'openai': False,
-            'anthropic': False,
-            'gemini': False
-        }
+        self.provider_enabled = {"openai": False, "anthropic": False, "gemini": False}
+        self.provider_keys = {"openai": "", "anthropic": "", "gemini": ""}
+        self.provider_base_urls = {"openai": ""}
+        self.provider_tested = {"openai": False, "anthropic": False, "gemini": False}
 
-        self.default_provider = 'anthropic'  # Default to Anthropic (Claude)
+        self.default_provider = "anthropic"  # Default to Anthropic (Claude)
 
         self.init_ui()
 
@@ -118,7 +118,8 @@ class SetupWizard(QDialog):
 
         self.back_button = QPushButton("← Back")
         self.back_button.clicked.connect(self.previous_page)
-        self.back_button.setStyleSheet("""
+        self.back_button.setStyleSheet(
+            """
             QPushButton {
                 background-color: #6b7280;
                 color: white;
@@ -130,14 +131,16 @@ class SetupWizard(QDialog):
             QPushButton:hover {
                 background-color: #4b5563;
             }
-        """)
+        """
+        )
         nav_layout.addWidget(self.back_button)
 
         nav_layout.addStretch()
 
         self.next_button = QPushButton("Next →")
         self.next_button.clicked.connect(self.next_page)
-        self.next_button.setStyleSheet("""
+        self.next_button.setStyleSheet(
+            """
             QPushButton {
                 background-color: #14b8a6;
                 color: white;
@@ -154,7 +157,8 @@ class SetupWizard(QDialog):
                 background-color: #374151;
                 color: #6b7280;
             }
-        """)
+        """
+        )
         nav_layout.addWidget(self.next_button)
 
         layout.addLayout(nav_layout)
@@ -240,47 +244,51 @@ class SetupWizard(QDialog):
 
         # OpenAI
         openai_group = self.create_provider_checkbox(
-            'openai',
-            'OpenAI (GPT)',
-            'Popular and powerful AI. Supports custom endpoints for local models.',
-            'https://platform.openai.com/api-keys'
+            "openai",
+            "OpenAI (GPT)",
+            "Popular and powerful AI. Supports custom endpoints for local models.",
+            "https://platform.openai.com/api-keys",
         )
         layout.addWidget(openai_group)
 
         # Anthropic
         anthropic_group = self.create_provider_checkbox(
-            'anthropic',
-            'Anthropic (Claude) - Recommended',
-            'Excellent balance of speed, quality, and gaming knowledge.',
-            'https://console.anthropic.com/settings/keys'
+            "anthropic",
+            "Anthropic (Claude) - Recommended",
+            "Excellent balance of speed, quality, and gaming knowledge.",
+            "https://console.anthropic.com/settings/keys",
         )
         layout.addWidget(anthropic_group)
 
         # Gemini
         gemini_group = self.create_provider_checkbox(
-            'gemini',
-            'Google Gemini',
-            'Fast and efficient Google AI with generous free tier.',
-            'https://aistudio.google.com/app/apikey'
+            "gemini",
+            "Google Gemini",
+            "Fast and efficient Google AI with generous free tier.",
+            "https://aistudio.google.com/app/apikey",
         )
         layout.addWidget(gemini_group)
 
         layout.addStretch()
 
         # Default selection
-        self.provider_checkboxes['anthropic'].setChecked(True)
+        self.provider_checkboxes["anthropic"].setChecked(True)
 
         page.setLayout(layout)
         self.pages.addWidget(page)
 
-    def create_provider_checkbox(self, provider_id: str, name: str, description: str, url: str) -> QGroupBox:
+    def create_provider_checkbox(
+        self, provider_id: str, name: str, description: str, url: str
+    ) -> QGroupBox:
         """Create a provider checkbox group"""
         group = QGroupBox()
         layout = QVBoxLayout()
 
         checkbox = QCheckBox(name)
         checkbox.setStyleSheet("font-size: 12pt; font-weight: bold;")
-        checkbox.stateChanged.connect(lambda state, p=provider_id: self.on_provider_toggled(p, state))
+        checkbox.stateChanged.connect(
+            lambda state, p=provider_id: self.on_provider_toggled(p, state)
+        )
         self.provider_checkboxes[provider_id] = checkbox
         layout.addWidget(checkbox)
 
@@ -294,7 +302,8 @@ class SetupWizard(QDialog):
         button_layout.addSpacing(25)
 
         get_key_button = QPushButton(f"Get API Key →")
-        get_key_button.setStyleSheet("""
+        get_key_button.setStyleSheet(
+            """
             QPushButton {
                 background-color: #3b82f6;
                 color: white;
@@ -306,7 +315,8 @@ class SetupWizard(QDialog):
             QPushButton:hover {
                 background-color: #2563eb;
             }
-        """)
+        """
+        )
         get_key_button.clicked.connect(lambda checked, u=url: webbrowser.open(u))
         button_layout.addWidget(get_key_button)
         button_layout.addStretch()
@@ -355,15 +365,15 @@ class SetupWizard(QDialog):
         layout = QVBoxLayout()
 
         # Provider name
-        if provider_id == 'openai':
+        if provider_id == "openai":
             name = "OpenAI (GPT)"
             placeholder = "sk-..."
             help_text = "Your OpenAI API key (starts with 'sk-')"
-        elif provider_id == 'anthropic':
+        elif provider_id == "anthropic":
             name = "Anthropic (Claude)"
             placeholder = "sk-ant-..."
             help_text = "Your Anthropic API key (starts with 'sk-ant-')"
-        elif provider_id == 'gemini':
+        elif provider_id == "gemini":
             name = "Google Gemini"
             placeholder = "AIza..."
             help_text = "Your Gemini API key (starts with 'AIza')"
@@ -387,7 +397,8 @@ class SetupWizard(QDialog):
         key_input.setPlaceholderText(placeholder)
         key_input.setEchoMode(QLineEdit.EchoMode.Password)
         key_input.textChanged.connect(lambda text, p=provider_id: self.on_key_changed(p, text))
-        key_input.setStyleSheet("""
+        key_input.setStyleSheet(
+            """
             QLineEdit {
                 background-color: #2a2a2a;
                 color: #ffffff;
@@ -397,7 +408,8 @@ class SetupWizard(QDialog):
                 font-size: 10pt;
                 font-family: monospace;
             }
-        """)
+        """
+        )
         key_layout.addWidget(key_input, stretch=3)
 
         # Show/hide toggle
@@ -409,7 +421,8 @@ class SetupWizard(QDialog):
                 QLineEdit.EchoMode.Normal if checked else QLineEdit.EchoMode.Password
             )
         )
-        show_button.setStyleSheet("""
+        show_button.setStyleSheet(
+            """
             QPushButton {
                 background-color: #374151;
                 border: 1px solid #4b5563;
@@ -422,21 +435,25 @@ class SetupWizard(QDialog):
             QPushButton:checked {
                 background-color: #14b8a6;
             }
-        """)
+        """
+        )
         key_layout.addWidget(show_button)
 
         layout.addLayout(key_layout)
 
         # OpenAI custom endpoint (optional)
-        if provider_id == 'openai':
+        if provider_id == "openai":
             base_url_label = QLabel("Custom Base URL (optional, for OpenAI-compatible endpoints):")
             base_url_label.setStyleSheet("font-size: 9pt; color: #9ca3af; margin-top: 5px;")
             layout.addWidget(base_url_label)
 
             base_url_input = QLineEdit()
             base_url_input.setPlaceholderText("https://api.openai.com/v1")
-            base_url_input.textChanged.connect(lambda text, p=provider_id: self.on_base_url_changed(p, text))
-            base_url_input.setStyleSheet("""
+            base_url_input.textChanged.connect(
+                lambda text, p=provider_id: self.on_base_url_changed(p, text)
+            )
+            base_url_input.setStyleSheet(
+                """
                 QLineEdit {
                     background-color: #2a2a2a;
                     color: #ffffff;
@@ -445,16 +462,18 @@ class SetupWizard(QDialog):
                     padding: 6px;
                     font-size: 9pt;
                 }
-            """)
+            """
+            )
             layout.addWidget(base_url_input)
-            self.key_input_sections[f'{provider_id}_base_url'] = base_url_input
+            self.key_input_sections[f"{provider_id}_base_url"] = base_url_input
 
         # Test button and status
         test_layout = QHBoxLayout()
 
         test_button = QPushButton("Test Connection")
         test_button.clicked.connect(lambda checked, p=provider_id: self.test_provider_connection(p))
-        test_button.setStyleSheet("""
+        test_button.setStyleSheet(
+            """
             QPushButton {
                 background-color: #0d7377;
                 color: white;
@@ -471,7 +490,8 @@ class SetupWizard(QDialog):
                 background-color: #374151;
                 color: #6b7280;
             }
-        """)
+        """
+        )
         test_layout.addWidget(test_button)
 
         status_label = QLabel("")
@@ -483,9 +503,9 @@ class SetupWizard(QDialog):
 
         # Store references
         self.key_input_sections[provider_id] = {
-            'key_input': key_input,
-            'test_button': test_button,
-            'status_label': status_label
+            "key_input": key_input,
+            "test_button": test_button,
+            "status_label": status_label,
         }
 
         # Separator
@@ -516,7 +536,8 @@ class SetupWizard(QDialog):
         # Summary
         self.summary_text = QTextEdit()
         self.summary_text.setReadOnly(True)
-        self.summary_text.setStyleSheet("""
+        self.summary_text.setStyleSheet(
+            """
             QTextEdit {
                 background-color: #1e1e1e;
                 color: #ffffff;
@@ -525,7 +546,8 @@ class SetupWizard(QDialog):
                 padding: 15px;
                 font-size: 11pt;
             }
-        """)
+        """
+        )
         layout.addWidget(self.summary_text)
 
         layout.addSpacing(20)
@@ -545,7 +567,7 @@ class SetupWizard(QDialog):
 
     def on_provider_toggled(self, provider_id: str, state: int):
         """Handle provider checkbox toggle"""
-        self.provider_enabled[provider_id] = (state == Qt.CheckState.Checked.value)
+        self.provider_enabled[provider_id] = state == Qt.CheckState.Checked.value
         logger.info(f"Provider {provider_id} enabled: {self.provider_enabled[provider_id]}")
 
     def on_key_changed(self, provider_id: str, text: str):
@@ -555,7 +577,7 @@ class SetupWizard(QDialog):
         if provider_id in self.provider_tested:
             self.provider_tested[provider_id] = False
             if provider_id in self.key_input_sections:
-                self.key_input_sections[provider_id]['status_label'].setText("")
+                self.key_input_sections[provider_id]["status_label"].setText("")
 
     def on_base_url_changed(self, provider_id: str, text: str):
         """Handle base URL text change"""
@@ -581,7 +603,7 @@ class SetupWizard(QDialog):
 
     def test_provider_connection(self, provider_id: str):
         """Test connection for a specific provider"""
-        api_key = self.provider_keys.get(provider_id, '').strip()
+        api_key = self.provider_keys.get(provider_id, "").strip()
         if not api_key:
             QMessageBox.warning(self, "Missing API Key", "Please enter an API key first.")
             return
@@ -593,8 +615,8 @@ class SetupWizard(QDialog):
         if not section:
             return
 
-        test_button = section['test_button']
-        status_label = section['status_label']
+        test_button = section["test_button"]
+        status_label = section["status_label"]
 
         # Disable button and show testing message
         test_button.setEnabled(False)
@@ -602,7 +624,7 @@ class SetupWizard(QDialog):
         status_label.setStyleSheet("font-size: 9pt; color: #fbbf24;")
 
         # Get base URL if applicable
-        base_url = self.provider_base_urls.get(provider_id, '')
+        base_url = self.provider_base_urls.get(provider_id, "")
 
         # Start test thread
         self.test_thread = TestConnectionThread(
@@ -623,8 +645,8 @@ class SetupWizard(QDialog):
         if not section:
             return
 
-        test_button = section['test_button']
-        status_label = section['status_label']
+        test_button = section["test_button"]
+        status_label = section["status_label"]
 
         # Re-enable button
         test_button.setEnabled(True)
@@ -659,13 +681,13 @@ class SetupWizard(QDialog):
         # Clear existing sections
         for key in list(self.key_input_sections.keys()):
             if isinstance(self.key_input_sections[key], dict):
-                widget = self.key_input_sections[key]['key_input'].parent()
+                widget = self.key_input_sections[key]["key_input"].parent()
                 if widget:
                     widget.deleteLater()
                 del self.key_input_sections[key]
 
         # Add sections for enabled providers
-        for provider_id in ['openai', 'anthropic', 'gemini']:
+        for provider_id in ["openai", "anthropic", "gemini"]:
             if self.provider_enabled[provider_id]:
                 section = self.create_provider_key_section(provider_id)
                 # Insert before the stretch
@@ -678,16 +700,16 @@ class SetupWizard(QDialog):
         configured_count = 0
         first_working_provider = None
 
-        for provider_id in ['openai', 'anthropic', 'gemini']:
+        for provider_id in ["openai", "anthropic", "gemini"]:
             if self.provider_enabled[provider_id] and self.provider_keys[provider_id]:
                 configured_count += 1
                 tested = self.provider_tested.get(provider_id, False)
 
-                if provider_id == 'openai':
+                if provider_id == "openai":
                     name = "OpenAI (GPT)"
-                elif provider_id == 'anthropic':
+                elif provider_id == "anthropic":
                     name = "Anthropic (Claude)"
-                elif provider_id == 'gemini':
+                elif provider_id == "gemini":
                     name = "Google Gemini"
                 else:
                     name = provider_id.title()
@@ -707,16 +729,16 @@ class SetupWizard(QDialog):
             if first_working_provider:
                 self.default_provider = first_working_provider
             else:
-                for provider_id in ['anthropic', 'openai', 'gemini']:
+                for provider_id in ["anthropic", "openai", "gemini"]:
                     if self.provider_enabled[provider_id] and self.provider_keys[provider_id]:
                         self.default_provider = provider_id
                         break
 
-            if self.default_provider == 'openai':
+            if self.default_provider == "openai":
                 default_name = "OpenAI (GPT)"
-            elif self.default_provider == 'anthropic':
+            elif self.default_provider == "anthropic":
                 default_name = "Anthropic (Claude)"
-            elif self.default_provider == 'gemini':
+            elif self.default_provider == "gemini":
                 default_name = "Google Gemini"
             else:
                 default_name = self.default_provider.title()
@@ -780,7 +802,7 @@ class SetupWizard(QDialog):
         elif current_index == 2:  # Key input
             # All enabled providers must have keys entered (not necessarily tested)
             for provider_id, enabled in self.provider_enabled.items():
-                if enabled and not self.provider_keys.get(provider_id, '').strip():
+                if enabled and not self.provider_keys.get(provider_id, "").strip():
                     can_proceed = False
                     break
 
@@ -792,12 +814,12 @@ class SetupWizard(QDialog):
         credentials = {}
         for provider_id, key in self.provider_keys.items():
             if self.provider_enabled[provider_id] and key:
-                if provider_id == 'openai':
-                    credentials['OPENAI_API_KEY'] = key
-                elif provider_id == 'anthropic':
-                    credentials['ANTHROPIC_API_KEY'] = key
-                elif provider_id == 'gemini':
-                    credentials['GEMINI_API_KEY'] = key
+                if provider_id == "openai":
+                    credentials["OPENAI_API_KEY"] = key
+                elif provider_id == "anthropic":
+                    credentials["ANTHROPIC_API_KEY"] = key
+                elif provider_id == "gemini":
+                    credentials["GEMINI_API_KEY"] = key
 
         if credentials:
             try:
@@ -811,9 +833,9 @@ class SetupWizard(QDialog):
                 QMessageBox.information(
                     self,
                     "Setup Complete",
-                    f"Your API keys have been saved securely!\n\n"
+                    "Your API keys have been saved securely!\n\n"
                     f"Default provider: {self.default_provider.title()}\n\n"
-                    f"The assistant is ready to use. Press Ctrl+Shift+G to toggle the overlay."
+                    f"The assistant is ready to use. Press Ctrl+Shift+G to toggle the overlay.",
                 )
 
                 self.accept()
@@ -824,13 +846,13 @@ class SetupWizard(QDialog):
                     self,
                     "Setup Failed",
                     f"Failed to save your credentials:\n{str(e)}\n\n"
-                    f"Please try again or check the log file for details."
+                    f"Please try again or check the log file for details.",
                 )
         else:
             QMessageBox.warning(
                 self,
                 "No Credentials",
-                "No API keys were configured. Please go back and enter at least one API key."
+                "No API keys were configured. Please go back and enter at least one API key.",
             )
 
     def closeEvent(self, event):
@@ -840,7 +862,8 @@ class SetupWizard(QDialog):
 
     def apply_theme(self):
         """Apply dark theme to the wizard"""
-        self.setStyleSheet("""
+        self.setStyleSheet(
+            """
             QDialog {
                 background-color: #1e1e1e;
                 color: #ffffff;
@@ -869,4 +892,5 @@ class SetupWizard(QDialog):
                 background-color: #14b8a6;
                 border-color: #14b8a6;
             }
-        """)
+        """
+        )

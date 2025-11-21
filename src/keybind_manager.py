@@ -4,14 +4,14 @@ Handles keybind registration, conflict detection, and global hotkey listening
 """
 
 import logging
-from typing import Dict, Callable, Optional, Set, List, Tuple
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from enum import Enum
-import json
+from typing import Callable, Dict, List, Optional, Set, Tuple
 
 try:
     from pynput import keyboard
-    from pynput.keyboard import Key, KeyCode, HotKey
+    from pynput.keyboard import HotKey, Key, KeyCode
+
     PYNPUT_AVAILABLE = True
 except ImportError:
     PYNPUT_AVAILABLE = False
@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 class KeybindAction(Enum):
     """Predefined keybind actions"""
+
     TOGGLE_OVERLAY = "toggle_overlay"
     TOGGLE_AI_ASSISTANT = "toggle_ai_assistant"
     START_RECORDING = "start_recording"
@@ -43,6 +44,7 @@ class KeybindAction(Enum):
 @dataclass
 class Keybind:
     """Represents a keybind configuration"""
+
     action: str  # Action name or KeybindAction enum value
     keys: str  # Key combination string (e.g., "ctrl+shift+g")
     description: str  # Human-readable description
@@ -54,7 +56,7 @@ class Keybind:
         return asdict(self)
 
     @staticmethod
-    def from_dict(data: dict) -> 'Keybind':
+    def from_dict(data: dict) -> "Keybind":
         """Create Keybind from dictionary"""
         return Keybind(**data)
 
@@ -62,6 +64,7 @@ class Keybind:
 @dataclass
 class MacroKeybind:
     """Represents a keybind that triggers a macro"""
+
     macro_id: str  # ID of macro to execute
     keys: str  # Key combination (e.g., "ctrl+shift+1")
     description: str  # Human-readable description
@@ -74,7 +77,7 @@ class MacroKeybind:
         return asdict(self)
 
     @staticmethod
-    def from_dict(data: dict) -> 'MacroKeybind':
+    def from_dict(data: dict) -> "MacroKeybind":
         """Create MacroKeybind from dictionary"""
         return MacroKeybind(**data)
 
@@ -93,7 +96,9 @@ class KeybindManager:
     def __init__(self):
         """Initialize the keybind manager"""
         self.keybinds: Dict[str, Keybind] = {}
-        self.macro_keybinds: Dict[str, MacroKeybind] = {}  # Track macro keybinds separately for scope checking
+        self.macro_keybinds: Dict[str, MacroKeybind] = (
+            {}
+        )  # Track macro keybinds separately for scope checking
         self.callbacks: Dict[str, Callable] = {}
         self.listener: Optional[keyboard.Listener] = None
         self.active_hotkeys: Dict[str, HotKey] = {}
@@ -102,7 +107,9 @@ class KeybindManager:
         if not PYNPUT_AVAILABLE:
             logger.warning("pynput not available - global hotkeys will not work")
 
-    def register_keybind(self, keybind: Keybind, callback: Callable, override: bool = False) -> bool:
+    def register_keybind(
+        self, keybind: Keybind, callback: Callable, override: bool = False
+    ) -> bool:
         """
         Register a keybind with a callback function
 
@@ -226,10 +233,7 @@ class KeybindManager:
             return True
 
         try:
-            self.listener = keyboard.Listener(
-                on_press=self._on_press,
-                on_release=self._on_release
-            )
+            self.listener = keyboard.Listener(on_press=self._on_press, on_release=self._on_release)
             self.listener.start()
             logger.info("Started global hotkey listener")
             return True
@@ -312,39 +316,48 @@ class KeybindManager:
             return set()
 
         key_set = set()
-        parts = keys.lower().split('+')
+        parts = keys.lower().split("+")
 
         for part in parts:
             part = part.strip()
 
             # Map common key names
             key_map = {
-                'ctrl': Key.ctrl_l,
-                'control': Key.ctrl_l,
-                'shift': Key.shift_l,
-                'alt': Key.alt_l,
-                'win': Key.cmd,
-                'cmd': Key.cmd,
-                'super': Key.cmd,
-                'tab': Key.tab,
-                'esc': Key.esc,
-                'escape': Key.esc,
-                'enter': Key.enter,
-                'return': Key.enter,
-                'space': Key.space,
-                'backspace': Key.backspace,
-                'delete': Key.delete,
-                'up': Key.up,
-                'down': Key.down,
-                'left': Key.left,
-                'right': Key.right,
-                'home': Key.home,
-                'end': Key.end,
-                'pageup': Key.page_up,
-                'pagedown': Key.page_down,
-                'f1': Key.f1, 'f2': Key.f2, 'f3': Key.f3, 'f4': Key.f4,
-                'f5': Key.f5, 'f6': Key.f6, 'f7': Key.f7, 'f8': Key.f8,
-                'f9': Key.f9, 'f10': Key.f10, 'f11': Key.f11, 'f12': Key.f12,
+                "ctrl": Key.ctrl_l,
+                "control": Key.ctrl_l,
+                "shift": Key.shift_l,
+                "alt": Key.alt_l,
+                "win": Key.cmd,
+                "cmd": Key.cmd,
+                "super": Key.cmd,
+                "tab": Key.tab,
+                "esc": Key.esc,
+                "escape": Key.esc,
+                "enter": Key.enter,
+                "return": Key.enter,
+                "space": Key.space,
+                "backspace": Key.backspace,
+                "delete": Key.delete,
+                "up": Key.up,
+                "down": Key.down,
+                "left": Key.left,
+                "right": Key.right,
+                "home": Key.home,
+                "end": Key.end,
+                "pageup": Key.page_up,
+                "pagedown": Key.page_down,
+                "f1": Key.f1,
+                "f2": Key.f2,
+                "f3": Key.f3,
+                "f4": Key.f4,
+                "f5": Key.f5,
+                "f6": Key.f6,
+                "f7": Key.f7,
+                "f8": Key.f8,
+                "f9": Key.f9,
+                "f10": Key.f10,
+                "f11": Key.f11,
+                "f12": Key.f12,
             }
 
             if part in key_map:
@@ -367,22 +380,22 @@ class KeybindManager:
         Returns:
             Normalized string (lowercase, sorted)
         """
-        parts = [p.strip().lower() for p in keys.split('+')]
+        parts = [p.strip().lower() for p in keys.split("+")]
 
         # Normalize key names
         normalize_map = {
-            'control': 'ctrl',
-            'command': 'cmd',
-            'super': 'cmd',
-            'windows': 'win',
-            'return': 'enter',
-            'escape': 'esc',
+            "control": "ctrl",
+            "command": "cmd",
+            "super": "cmd",
+            "windows": "win",
+            "return": "enter",
+            "escape": "esc",
         }
 
         parts = [normalize_map.get(p, p) for p in parts]
         parts.sort()
 
-        return '+'.join(parts)
+        return "+".join(parts)
 
     def get_all_keybinds(self) -> List[Keybind]:
         """Get all registered keybinds"""
@@ -405,7 +418,7 @@ class KeybindManager:
         if not keys or not keys.strip():
             return False, "Key combination cannot be empty"
 
-        parts = keys.lower().split('+')
+        parts = keys.lower().split("+")
 
         if len(parts) < 1:
             return False, "Key combination must have at least one key"
@@ -414,11 +427,26 @@ class KeybindManager:
             return False, "Key combination cannot have more than 4 keys"
 
         # Check for valid keys
-        valid_modifiers = {'ctrl', 'control', 'shift', 'alt', 'win', 'cmd', 'super'}
-        valid_special = {'tab', 'esc', 'escape', 'enter', 'return', 'space',
-                        'backspace', 'delete', 'up', 'down', 'left', 'right',
-                        'home', 'end', 'pageup', 'pagedown'}
-        valid_function = {f'f{i}' for i in range(1, 13)}
+        valid_modifiers = {"ctrl", "control", "shift", "alt", "win", "cmd", "super"}
+        valid_special = {
+            "tab",
+            "esc",
+            "escape",
+            "enter",
+            "return",
+            "space",
+            "backspace",
+            "delete",
+            "up",
+            "down",
+            "left",
+            "right",
+            "home",
+            "end",
+            "pageup",
+            "pagedown",
+        }
+        valid_function = {f"f{i}" for i in range(1, 13)}
 
         has_non_modifier = False
 
@@ -439,8 +467,9 @@ class KeybindManager:
 
         return True, ""
 
-    def register_macro_keybind(self, macro_keybind: 'MacroKeybind', callback: Callable,
-                             override: bool = False) -> bool:
+    def register_macro_keybind(
+        self, macro_keybind: "MacroKeybind", callback: Callable, override: bool = False
+    ) -> bool:
         """
         Register a macro keybind (shortcut for macro execution)
 
@@ -469,13 +498,15 @@ class KeybindManager:
             keys=macro_keybind.keys,
             description=macro_keybind.description,
             enabled=macro_keybind.enabled,
-            system_wide=macro_keybind.system_wide
+            system_wide=macro_keybind.system_wide,
         )
 
         success = self.register_keybind(keybind, callback, override=override)
 
         if success:
-            logger.info(f"Registered macro keybind: {macro_keybind.macro_id} -> {macro_keybind.keys}")
+            logger.info(
+                f"Registered macro keybind: {macro_keybind.macro_id} -> {macro_keybind.keys}"
+            )
 
         return success
 
@@ -508,8 +539,9 @@ class KeybindManager:
         """
         return self.macro_keybinds.get(macro_id)
 
-    def _macro_keybind_has_conflict(self, macro_keybind: 'MacroKeybind',
-                                   exclude_macro_id: Optional[str] = None) -> bool:
+    def _macro_keybind_has_conflict(
+        self, macro_keybind: "MacroKeybind", exclude_macro_id: Optional[str] = None
+    ) -> bool:
         """
         Check if macro keybind conflicts with another keybind.
         Properly accounts for game-specific vs global scopes.
@@ -592,23 +624,19 @@ class KeybindManager:
     def save_to_dict(self) -> dict:
         """Save all keybinds to dictionary for JSON serialization"""
         return {
-            'keybinds': {
-                action: keybind.to_dict()
-                for action, keybind in self.keybinds.items()
+            "keybinds": {action: keybind.to_dict() for action, keybind in self.keybinds.items()},
+            "macro_keybinds": {
+                macro_id: macro_kb.to_dict() for macro_id, macro_kb in self.macro_keybinds.items()
             },
-            'macro_keybinds': {
-                macro_id: macro_kb.to_dict()
-                for macro_id, macro_kb in self.macro_keybinds.items()
-            }
         }
 
     def load_from_dict(self, data: dict):
         """Load keybinds from dictionary"""
         # Support both old and new format
-        if 'keybinds' in data:
+        if "keybinds" in data:
             # New format with separate sections
-            keybinds_data = data.get('keybinds', {})
-            macro_keybinds_data = data.get('macro_keybinds', {})
+            keybinds_data = data.get("keybinds", {})
+            macro_keybinds_data = data.get("macro_keybinds", {})
         else:
             # Old format (flat dictionary of keybinds)
             keybinds_data = data
@@ -639,27 +667,27 @@ DEFAULT_KEYBINDS = [
         keys="ctrl+shift+g",
         description="Toggle in-game overlay visibility",
         enabled=True,
-        system_wide=True
+        system_wide=True,
     ),
     Keybind(
         action=KeybindAction.OPEN_SETTINGS.value,
         keys="ctrl+shift+s",
         description="Open settings dialog",
         enabled=True,
-        system_wide=False
+        system_wide=False,
     ),
     Keybind(
         action=KeybindAction.CLEAR_CHAT.value,
         keys="ctrl+shift+x",
         description="Clear chat history",
         enabled=True,
-        system_wide=False
+        system_wide=False,
     ),
     Keybind(
         action=KeybindAction.FOCUS_INPUT.value,
         keys="ctrl+shift+f",
         description="Focus chat input field",
         enabled=True,
-        system_wide=False
+        system_wide=False,
     ),
 ]

@@ -3,17 +3,20 @@ Test suite for AI Providers
 
 Tests OpenAI, Anthropic, and Google Gemini provider implementations.
 """
+
+from unittest.mock import MagicMock
+
 import pytest
-from unittest.mock import Mock, patch, AsyncMock, MagicMock
+
 from src.providers import (
-    OpenAIProvider,
     AnthropicProvider,
     GeminiProvider,
-    ProviderError,
+    OpenAIProvider,
     ProviderAuthError,
+    ProviderConnectionError,
+    ProviderError,
     ProviderQuotaError,
     ProviderRateLimitError,
-    ProviderConnectionError
 )
 
 
@@ -158,34 +161,36 @@ class TestGeminiProvider:
 class TestProviderCommonBehavior:
     """Test common behavior across all providers"""
 
-    @pytest.mark.parametrize("provider_class,api_key", [
-        (OpenAIProvider, "sk-test"),
-        (AnthropicProvider, "sk-ant-test"),
-        (GeminiProvider, "gemini-test")
-    ])
+    @pytest.mark.parametrize(
+        "provider_class,api_key",
+        [
+            (OpenAIProvider, "sk-test"),
+            (AnthropicProvider, "sk-ant-test"),
+            (GeminiProvider, "gemini-test"),
+        ],
+    )
     def test_all_providers_have_name(self, provider_class, api_key):
         """Test all providers have a name attribute"""
         provider = provider_class(api_key=api_key)
-        assert hasattr(provider, 'name')
+        assert hasattr(provider, "name")
         assert isinstance(provider.name, str)
         assert len(provider.name) > 0
 
-    @pytest.mark.parametrize("provider_class,api_key", [
-        (OpenAIProvider, "sk-test"),
-        (AnthropicProvider, "sk-ant-test"),
-        (GeminiProvider, "gemini-test")
-    ])
+    @pytest.mark.parametrize(
+        "provider_class,api_key",
+        [
+            (OpenAIProvider, "sk-test"),
+            (AnthropicProvider, "sk-ant-test"),
+            (GeminiProvider, "gemini-test"),
+        ],
+    )
     def test_all_providers_have_is_configured(self, provider_class, api_key):
         """Test all providers have is_configured method"""
         provider = provider_class(api_key=api_key)
-        assert hasattr(provider, 'is_configured')
+        assert hasattr(provider, "is_configured")
         assert callable(provider.is_configured)
 
-    @pytest.mark.parametrize("provider_class", [
-        OpenAIProvider,
-        AnthropicProvider,
-        GeminiProvider
-    ])
+    @pytest.mark.parametrize("provider_class", [OpenAIProvider, AnthropicProvider, GeminiProvider])
     def test_all_providers_handle_no_api_key(self, provider_class):
         """Test all providers handle missing API key"""
         provider = provider_class(api_key=None)

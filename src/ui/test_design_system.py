@@ -18,41 +18,49 @@ def test_imports():
     print("Testing imports...")
 
     # Core modules (use relative imports)
-    from . import tokens
-    from . import design_system
-    from .tokens import COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS, ANIMATION, Z_INDEX
-    from .design_system import OmnixDesignSystem
-    from .icons import OmnixIcons, icons
+    from . import design_system  # noqa: F401
+    from . import tokens  # noqa: F401
 
     # Components
-    from .components import (
+    from .components import (  # noqa: F401
         OmnixButton,
-        OmnixIconButton,
-        OmnixLineEdit,
-        OmnixTextEdit,
-        OmnixComboBox,
         OmnixCard,
-        OmnixPanel,
-        OmnixInfoCard,
-        OmnixVBox,
-        OmnixHBox,
-        OmnixGrid,
+        OmnixComboBox,
+        OmnixConfirmDialog,
+        OmnixDialog,
         OmnixFormLayout,
+        OmnixGrid,
+        OmnixHBox,
+        OmnixHeaderBar,
+        OmnixIconButton,
+        OmnixInfoCard,
+        OmnixInputDialog,
+        OmnixLineEdit,
+        OmnixMessageDialog,
+        OmnixPanel,
         OmnixSidebar,
         OmnixSidebarButton,
-        OmnixHeaderBar,
-        OmnixDialog,
-        OmnixConfirmDialog,
-        OmnixMessageDialog,
-        OmnixInputDialog,
+        OmnixTextEdit,
+        OmnixVBox,
     )
 
     # Overlay components
-    from .components.overlay import (
-        OmnixOverlayPanel,
+    from .components.overlay import (  # noqa: F401
         OmnixOverlayChatWidget,
-        OmnixOverlayTip,
+        OmnixOverlayPanel,
         OmnixOverlayStatus,
+        OmnixOverlayTip,
+    )
+    from .design_system import OmnixDesignSystem  # noqa: F401
+    from .icons import OmnixIcons, icons  # noqa: F401
+    from .tokens import (  # noqa: F401
+        ANIMATION,
+        COLORS,
+        RADIUS,
+        SHADOWS,
+        SPACING,
+        TYPOGRAPHY,
+        Z_INDEX,
     )
 
     print("✓ All imports successful (basic UI modules)")
@@ -62,7 +70,7 @@ def test_tokens():
     """Test design tokens."""
     print("\nTesting design tokens...")
 
-    from .tokens import tokens, COLORS
+    from .tokens import COLORS, tokens
 
     # Test color palette
     assert COLORS.bg_primary == "#1A1A2E"
@@ -106,6 +114,7 @@ def test_stylesheet_generation():
 def test_icons():
     """Test icon system."""
     import os
+
     print("\nTesting icon system...")
 
     from .icons import icons
@@ -125,6 +134,7 @@ def test_icons():
 
     try:
         from PyQt6.QtGui import QIcon
+
         icon = icons.get_icon("chat", size=32)
         assert isinstance(icon, QIcon)
         print("✓ Icon system working correctly (PyQt6 available)")
@@ -136,7 +146,7 @@ def test_theme_compatibility():
     """Test legacy compatibility wrapper."""
     print("\nTesting theme compatibility...")
 
-    from src.theme_compat import ThemeManagerCompat, LegacyTheme
+    from src.theme_compat import LegacyTheme, ThemeManagerCompat
 
     compat = ThemeManagerCompat()
     assert compat.current_theme is not None
@@ -176,10 +186,11 @@ def test_component_creation():
 
     try:
         from PyQt6.QtWidgets import QApplication
+
         from .components import OmnixButton, OmnixCard, OmnixPanel
 
         # Create minimal app
-        app = QApplication.instance() or QApplication([])
+        app = QApplication.instance() or QApplication([])  # noqa: F841
 
         # Create components
         button = OmnixButton("Test Button")
@@ -220,6 +231,7 @@ def run_all_tests():
     except Exception as e:
         print(f"\n✗ Test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 

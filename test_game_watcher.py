@@ -6,15 +6,16 @@ Tests background game detection, signal emission, and thread lifecycle
 import os
 import sys
 import time
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import patch
+
 import pytest
 
 # Add src to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
-from src.game_watcher import GameWatcher
 from src.game_detector import GameDetector
 from src.game_profile import GameProfileStore
+from src.game_watcher import GameWatcher
 
 
 @pytest.mark.unit
@@ -117,17 +118,17 @@ class TestGameDetectionSignals:
         watcher = GameWatcher(mock_game_detector, profile_store, check_interval=1)
 
         # Mock game detection
-        with patch.object(mock_game_detector, 'detect_running_game') as mock_detect:
+        with patch.object(mock_game_detector, "detect_running_game") as mock_detect:
             mock_detect.return_value = {
-                'name': 'Elden Ring',
-                'pid': 12345,
-                'timestamp': time.time()
+                "name": "Elden Ring",
+                "pid": 12345,
+                "timestamp": time.time(),
             }
 
             signals_received = []
 
             def on_game_detected(game_name):
-                signals_received.append(('detected', game_name))
+                signals_received.append(("detected", game_name))
 
             # Connect signal
             watcher.game_detected.connect(on_game_detected)
@@ -150,7 +151,7 @@ class TestGameDetectionSignals:
         signals_received = []
 
         def on_game_changed(game_name, profile):
-            signals_received.append(('changed', game_name, profile))
+            signals_received.append(("changed", game_name, profile))
 
         watcher.game_changed.connect(on_game_changed)
 
@@ -166,7 +167,7 @@ class TestGameDetectionSignals:
         signals_received = []
 
         def on_game_closed():
-            signals_received.append('closed')
+            signals_received.append("closed")
 
         watcher.game_closed.connect(on_game_closed)
 
@@ -182,11 +183,8 @@ class TestDetectionBehavior:
         """Test detection when game is running"""
         profile_store = GameProfileStore()
 
-        with patch.object(mock_game_detector, 'detect_running_game') as mock_detect:
-            mock_detect.return_value = {
-                'name': 'Elden Ring',
-                'pid': 12345
-            }
+        with patch.object(mock_game_detector, "detect_running_game") as mock_detect:
+            mock_detect.return_value = {"name": "Elden Ring", "pid": 12345}
 
             watcher = GameWatcher(mock_game_detector, profile_store, check_interval=1)
 
@@ -203,7 +201,7 @@ class TestDetectionBehavior:
         """Test detection when no game is running"""
         profile_store = GameProfileStore()
 
-        with patch.object(mock_game_detector, 'detect_running_game') as mock_detect:
+        with patch.object(mock_game_detector, "detect_running_game") as mock_detect:
             mock_detect.return_value = None
 
             watcher = GameWatcher(mock_game_detector, profile_store, check_interval=1)
@@ -219,9 +217,9 @@ class TestDetectionBehavior:
         """Test detecting game transition (one game to another)"""
         profile_store = GameProfileStore()
 
-        with patch.object(mock_game_detector, 'detect_running_game') as mock_detect:
+        with patch.object(mock_game_detector, "detect_running_game") as mock_detect:
             # Start with one game
-            mock_detect.return_value = {'name': 'Game A', 'pid': 100}
+            mock_detect.return_value = {"name": "Game A", "pid": 100}
 
             watcher = GameWatcher(mock_game_detector, profile_store, check_interval=1)
 
@@ -229,7 +227,7 @@ class TestDetectionBehavior:
             time.sleep(0.2)
 
             # Change to different game
-            mock_detect.return_value = {'name': 'Game B', 'pid': 200}
+            mock_detect.return_value = {"name": "Game B", "pid": 200}
 
             time.sleep(0.2)
             watcher.stop()
@@ -246,7 +244,7 @@ class TestErrorHandling:
         """Test handling of detector exceptions"""
         profile_store = GameProfileStore()
 
-        with patch.object(mock_game_detector, 'detect_running_game') as mock_detect:
+        with patch.object(mock_game_detector, "detect_running_game") as mock_detect:
             # Make detector raise exception
             mock_detect.side_effect = Exception("Process monitoring failed")
 
@@ -262,7 +260,7 @@ class TestErrorHandling:
         """Test handling of profile store exceptions"""
         detector = GameDetector()
 
-        with patch.object(GameProfileStore, 'get_profile_by_executable') as mock_get:
+        with patch.object(GameProfileStore, "get_profile_by_executable") as mock_get:
             mock_get.side_effect = Exception("Profile load failed")
 
             profile_store = GameProfileStore()
@@ -321,7 +319,7 @@ class TestDetectionInterval:
             detection_times.append(time.time())
             return None
 
-        with patch.object(mock_game_detector, 'detect_running_game', side_effect=track_detection):
+        with patch.object(mock_game_detector, "detect_running_game", side_effect=track_detection):
             watcher = GameWatcher(mock_game_detector, profile_store, check_interval=1)
 
             watcher.start()
@@ -333,7 +331,7 @@ class TestDetectionInterval:
             # Allow some tolerance for execution time
             if len(detection_times) >= 2:
                 intervals = [
-                    detection_times[i+1] - detection_times[i]
+                    detection_times[i + 1] - detection_times[i]
                     for i in range(len(detection_times) - 1)
                 ]
 
@@ -388,8 +386,8 @@ class TestIntegrationWithGameDetector:
         # Profiles should be valid if any were detected
         for game_name, profile in detected_profiles:
             assert profile is not None
-            assert hasattr(profile, 'id')
-            assert hasattr(profile, 'display_name')
+            assert hasattr(profile, "id")
+            assert hasattr(profile, "display_name")
 
 
 @pytest.mark.unit

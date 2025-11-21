@@ -4,24 +4,31 @@ Contains UI tabs for the Settings dialog
 """
 
 import logging
-from typing import Dict, Optional, List
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QLabel, QLineEdit,
-    QPushButton, QRadioButton, QButtonGroup, QSlider, QComboBox,
-    QCheckBox, QSpinBox, QDoubleSpinBox, QListWidget, QListWidgetItem,
-    QTableWidget, QTableWidgetItem, QHeaderView, QMessageBox, QDialog,
-    QTextEdit, QScrollArea, QFrame, QTabWidget
-)
+from typing import Optional
+
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QColor
-
-from keybind_manager import Keybind, KeybindManager, KeybindAction, MacroKeybind, DEFAULT_KEYBINDS
-from macro_manager import Macro, MacroManager, MacroStep, MacroStepType, DEFAULT_MACROS
-from theme_manager import (
-    Theme, ThemeManager, ThemeMode, UIScale, LayoutMode,
-    OverlayAppearance, OverlayPosition,
-    DEFAULT_DARK_THEME, DEFAULT_LIGHT_THEME
+from PyQt6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QDialog,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QListWidget,
+    QListWidgetItem,
+    QMessageBox,
+    QPushButton,
+    QSpinBox,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
 )
+
+from keybind_manager import DEFAULT_KEYBINDS, Keybind, KeybindAction, KeybindManager, MacroKeybind
+from macro_manager import DEFAULT_MACROS, Macro, MacroManager, MacroStep, MacroStepType
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +38,9 @@ class KeybindingsTab(QWidget):
 
     keybinds_changed = pyqtSignal(dict)  # Emits keybinds dict
 
-    def __init__(self, keybind_manager: KeybindManager, macro_manager: MacroManager = None, parent=None):
+    def __init__(
+        self, keybind_manager: KeybindManager, macro_manager: MacroManager = None, parent=None
+    ):
         super().__init__(parent)
         self.keybind_manager = keybind_manager
         self.macro_manager = macro_manager
@@ -58,13 +67,25 @@ class KeybindingsTab(QWidget):
         # Keybinds table
         self.keybinds_table = QTableWidget()
         self.keybinds_table.setColumnCount(5)
-        self.keybinds_table.setHorizontalHeaderLabels(["Action", "Description", "Keys", "System-Wide", "Enabled"])
+        self.keybinds_table.setHorizontalHeaderLabels(
+            ["Action", "Description", "Keys", "System-Wide", "Enabled"]
+        )
         self.keybinds_table.horizontalHeader().setStretchLastSection(False)
-        self.keybinds_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-        self.keybinds_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        self.keybinds_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
-        self.keybinds_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
-        self.keybinds_table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
+        self.keybinds_table.horizontalHeader().setSectionResizeMode(
+            0, QHeaderView.ResizeMode.ResizeToContents
+        )
+        self.keybinds_table.horizontalHeader().setSectionResizeMode(
+            1, QHeaderView.ResizeMode.Stretch
+        )
+        self.keybinds_table.horizontalHeader().setSectionResizeMode(
+            2, QHeaderView.ResizeMode.ResizeToContents
+        )
+        self.keybinds_table.horizontalHeader().setSectionResizeMode(
+            3, QHeaderView.ResizeMode.ResizeToContents
+        )
+        self.keybinds_table.horizontalHeader().setSectionResizeMode(
+            4, QHeaderView.ResizeMode.ResizeToContents
+        )
         self.keybinds_table.setAlternatingRowColors(True)
         layout.addWidget(self.keybinds_table)
 
@@ -137,13 +158,17 @@ class KeybindingsTab(QWidget):
         # System-wide checkbox
         system_wide_item = QTableWidgetItem()
         system_wide_item.setFlags(Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled)
-        system_wide_item.setCheckState(Qt.CheckState.Checked if keybind.system_wide else Qt.CheckState.Unchecked)
+        system_wide_item.setCheckState(
+            Qt.CheckState.Checked if keybind.system_wide else Qt.CheckState.Unchecked
+        )
         self.keybinds_table.setItem(row, 3, system_wide_item)
 
         # Enabled checkbox
         enabled_item = QTableWidgetItem()
         enabled_item.setFlags(Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled)
-        enabled_item.setCheckState(Qt.CheckState.Checked if keybind.enabled else Qt.CheckState.Unchecked)
+        enabled_item.setCheckState(
+            Qt.CheckState.Checked if keybind.enabled else Qt.CheckState.Unchecked
+        )
         self.keybinds_table.setItem(row, 4, enabled_item)
 
         # Connect cell change signal
@@ -190,11 +215,11 @@ class KeybindingsTab(QWidget):
 
         # Handle system-wide checkbox
         elif col == 3:
-            keybind.system_wide = (item.checkState() == Qt.CheckState.Checked)
+            keybind.system_wide = item.checkState() == Qt.CheckState.Checked
 
         # Handle enabled checkbox
         elif col == 4:
-            keybind.enabled = (item.checkState() == Qt.CheckState.Checked)
+            keybind.enabled = item.checkState() == Qt.CheckState.Checked
 
         # Emit changes
         self.emit_keybinds()
@@ -209,12 +234,14 @@ class KeybindingsTab(QWidget):
                 if macro_keybind:
                     # For now, register with a placeholder callback
                     # The actual macro execution should be wired at the application level
-                    self.keybind_manager.register_macro_keybind(macro_keybind, lambda: None, override=True)
+                    self.keybind_manager.register_macro_keybind(
+                        macro_keybind, lambda: None, override=True
+                    )
                     QMessageBox.information(
                         self,
                         "Macro Keybind Created",
                         f"Macro keybind created: {macro_keybind.keys}\n\n"
-                        "Note: The macro execution will be active after saving settings and restarting."
+                        "Note: The macro execution will be active after saving settings and restarting.",
                     )
             else:
                 keybind = dialog.get_keybind()
@@ -245,17 +272,21 @@ class KeybindingsTab(QWidget):
             if dialog.is_macro_action():
                 macro_keybind = dialog.get_macro_keybind()
                 if macro_keybind:
-                    self.keybind_manager.register_macro_keybind(macro_keybind, lambda: None, override=True)
+                    self.keybind_manager.register_macro_keybind(
+                        macro_keybind, lambda: None, override=True
+                    )
                     QMessageBox.information(
                         self,
                         "Macro Keybind Updated",
                         f"Macro keybind updated: {macro_keybind.keys}\n\n"
-                        "Note: The macro execution will be active after saving settings and restarting."
+                        "Note: The macro execution will be active after saving settings and restarting.",
                     )
             else:
                 updated_keybind = dialog.get_keybind()
                 if updated_keybind:
-                    self.keybind_manager.register_keybind(updated_keybind, lambda: None, override=True)
+                    self.keybind_manager.register_keybind(
+                        updated_keybind, lambda: None, override=True
+                    )
             self.load_keybinds()
             self.emit_keybinds()
 
@@ -276,7 +307,7 @@ class KeybindingsTab(QWidget):
             self,
             "Confirm Removal",
             f"Are you sure you want to remove the keybind for '{action}'?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
 
         if reply == QMessageBox.StandardButton.Yes:
@@ -290,7 +321,7 @@ class KeybindingsTab(QWidget):
             self,
             "Restore Defaults",
             "Are you sure you want to restore default keybindings? This will remove all custom keybinds.",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
 
         if reply == QMessageBox.StandardButton.Yes:
@@ -304,7 +335,9 @@ class KeybindingsTab(QWidget):
 
             self.load_keybinds()
             self.emit_keybinds()
-            QMessageBox.information(self, "Defaults Restored", "Default keybindings have been restored.")
+            QMessageBox.information(
+                self, "Defaults Restored", "Default keybindings have been restored."
+            )
 
     def emit_keybinds(self):
         """Emit keybinds changed signal"""
@@ -319,13 +352,18 @@ class KeybindingsTab(QWidget):
 class KeybindEditDialog(QDialog):
     """Dialog for editing a keybind"""
 
-    def __init__(self, keybind: Optional[Keybind], keybind_manager: KeybindManager,
-                 macro_manager: MacroManager = None, parent=None):
+    def __init__(
+        self,
+        keybind: Optional[Keybind],
+        keybind_manager: KeybindManager,
+        macro_manager: MacroManager = None,
+        parent=None,
+    ):
         super().__init__(parent)
         self.keybind = keybind
         self.keybind_manager = keybind_manager
         self.macro_manager = macro_manager
-        self.is_new = (keybind is None)
+        self.is_new = keybind is None
         self.is_macro_keybind = False  # Track if this is a macro keybind
         self.init_ui()
 
@@ -448,7 +486,7 @@ class KeybindEditDialog(QDialog):
                 self,
                 "Keybind Conflict",
                 f"This key combination conflicts with: {conflict_names}\n\nDo you want to override it?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             )
             if reply == QMessageBox.StandardButton.No:
                 return
@@ -467,13 +505,15 @@ class KeybindEditDialog(QDialog):
 
                 # Create a MacroKeybind
                 self.macro_keybind = MacroKeybind(
-                    macro_id=macro_id,
-                    keys=keys,
-                    description=description
+                    macro_id=macro_id, keys=keys, description=description
                 )
                 self.is_macro_keybind = True
             else:
-                QMessageBox.warning(self, "Macro Manager Missing", "Cannot create macro keybind without macro manager.")
+                QMessageBox.warning(
+                    self,
+                    "Macro Manager Missing",
+                    "Cannot create macro keybind without macro manager.",
+                )
                 return
         else:
             # Create or update regular keybind
@@ -482,7 +522,7 @@ class KeybindEditDialog(QDialog):
                 keys=keys,
                 description=description,
                 enabled=enabled,
-                system_wide=system_wide
+                system_wide=system_wide,
             )
             self.is_macro_keybind = False
 
@@ -492,9 +532,9 @@ class KeybindEditDialog(QDialog):
         """Get the keybind"""
         return self.keybind
 
-    def get_macro_keybind(self) -> Optional['MacroKeybind']:
+    def get_macro_keybind(self) -> Optional["MacroKeybind"]:
         """Get the macro keybind if this is a macro action"""
-        return getattr(self, 'macro_keybind', None)
+        return getattr(self, "macro_keybind", None)
 
     def is_macro_action(self) -> bool:
         """Check if the saved action is a macro"""
@@ -647,7 +687,7 @@ class MacrosTab(QWidget):
             self,
             "Confirm Deletion",
             f"Are you sure you want to delete the macro '{macro.name}'?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
 
         if reply == QMessageBox.StandardButton.Yes:
@@ -658,11 +698,8 @@ class MacrosTab(QWidget):
     def load_examples(self, silent=False):
         """Load example macros"""
         for example in DEFAULT_MACROS:
-            macro = self.macro_manager.create_macro(
-                example['name'],
-                example['description']
-            )
-            macro.steps = example.get('steps', [])
+            macro = self.macro_manager.create_macro(example["name"], example["description"])
+            macro.steps = example.get("steps", [])
 
         self.load_macros()
         self.emit_macros()
@@ -687,7 +724,7 @@ class MacroEditDialog(QDialog):
         super().__init__(parent)
         self.macro = macro
         self.macro_manager = macro_manager
-        self.is_new = (macro is None)
+        self.is_new = macro is None
         self.init_ui()
 
     def init_ui(self):
@@ -850,10 +887,7 @@ class MacroEditDialog(QDialog):
             self.macro = self.macro_manager.create_macro(name, description)
         else:
             self.macro_manager.update_macro(
-                self.macro.id,
-                name=name,
-                description=description,
-                enabled=enabled
+                self.macro.id, name=name, description=description, enabled=enabled
             )
 
         self.macro.steps = steps
@@ -1047,7 +1081,7 @@ class MacroStepDialog(QDialog):
             x=x,
             y=y,
             scroll_amount=scroll_amount,
-            duration_ms=duration_ms
+            duration_ms=duration_ms,
         )
 
         self.accept()

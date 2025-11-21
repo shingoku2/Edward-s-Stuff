@@ -3,14 +3,15 @@
 Test the Omnix Dashboard component
 """
 
-import sys
 import os
+import sys
 
 # Ensure src directory is in path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
+from PyQt6.QtCore import QTimer
 from PyQt6.QtWidgets import QApplication, QMainWindow
-from PyQt6.QtCore import Qt, QTimer
+
 from ui.components import OmnixDashboard
 from ui.design_system import OmnixDesignSystem
 
@@ -29,11 +30,13 @@ def test_dashboard(run_interactive: bool = False):
     window.setMinimumSize(900, 700)
 
     # Set dark background
-    window.setStyleSheet(f"""
+    window.setStyleSheet(
+        f"""
         QMainWindow {{
             background-color: #050508;
         }}
-    """)
+    """
+    )
 
     # Create dashboard
     dashboard = OmnixDashboard()

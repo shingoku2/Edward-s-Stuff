@@ -142,4 +142,8 @@ class SafeExecutor:
                     )
                     self.logger.debug(traceback.format_exc())
 
-        raise last_exception if last_exception is not None else RuntimeError("Unknown execution error")
+        raise (
+            last_exception
+            if last_exception is not None
+            else RuntimeError("Unknown execution error")
+        )

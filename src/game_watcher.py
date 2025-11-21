@@ -5,8 +5,8 @@ Monitors active game and emits Qt signals when game changes
 
 import logging
 import threading
-import time
-from typing import Optional, Callable, Dict
+from typing import Callable, Dict, Optional  # noqa: F401
+
 from PyQt6.QtCore import QObject, pyqtSignal
 
 from game_detector import GameDetector
@@ -30,7 +30,12 @@ class GameWatcher(QObject):
     game_detected = pyqtSignal(str)  # game_name
     game_closed = pyqtSignal()  # No args
 
-    def __init__(self, detector: Optional[GameDetector] = None, profile_store: Optional[object] = None, check_interval: int = 5):
+    def __init__(
+        self,
+        detector: Optional[GameDetector] = None,
+        profile_store: Optional[object] = None,
+        check_interval: int = 5,
+    ):
         """
         Initialize game watcher.
 
@@ -59,9 +64,7 @@ class GameWatcher(QObject):
         self._watching = True
         self._stop_event.clear()
         self._watcher_thread = threading.Thread(
-            target=self._watch_loop,
-            daemon=True,
-            name="GameWatcherThread"
+            target=self._watch_loop, daemon=True, name="GameWatcherThread"
         )
         self._watcher_thread.start()
         logger.info("Game watcher started")
@@ -114,8 +117,9 @@ class GameWatcher(QObject):
             Executable filename (e.g., "eldenring.exe") or None if no game window
         """
         try:
-            import psutil
             import platform
+
+            import psutil
 
             system = platform.system()
 
@@ -136,15 +140,15 @@ class GameWatcher(QObject):
                         self.last_known_pid = None
 
                 # Fallback: Full scan of all running processes
-                for proc in psutil.process_iter(['name', 'pid']):
+                for proc in psutil.process_iter(["name", "pid"]):
                     try:
-                        exe_name = proc.info['name']
+                        exe_name = proc.info["name"]
                         # Check if this process matches any known game
                         profile = self.profile_store.get_profile_by_executable(exe_name)
                         if profile and profile.id != "generic_game":
                             logger.debug(f"Found running game: {exe_name}")
                             # Cache PID for next check
-                            self.last_known_pid = proc.info['pid']
+                            self.last_known_pid = proc.info["pid"]
                             return exe_name
                     except (psutil.NoSuchProcess, psutil.AccessDenied, KeyError):
                         continue
@@ -232,9 +236,7 @@ class GameWatcher(QObject):
         """Get the GameProfile for the currently active game"""
         if self.active_profile is None and self.active_game_exe:
             # Lazy load profile if not already set
-            self.active_profile = self.profile_store.get_profile_by_executable(
-                self.active_game_exe
-            )
+            self.active_profile = self.profile_store.get_profile_by_executable(self.active_game_exe)
         return self.active_profile
 
     def register_game_changed_callback(self, callback: Callable[[str, GameProfile], None]) -> None:
@@ -244,9 +246,7 @@ class GameWatcher(QObject):
         Args:
             callback: Function called with (game_name, profile) when game changes
         """
-        self.game_changed.connect(
-            lambda game_name, profile: callback(game_name, profile)
-        )
+        self.game_changed.connect(lambda game_name, profile: callback(game_name, profile))
 
     # Backwards-compatible API for tests and older callers
     def start(self) -> None:

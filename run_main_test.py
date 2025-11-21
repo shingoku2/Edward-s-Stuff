@@ -9,17 +9,19 @@ import sys
 from pathlib import Path
 
 # Set UTF-8 encoding for Windows console
-if sys.platform == 'win32':
+if sys.platform == "win32":
     import codecs
-    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
-    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'strict')
+
+    sys.stdout = codecs.getwriter("utf-8")(sys.stdout.buffer, "strict")
+    sys.stderr = codecs.getwriter("utf-8")(sys.stderr.buffer, "strict")
 
 # Add src directory to path
-src_path = Path(__file__).parent / 'src'
+src_path = Path(__file__).parent / "src"
 sys.path.insert(0, str(src_path))
 
-from game_detector import GameDetector
 import psutil
+
+from game_detector import GameDetector
 
 
 def print_header(text):
@@ -36,7 +38,7 @@ def test_game_detector():
     detector = GameDetector()
 
     # Show supported games
-    print(f"✓ Game detector initialized")
+    print("✓ Game detector initialized")
     print(f"✓ Supports {len(detector.KNOWN_GAMES)} known games")
     print(f"\nSample of supported games:")
     for i, (exe, name) in enumerate(list(detector.KNOWN_GAMES.items())[:10], 1):
@@ -52,7 +54,7 @@ def test_game_detector():
     if game:
         print(f"🎮 Detected: {game['name']}")
         print(f"   Process: {game['process']}")
-        if game.get('exe'):
+        if game.get("exe"):
             print(f"   Path: {game['exe']}")
     else:
         print("No games currently running")
@@ -66,9 +68,9 @@ def test_game_detector():
     print(f"{'─' * 60}\n")
 
     count = 0
-    for proc in psutil.process_iter(['name']):
+    for proc in psutil.process_iter(["name"]):
         try:
-            if proc.info['name'].endswith('.exe'):
+            if proc.info["name"].endswith(".exe"):
                 print(f"  • {proc.info['name']}")
                 count += 1
                 if count >= 5:
@@ -84,16 +86,16 @@ def test_module_integration():
     print_header("Testing Module Integration")
 
     try:
-        from config import Config
-        from game_detector import GameDetector
-        from ai_assistant import AIAssistant
-        from gui import MainWindow
-        from ai_router import AIRouter
-        from providers import AIProvider
-        from keybind_manager import KeybindManager
-        from macro_manager import MacroManager
-        from knowledge_pack import KnowledgePack
-        from session_logger import SessionLogger
+        from ai_assistant import AIAssistant  # noqa: F401
+        from ai_router import AIRouter  # noqa: F401
+        from config import Config  # noqa: F401
+        from game_detector import GameDetector  # noqa: F401
+        from gui import MainWindow  # noqa: F401
+        from keybind_manager import KeybindManager  # noqa: F401
+        from knowledge_pack import KnowledgePack  # noqa: F401
+        from macro_manager import MacroManager  # noqa: F401
+        from providers import AIProvider  # noqa: F401
+        from session_logger import SessionLogger  # noqa: F401
 
         print("✓ config")
         print("✓ game_detector")
@@ -118,7 +120,8 @@ def show_example_usage():
     """Show example usage"""
     print_header("Example Usage")
 
-    print("""
+    print(
+        """
 When a game is detected, you can ask questions like:
 
 Gaming Questions:
@@ -139,14 +142,16 @@ The AI will:
   2. Search game wikis for additional info
   3. Provide comprehensive, helpful answers
   4. Remember context from previous questions
-""")
+"""
+    )
 
 
 def show_next_steps():
     """Show next steps for the user"""
     print_header("Next Steps")
 
-    print("""
+    print(
+        """
 To use the Gaming AI Assistant:
 
 1. Get an AI API Key (if you don't have one):
@@ -178,7 +183,8 @@ System Tray:
 Note: The GUI requires a display environment. If you're running
 this in a headless environment (like Docker or SSH), the GUI won't
 work, but all the core modules function correctly!
-""")
+"""
+    )
 
 
 def main():
@@ -194,7 +200,7 @@ def main():
         sys.exit(1)
 
     # Test game detector
-    detector = test_game_detector()
+    test_game_detector()
 
     # Show example usage
     show_example_usage()
@@ -217,5 +223,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n❌ Error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

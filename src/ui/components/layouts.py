@@ -5,9 +5,11 @@ Omnix Layout Components
 Layout helper components for organizing widgets.
 """
 
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGridLayout
+from typing import Optional, Tuple
+
 from PyQt6.QtCore import Qt
-from typing import Optional, List, Tuple
+from PyQt6.QtWidgets import QGridLayout, QHBoxLayout, QVBoxLayout, QWidget
+
 from ..tokens import COLORS, SPACING
 
 
@@ -315,19 +317,26 @@ class OmnixFormLayout(OmnixGrid):
 
         # Create label
         label = QLabel(label_text)
-        label.setStyleSheet(f"""
+        label.setStyleSheet(
+            f"""
             QLabel {{
                 color: {COLORS.text_primary};
                 font-size: 11pt;
                 font-weight: 500;
             }}
-        """)
+        """
+        )
 
         if self._label_col_width:
             label.setFixedWidth(self._label_col_width)
 
         # Add to grid
-        self.add_widget(label, self._current_row, 0, alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        self.add_widget(
+            label,
+            self._current_row,
+            0,
+            alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
+        )
         self.add_widget(widget, self._current_row, 1)
 
         self._current_row += 1

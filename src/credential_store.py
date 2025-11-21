@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import base64
-import concurrent.futures
 import getpass
 import json
 import logging
@@ -13,12 +12,10 @@ import threading
 from pathlib import Path
 from typing import Dict, Optional, Union
 
+import keyring
 from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from filelock import FileLock
-import keyring
-from keyring.errors import KeyringError
 
 logger = logging.getLogger(__name__)
 
@@ -65,9 +62,7 @@ class CredentialStore:
         self.service_name = service_name
         resolved_dir = base_dir if base_dir is not None else config_dir
         self.config_dir = (
-            Path(resolved_dir)
-            if resolved_dir is not None
-            else Path.home() / ".gaming_ai_assistant"
+            Path(resolved_dir) if resolved_dir is not None else Path.home() / ".gaming_ai_assistant"
         )
         self.credential_path = self.config_dir / credential_filename
         self._cipher: Optional[Fernet] = None
@@ -274,9 +269,7 @@ class CredentialStore:
 
     def _quarantine_file(self, suffix: str) -> None:
         try:
-            backup_path = self.credential_path.with_suffix(
-                self.credential_path.suffix + suffix
-            )
+            backup_path = self.credential_path.with_suffix(self.credential_path.suffix + suffix)
             os.replace(self.credential_path, backup_path)
             logger.info("Moved corrupted credential file to %s", backup_path)
         except Exception:  # pragma: no cover - defensive
@@ -509,9 +502,7 @@ class CredentialStore:
         # 3. Interactive prompt (only if allowed and stdin is a TTY)
         if self._allow_password_prompt and os.isatty(0):
             try:
-                password = getpass.getpass(
-                    "Enter master password for credential encryption: "
-                )
+                password = getpass.getpass("Enter master password for credential encryption: ")
                 if password:
                     logger.debug("Using master password from interactive prompt")
                     return password

@@ -8,7 +8,7 @@ except Exception as exc:  # pragma: no cover - environment guard
 
 import gui
 from gui import ChatWidget, OverlayWindow
-from ui.components.buttons import OmnixButton
+from ui.components.buttons import OmnixButton  # noqa: F401
 from ui.components.navigation import OmnixSidebar
 from ui.design_system import OmnixDesignSystem
 

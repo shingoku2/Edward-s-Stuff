@@ -2,10 +2,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-import ai_router
-from ai_router import AIRouter
 import ai_assistant
+import ai_router
 from ai_assistant import AIAssistant
+from ai_router import AIRouter
 from providers import ProviderAuthError, ProviderRateLimitError
 
 
@@ -143,9 +143,7 @@ def test_aiassistant_trims_conversation_history(monkeypatch):
 
     assistant._trim_conversation_history()
     assert len(assistant.conversation_history) == assistant.MAX_CONVERSATION_MESSAGES
-    assert (
-        len([m for m in assistant.conversation_history if m["role"] == "system"]) <= 3
-    )
+    assert len([m for m in assistant.conversation_history if m["role"] == "system"]) <= 3
 
 
 @pytest.mark.unit

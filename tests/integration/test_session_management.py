@@ -3,12 +3,15 @@ Test suite for Session Management
 
 Tests session logging, coaching, and recap functionality.
 """
-import pytest
-from datetime import datetime, timedelta
-from pathlib import Path
-from src.session_logger import SessionLogger, SessionEvent
-from src.session_coaching import SessionCoach
+
+from datetime import datetime
+
 from unittest.mock import Mock, patch
+
+import pytest
+
+from src.session_coaching import SessionCoach
+from src.session_logger import SessionEvent, SessionLogger
 
 
 @pytest.mark.unit
@@ -22,7 +25,7 @@ class TestSessionEvent:
             event_type="question",
             game_profile_id="elden_ring",
             content="How do I beat Margit?",
-            meta={"difficulty": "hard"}
+            meta={"difficulty": "hard"},
         )
 
         assert event.event_type == "question"
@@ -35,7 +38,7 @@ class TestSessionEvent:
             timestamp=datetime.now(),
             event_type="answer",
             game_profile_id="test_game",
-            content="Response"
+            content="Response",
         )
 
         assert event.meta is None or event.meta == {}
@@ -58,7 +61,7 @@ class TestSessionLogger:
             game_profile_id="test_game",
             event_type="question",
             content="Test question",
-            meta={"source": "user"}
+            meta={"source": "user"},
         )
 
         events = logger.get_current_session_events("test_game")
@@ -70,11 +73,7 @@ class TestSessionLogger:
         """Test logging an answer event"""
         logger = SessionLogger(config_dir=clean_config_dir)
 
-        logger.log_event(
-            game_profile_id="test_game",
-            event_type="answer",
-            content="Test answer"
-        )
+        logger.log_event(game_profile_id="test_game", event_type="answer", content="Test answer")
 
         events = logger.get_current_session_events("test_game")
         assert len(events) > 0
@@ -151,7 +150,7 @@ class TestSessionLogger:
 class TestSessionCoach:
     """Test SessionCoach functionality"""
 
-    @patch('src.session_coaching.Config')
+    @patch("src.session_coaching.Config")
     def test_coach_initialization(self, mock_config_class):
         """Test coach initialization"""
         mock_config = Mock()
@@ -164,8 +163,8 @@ class TestSessionCoach:
         assert coach is not None
         assert coach.config == mock_config
 
-    @patch('src.session_coaching.get_router')
-    @patch('src.session_coaching.Config')
+    @patch("src.session_coaching.get_router")
+    @patch("src.session_coaching.Config")
     def test_generate_recap(self, mock_config_class, mock_get_router):
         """Test generating session recap"""
         mock_config = Mock()
@@ -185,7 +184,7 @@ class TestSessionCoach:
                 event_type="question",
                 game_profile_id="test_game",
                 content="How do I play?",
-                meta={}
+                meta={},
             )
         ]
 
@@ -196,9 +195,9 @@ class TestSessionCoach:
             assert isinstance(recap, str)
         except Exception:
             # If there's an error due to mocking, just verify the method exists
-            assert hasattr(coach, 'generate_session_recap')
+            assert hasattr(coach, "generate_session_recap")
 
-    @patch('src.session_coaching.Config')
+    @patch("src.session_coaching.Config")
     def test_generate_insights(self, mock_config_class):
         """Test generating gameplay insights - simplified version"""
         mock_config = Mock()
@@ -208,9 +207,9 @@ class TestSessionCoach:
         coach = SessionCoach(session_logger=mock_logger, config=mock_config)
 
         # Verify the method exists
-        assert hasattr(coach, 'generate_insights') or True  # Method may not exist yet
+        assert hasattr(coach, "generate_insights") or True  # Method may not exist yet
 
-    @patch('src.session_coaching.Config')
+    @patch("src.session_coaching.Config")
     def test_get_coaching_tips(self, mock_config_class):
         """Test getting coaching tips - simplified version"""
         mock_config = Mock()
@@ -252,7 +251,9 @@ class TestSessionIntegration:
 
         # Verify session data
         events = logger.get_current_session_events(game_id)
-        assert len(events) == 7  # 1 game_detected + 2 Q&A pairs (4 events) + 1 macro + 1 game_closed = 7 events
+        assert (
+            len(events) == 7
+        )  # 1 game_detected + 2 Q&A pairs (4 events) + 1 macro + 1 game_closed = 7 events
 
         summary = logger.get_session_summary(game_id)
         assert summary["total_events"] == 7

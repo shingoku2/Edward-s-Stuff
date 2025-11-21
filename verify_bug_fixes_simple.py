@@ -11,12 +11,12 @@ from pathlib import Path
 
 def check_fix_1_knowledge_index():
     """Verify Fix #1: Knowledge Index TF-IDF Model Persistence"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("FIX #1: Knowledge Index TF-IDF Model Persistence")
-    print("="*70)
+    print("=" * 70)
 
     file_path = Path("src/knowledge_index.py")
-    with open(file_path, 'r') as f:
+    with open(file_path, "r") as f:
         content = f.read()
 
     checks = []
@@ -46,21 +46,25 @@ def check_fix_1_knowledge_index():
         checks.append(False)
 
     # Find and display the actual implementation
-    save_match = re.search(r'def _save_index\(self\).*?(?=\n    def|\nclass|\Z)', content, re.DOTALL)
-    load_match = re.search(r'def _load_index\(self\).*?(?=\n    def|\nclass|\Z)', content, re.DOTALL)
+    save_match = re.search(
+        r"def _save_index\(self\).*?(?=\n    def|\nclass|\Z)", content, re.DOTALL
+    )
+    load_match = re.search(
+        r"def _load_index\(self\).*?(?=\n    def|\nclass|\Z)", content, re.DOTALL
+    )
 
     if save_match:
         print("\n_save_index() implementation found:")
         # Show key lines
-        for line in save_match.group(0).split('\n')[:15]:
-            if 'embedding_provider' in line or 'data =' in line:
+        for line in save_match.group(0).split("\n")[:15]:
+            if "embedding_provider" in line or "data =" in line:
                 print(f"  {line}")
 
     if load_match:
         print("\n_load_index() implementation found:")
         # Show key lines
-        for line in load_match.group(0).split('\n')[:25]:
-            if 'embedding_provider' in line or 'data.get' in line or 'legacy' in line.lower():
+        for line in load_match.group(0).split("\n")[:25]:
+            if "embedding_provider" in line or "data.get" in line or "legacy" in line.lower():
                 print(f"  {line}")
 
     return all(checks)
@@ -68,12 +72,12 @@ def check_fix_1_knowledge_index():
 
 def check_fix_2_session_tokens():
     """Verify Fix #2: Session Token Leakage Prevention"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("FIX #2: Session Token Leakage Prevention")
-    print("="*70)
+    print("=" * 70)
 
     file_path = Path("src/config.py")
-    with open(file_path, 'r') as f:
+    with open(file_path, "r") as f:
         content = f.read()
 
     checks = []
@@ -95,11 +99,13 @@ def check_fix_2_session_tokens():
         checks.append(False)
 
     # Find the save_to_env implementation
-    save_env_match = re.search(r'def save_to_env\(.*?\).*?(?=\n    @|\n    def|\nclass|\Z)', content, re.DOTALL)
+    save_env_match = re.search(
+        r"def save_to_env\(.*?\).*?(?=\n    @|\n    def|\nclass|\Z)", content, re.DOTALL
+    )
     if save_env_match:
         print("\nsave_to_env() session token handling:")
-        for line in save_env_match.group(0).split('\n'):
-            if 'SESSION' in line and ('del' in line or 'remove' in line.lower() or '#' in line):
+        for line in save_env_match.group(0).split("\n"):
+            if "SESSION" in line and ("del" in line or "remove" in line.lower() or "#" in line):
                 print(f"  {line}")
 
     return all(checks)
@@ -107,12 +113,12 @@ def check_fix_2_session_tokens():
 
 def check_fix_3_game_watcher():
     """Verify Fix #3: Non-Windows Game Detection Performance"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("FIX #3: Game Watcher Performance Optimization")
-    print("="*70)
+    print("=" * 70)
 
     file_path = Path("src/game_watcher.py")
-    with open(file_path, 'r') as f:
+    with open(file_path, "r") as f:
         content = f.read()
 
     checks = []
@@ -142,14 +148,16 @@ def check_fix_3_game_watcher():
         checks.append(False)
 
     # Find and display implementation
-    foreground_match = re.search(r'def _get_foreground_executable\(.*?\).*?(?=\n    def|\nclass|\Z)', content, re.DOTALL)
+    foreground_match = re.search(
+        r"def _get_foreground_executable\(.*?\).*?(?=\n    def|\nclass|\Z)", content, re.DOTALL
+    )
     if foreground_match:
         print("\n_get_foreground_executable() optimization:")
-        lines = foreground_match.group(0).split('\n')
+        lines = foreground_match.group(0).split("\n")
         for i, line in enumerate(lines):
-            if 'last_known_pid' in line:
+            if "last_known_pid" in line:
                 # Show context around PID caching
-                for context_line in lines[max(0, i-1):min(len(lines), i+5)]:
+                for context_line in lines[max(0, i - 1) : min(len(lines), i + 5)]:
                     print(f"  {context_line}")
                 break
 
@@ -158,18 +166,18 @@ def check_fix_3_game_watcher():
 
 def check_fix_4_text_chunking():
     """Verify Fix #4: Word-Boundary Text Chunking"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("FIX #4: Word-Boundary Text Chunking")
-    print("="*70)
+    print("=" * 70)
 
     file_path = Path("src/knowledge_index.py")
-    with open(file_path, 'r') as f:
+    with open(file_path, "r") as f:
         content = f.read()
 
     checks = []
 
     # Check 1: Word-based splitting (words = text.split())
-    chunk_func = re.search(r'def _chunk_text\(.*?\).*?(?=\n    def|\nclass|\Z)', content, re.DOTALL)
+    chunk_func = re.search(r"def _chunk_text\(.*?\).*?(?=\n    def|\nclass|\Z)", content, re.DOTALL)
 
     if chunk_func:
         func_content = chunk_func.group(0)
@@ -199,8 +207,8 @@ def check_fix_4_text_chunking():
             checks.append(False)
 
         print("\n_chunk_text() implementation preview:")
-        for line in func_content.split('\n')[:20]:
-            if 'words' in line.lower() or 'split' in line or 'chunk' in line.lower():
+        for line in func_content.split("\n")[:20]:
+            if "words" in line.lower() or "split" in line or "chunk" in line.lower():
                 print(f"  {line}")
 
     return all(checks)
@@ -208,9 +216,9 @@ def check_fix_4_text_chunking():
 
 def main():
     """Run all source code verification checks"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("BUG FIX SOURCE CODE VERIFICATION")
-    print("="*70)
+    print("=" * 70)
     print("\nVerifying that all critical bug fixes are present in source code.")
 
     results = []
@@ -240,9 +248,9 @@ def main():
         results.append(("Text Chunking", False))
 
     # Print summary
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("VERIFICATION SUMMARY")
-    print("="*70)
+    print("=" * 70)
 
     for name, passed in results:
         status = "✅ VERIFIED" if passed else "❌ NOT FOUND"
@@ -251,9 +259,9 @@ def main():
     all_passed = all(passed for _, passed in results)
 
     if all_passed:
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("🎉 ALL BUG FIXES VERIFIED IN SOURCE CODE!")
-        print("="*70)
+        print("=" * 70)
         print("\nThe following critical fixes are confirmed:")
         print("  1. ✓ Knowledge index TF-IDF model persistence")
         print("  2. ✓ Session token security (removed from .env)")
@@ -264,12 +272,13 @@ def main():
         print("  - 411ccfa: Fix configuration token precedence and optimize game detection")
         return 0
     else:
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("⚠️  SOME FIXES NOT FOUND IN SOURCE CODE")
-        print("="*70)
+        print("=" * 70)
         return 1
 
 
 if __name__ == "__main__":
     import sys
+
     sys.exit(main())

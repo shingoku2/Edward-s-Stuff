@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from knowledge_ingestion import FileIngestor, IngestionError
 from knowledge_index import KnowledgeIndex, SimpleTFIDFEmbedding
+from knowledge_ingestion import FileIngestor, IngestionError
 from knowledge_pack import KnowledgePack, KnowledgeSource
 
 

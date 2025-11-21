@@ -5,18 +5,19 @@ Omnix Modal Dialog Components
 Modal dialog components for user interactions.
 """
 
+from typing import Callable, Optional
+
+from PyQt6.QtCore import Qt  # noqa: F401
 from PyQt6.QtWidgets import (
     QDialog,
-    QVBoxLayout,
+    QFrame,
     QHBoxLayout,
     QLabel,
-    QPushButton,
+    QVBoxLayout,
     QWidget,
-    QFrame,
 )
-from PyQt6.QtCore import Qt, pyqtSignal
-from typing import Optional, Callable
-from ..tokens import COLORS, SPACING, RADIUS, TYPOGRAPHY
+
+from ..tokens import COLORS, RADIUS, SPACING, TYPOGRAPHY
 from .buttons import OmnixButton
 
 
@@ -61,13 +62,15 @@ class OmnixDialog(QDialog):
             self.setMinimumWidth(width)
 
         # Apply styling
-        self.setStyleSheet(f"""
+        self.setStyleSheet(
+            f"""
             QDialog {{
                 background-color: {COLORS.bg_primary};
                 border: 1px solid {COLORS.accent_primary};
                 border-radius: {RADIUS.lg}px;
             }}
-        """)
+        """
+        )
 
         # Main layout
         main_layout = QVBoxLayout(self)
@@ -81,29 +84,27 @@ class OmnixDialog(QDialog):
             # Separator
             separator = QFrame()
             separator.setFrameShape(QFrame.Shape.HLine)
-            separator.setStyleSheet(f"""
+            separator.setStyleSheet(
+                f"""
                 QFrame {{
                     background-color: {COLORS.border_subtle};
                     max-height: 1px;
                 }}
-            """)
+            """
+            )
             main_layout.addWidget(separator)
 
         # Content area
         self.content_widget = QWidget()
         self.content_layout = QVBoxLayout(self.content_widget)
-        self.content_layout.setContentsMargins(
-            SPACING.lg, SPACING.lg, SPACING.lg, SPACING.lg
-        )
+        self.content_layout.setContentsMargins(SPACING.lg, SPACING.lg, SPACING.lg, SPACING.lg)
         self.content_layout.setSpacing(SPACING.base)
         main_layout.addWidget(self.content_widget, 1)
 
         # Footer (buttons area)
         self.footer_widget = QWidget()
         self.footer_layout = QHBoxLayout(self.footer_widget)
-        self.footer_layout.setContentsMargins(
-            SPACING.lg, SPACING.md, SPACING.lg, SPACING.lg
-        )
+        self.footer_layout.setContentsMargins(SPACING.lg, SPACING.md, SPACING.lg, SPACING.lg)
         self.footer_layout.setSpacing(SPACING.md)
         self.footer_layout.addStretch()
         main_layout.addWidget(self.footer_widget)
@@ -116,13 +117,15 @@ class OmnixDialog(QDialog):
 
         # Title
         title_label = QLabel(title)
-        title_label.setStyleSheet(f"""
+        title_label.setStyleSheet(
+            f"""
             QLabel {{
                 color: {COLORS.text_primary};
                 font-size: {TYPOGRAPHY.size_xl}pt;
                 font-weight: {TYPOGRAPHY.weight_bold};
             }}
-        """)
+        """
+        )
         header_layout.addWidget(title_label)
 
         self.layout().addWidget(header)
@@ -159,7 +162,9 @@ class OmnixDialog(QDialog):
         self.footer_layout.addWidget(button)
         return button
 
-    def add_default_buttons(self, ok_callback: Optional[Callable] = None, cancel_callback: Optional[Callable] = None):
+    def add_default_buttons(
+        self, ok_callback: Optional[Callable] = None, cancel_callback: Optional[Callable] = None
+    ):
         """
         Add standard OK/Cancel buttons.
 
@@ -213,21 +218,19 @@ class OmnixConfirmDialog(OmnixDialog):
         # Message
         message_label = QLabel(message)
         message_label.setWordWrap(True)
-        message_label.setStyleSheet(f"""
+        message_label.setStyleSheet(
+            f"""
             QLabel {{
                 color: {COLORS.text_primary};
                 font-size: {TYPOGRAPHY.size_md}pt;
             }}
-        """)
+        """
+        )
         self.add_content(message_label)
 
         # Buttons
         self.add_button(cancel_text, self.reject, style="secondary")
-        self.add_button(
-            confirm_text,
-            self.accept,
-            style="danger" if is_dangerous else "primary"
-        )
+        self.add_button(confirm_text, self.accept, style="danger" if is_dangerous else "primary")
 
 
 class OmnixMessageDialog(OmnixDialog):
@@ -285,23 +288,27 @@ class OmnixMessageDialog(OmnixDialog):
 
         # Icon
         icon_label = QLabel(icons.get(message_type, "ℹ️"))
-        icon_label.setStyleSheet(f"""
+        icon_label.setStyleSheet(
+            f"""
             QLabel {{
                 color: {colors.get(message_type, COLORS.info)};
                 font-size: {TYPOGRAPHY.size_3xl}pt;
             }}
-        """)
+        """
+        )
         layout.addWidget(icon_label)
 
         # Message
         message_label = QLabel(message)
         message_label.setWordWrap(True)
-        message_label.setStyleSheet(f"""
+        message_label.setStyleSheet(
+            f"""
             QLabel {{
                 color: {COLORS.text_primary};
                 font-size: {TYPOGRAPHY.size_md}pt;
             }}
-        """)
+        """
+        )
         layout.addWidget(message_label, 1)
 
         self.add_content(container)
@@ -350,20 +357,20 @@ class OmnixInputDialog(OmnixDialog):
 
         # Label
         label_widget = QLabel(label)
-        label_widget.setStyleSheet(f"""
+        label_widget.setStyleSheet(
+            f"""
             QLabel {{
                 color: {COLORS.text_primary};
                 font-size: {TYPOGRAPHY.size_md}pt;
                 font-weight: {TYPOGRAPHY.weight_medium};
             }}
-        """)
+        """
+        )
         self.add_content(label_widget)
 
         # Input
         self.input_field = OmnixLineEdit(
-            text=default_value,
-            placeholder=placeholder,
-            clearable=True
+            text=default_value, placeholder=placeholder, clearable=True
         )
         self.add_content(self.input_field)
 

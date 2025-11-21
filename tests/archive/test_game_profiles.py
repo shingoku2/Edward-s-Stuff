@@ -3,20 +3,20 @@ Unit tests for game profile system
 Tests game detection, profile resolution, and copilot core functionality
 """
 
-import unittest
+
 import os
-import sys
-import json
-import tempfile
 import shutil
+import sys
+import tempfile
+import unittest
 from pathlib import Path
 
 # Add src directory to path
-sys.path.insert(0, str(Path(__file__).parent / 'src'))
+sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from game_profile import GameProfile, GameProfileStore, get_profile_store
 from game_detector import GameDetector
-from overlay_modes import OverlayMode, OverlayModeConfig, ModeTransitionHelper
+from game_profile import GameProfile, GameProfileStore, get_profile_store  # noqa: F401
+from overlay_modes import ModeTransitionHelper, OverlayModeConfig
 
 
 class TestGameProfile(unittest.TestCase):
@@ -30,7 +30,7 @@ class TestGameProfile(unittest.TestCase):
             exe_names=["test.exe"],
             system_prompt="Test prompt",
             default_provider="anthropic",
-            overlay_mode_default="compact"
+            overlay_mode_default="compact",
         )
         self.assertEqual(profile.id, "test_game")
         self.assertEqual(profile.display_name, "Test Game")
@@ -47,25 +47,25 @@ class TestGameProfile(unittest.TestCase):
         )
         profile_dict = profile.to_dict()
         self.assertIsInstance(profile_dict, dict)
-        self.assertEqual(profile_dict['id'], 'test')
-        self.assertEqual(profile_dict['display_name'], 'Test')
+        self.assertEqual(profile_dict["id"], "test")
+        self.assertEqual(profile_dict["display_name"], "Test")
 
     def test_profile_from_dict(self):
         """Test profile deserialization from dict"""
         data = {
-            'id': 'test',
-            'display_name': 'Test',
-            'exe_names': ['test.exe'],
-            'system_prompt': 'Prompt',
-            'default_provider': 'anthropic',
-            'default_model': None,
-            'overlay_mode_default': 'compact',
-            'extra_settings': {},
-            'is_builtin': False
+            "id": "test",
+            "display_name": "Test",
+            "exe_names": ["test.exe"],
+            "system_prompt": "Prompt",
+            "default_provider": "anthropic",
+            "default_model": None,
+            "overlay_mode_default": "compact",
+            "extra_settings": {},
+            "is_builtin": False,
         }
         profile = GameProfile.from_dict(data)
-        self.assertEqual(profile.id, 'test')
-        self.assertEqual(profile.display_name, 'Test')
+        self.assertEqual(profile.id, "test")
+        self.assertEqual(profile.display_name, "Test")
 
     def test_matches_executable(self):
         """Test executable name matching"""
@@ -73,7 +73,7 @@ class TestGameProfile(unittest.TestCase):
             id="elden_ring",
             display_name="Elden Ring",
             exe_names=["eldenring.exe", "elden_ring.exe"],
-            system_prompt="Prompt"
+            system_prompt="Prompt",
         )
         self.assertTrue(profile.matches_executable("eldenring.exe"))
         self.assertTrue(profile.matches_executable("ELDENRING.EXE"))  # Case insensitive
@@ -87,14 +87,14 @@ class TestGameProfile(unittest.TestCase):
             display_name="Generic",
             exe_names=[],
             system_prompt="Prompt",
-            is_builtin=True
+            is_builtin=True,
         )
         custom = GameProfile(
             id="custom",
             display_name="Custom",
             exe_names=["custom.exe"],
             system_prompt="Prompt",
-            is_builtin=False
+            is_builtin=False,
         )
         self.assertTrue(builtin.is_builtin)
         self.assertFalse(custom.is_builtin)
@@ -166,7 +166,7 @@ class TestGameProfileStore(unittest.TestCase):
             display_name="My Game",
             exe_names=["mygame001.exe"],
             system_prompt="Custom prompt",
-            is_builtin=False
+            is_builtin=False,
         )
         success = store.create_profile(profile)
         self.assertTrue(success)
@@ -189,7 +189,7 @@ class TestGameProfileStore(unittest.TestCase):
             id="dup_test",
             display_name="Duplicate Test",
             exe_names=["dup.exe"],
-            system_prompt="Prompt"
+            system_prompt="Prompt",
         )
         self.assertTrue(store.create_profile(profile1))
         # Try to create another with same ID
@@ -205,7 +205,7 @@ class TestGameProfileStore(unittest.TestCase):
             id="update_test",
             display_name="Update Test",
             exe_names=["test.exe"],
-            system_prompt="Original prompt"
+            system_prompt="Original prompt",
         )
         store.create_profile(profile)
 
@@ -235,7 +235,7 @@ class TestGameProfileStore(unittest.TestCase):
             id="delete_test",
             display_name="Delete Test",
             exe_names=["test.exe"],
-            system_prompt="Prompt"
+            system_prompt="Prompt",
         )
         store.create_profile(profile)
         self.assertIsNotNone(store.get_profile_by_id("delete_test"))
@@ -261,11 +261,7 @@ class TestGameProfileStore(unittest.TestCase):
             store.delete_profile("elden_ring_custom")
 
         original = store.get_profile_by_id("elden_ring")
-        success = store.duplicate_profile(
-            "elden_ring",
-            "elden_ring_custom",
-            "Elden Ring Custom"
-        )
+        success = store.duplicate_profile("elden_ring", "elden_ring_custom", "Elden Ring Custom")
         self.assertTrue(success)
         duplicate = store.get_profile_by_id("elden_ring_custom")
         self.assertIsNotNone(duplicate)
@@ -283,7 +279,7 @@ class TestGameProfileStore(unittest.TestCase):
             id="custom_profile",
             display_name="Custom Profile",
             exe_names=["custom.exe"],
-            system_prompt="Prompt"
+            system_prompt="Prompt",
         )
         store.create_profile(profile)
 
@@ -305,16 +301,13 @@ class TestGameDetector(unittest.TestCase):
     def test_known_games_attribute(self):
         """Test legacy KNOWN_GAMES attribute exists"""
         detector = GameDetector()
-        self.assertTrue(hasattr(detector, 'KNOWN_GAMES'))
+        self.assertTrue(hasattr(detector, "KNOWN_GAMES"))
         self.assertIsInstance(detector.KNOWN_GAMES, dict)
 
     def test_add_custom_game(self):
         """Test adding a custom game"""
         detector = GameDetector()
-        success = detector.add_custom_game(
-            "My Custom Game",
-            ["custom.exe", "custom2.exe"]
-        )
+        success = detector.add_custom_game("My Custom Game", ["custom.exe", "custom2.exe"])
         self.assertTrue(success)
         self.assertIn("My Custom Game", detector.common_games)
 
@@ -322,10 +315,7 @@ class TestGameDetector(unittest.TestCase):
         """Test that duplicate game names are rejected"""
         detector = GameDetector()
         # Try to add duplicate of existing game (case-insensitive)
-        success = detector.add_custom_game(
-            "Elden Ring",  # Already exists
-            ["different.exe"]
-        )
+        success = detector.add_custom_game("Elden Ring", ["different.exe"])  # Already exists
         self.assertFalse(success)
 
     def test_cannot_add_duplicate_process(self):
@@ -333,8 +323,7 @@ class TestGameDetector(unittest.TestCase):
         detector = GameDetector()
         # Try to use a process that's already tracked
         success = detector.add_custom_game(
-            "Another Game",
-            ["eldenring.exe"]  # Already tracked for Elden Ring
+            "Another Game", ["eldenring.exe"]  # Already tracked for Elden Ring
         )
         self.assertFalse(success)
 
@@ -352,7 +341,7 @@ class TestOverlayModes(unittest.TestCase):
         """Test retrieving mode configuration"""
         config = OverlayModeConfig.get_mode_config("compact")
         self.assertIsNotNone(config)
-        self.assertEqual(config['display_name'], 'Compact')
+        self.assertEqual(config["display_name"], "Compact")
 
     def test_default_dimensions(self):
         """Test getting default dimensions"""
@@ -388,9 +377,7 @@ class TestOverlayModes(unittest.TestCase):
     def test_mode_transition(self):
         """Test mode transition helper"""
         # Expanding from compact to full
-        new_width, new_height = ModeTransitionHelper.calculate_new_size(
-            500, 120, "compact", "full"
-        )
+        new_width, new_height = ModeTransitionHelper.calculate_new_size(500, 120, "compact", "full")
         self.assertGreater(new_width, 500)
         self.assertGreater(new_height, 120)
 
@@ -424,7 +411,6 @@ class TestProfileIntegration(unittest.TestCase):
 
     def test_profile_to_game_integration(self):
         """Test profile integration with game detection"""
-        detector = GameDetector()
         store = GameProfileStore()
 
         # Detect a known game profile
@@ -439,7 +425,7 @@ class TestProfileIntegration(unittest.TestCase):
             id="my_game_test",
             display_name="My Game Test",
             exe_names=["mygame_test.exe"],
-            system_prompt="Custom AI behavior"
+            system_prompt="Custom AI behavior",
         )
         self.store.create_profile(profile)
 
@@ -461,10 +447,7 @@ class TestEdgeCases(unittest.TestCase):
     def test_empty_executable_list(self):
         """Test profile with empty executable list"""
         profile = GameProfile(
-            id="generic",
-            display_name="Generic",
-            exe_names=[],
-            system_prompt="Matches any game"
+            id="generic", display_name="Generic", exe_names=[], system_prompt="Matches any game"
         )
         # Should not match anything specifically, but generic profiles
         # are OK with empty exe_names
@@ -473,10 +456,7 @@ class TestEdgeCases(unittest.TestCase):
     def test_none_executable_matching(self):
         """Test matching with None or invalid input"""
         profile = GameProfile(
-            id="test",
-            display_name="Test",
-            exe_names=["test.exe"],
-            system_prompt="Prompt"
+            id="test", display_name="Test", exe_names=["test.exe"], system_prompt="Prompt"
         )
         # These should not crash
         self.assertFalse(profile.matches_executable(""))

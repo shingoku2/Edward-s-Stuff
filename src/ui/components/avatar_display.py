@@ -4,13 +4,14 @@ Omnix Avatar Display Component
 
 Hero banner display component shown above the dashboard buttons.
 """
+
 from typing import Optional
 
-from PyQt6.QtWidgets import QVBoxLayout, QLabel, QFrame, QWidget
-from PyQt6.QtCore import Qt, QPointF
+from PyQt6.QtCore import QPointF, Qt
 from PyQt6.QtGui import QColor, QLinearGradient, QPainter, QPainterPath, QPen
+from PyQt6.QtWidgets import QFrame, QLabel, QVBoxLayout, QWidget
 
-from ..tokens import COLORS, SPACING, RADIUS, TYPOGRAPHY
+from ..tokens import COLORS, RADIUS, SPACING, TYPOGRAPHY
 
 
 class _CircuitCanvas(QWidget):

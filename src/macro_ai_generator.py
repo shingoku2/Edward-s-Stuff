@@ -3,9 +3,9 @@ Macro AI Generator Module
 Generates and refines macros using AI from natural language descriptions
 """
 
-import logging
 import json
-from typing import Optional, List, Tuple
+import logging
+from typing import List, Optional, Tuple
 
 from macro_manager import Macro, MacroStep, MacroStepType
 
@@ -35,7 +35,11 @@ class MacroAIGenerator:
                 "description": {"type": "string", "description": "Macro description"},
                 "repeat": {"type": "integer", "minimum": 1, "description": "Number of repetitions"},
                 "randomize_delay": {"type": "boolean", "description": "Add random jitter"},
-                "delay_jitter_ms": {"type": "integer", "minimum": 0, "description": "Max jitter in ms"},
+                "delay_jitter_ms": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Max jitter in ms",
+                },
                 "steps": {
                     "type": "array",
                     "items": {
@@ -44,9 +48,15 @@ class MacroAIGenerator:
                             "type": {
                                 "type": "string",
                                 "enum": [
-                                    "key_press", "key_down", "key_up", "key_sequence",
-                                    "mouse_move", "mouse_click", "mouse_scroll", "delay"
-                                ]
+                                    "key_press",
+                                    "key_down",
+                                    "key_up",
+                                    "key_sequence",
+                                    "mouse_move",
+                                    "mouse_click",
+                                    "mouse_scroll",
+                                    "delay",
+                                ],
                             },
                             "key": {"type": ["string", "null"]},
                             "button": {"type": ["string", "null"]},
@@ -54,16 +64,18 @@ class MacroAIGenerator:
                             "y": {"type": ["integer", "null"]},
                             "scroll_amount": {"type": "integer"},
                             "duration_ms": {"type": "integer", "minimum": 0},
-                            "delay_jitter_ms": {"type": "integer", "minimum": 0}
+                            "delay_jitter_ms": {"type": "integer", "minimum": 0},
                         },
-                        "required": ["type"]
-                    }
-                }
+                        "required": ["type"],
+                    },
+                },
             },
-            "required": ["name", "description", "steps"]
+            "required": ["name", "description", "steps"],
         }
 
-    def generate_macro(self, description: str, game_name: str = "Unknown") -> Tuple[Optional[Macro], str]:
+    def generate_macro(
+        self, description: str, game_name: str = "Unknown"
+    ) -> Tuple[Optional[Macro], str]:
         """
         Generate a macro from natural language description
 
@@ -81,15 +93,17 @@ class MacroAIGenerator:
             # Get AI response
             logger.debug(f"Requesting macro generation from AI: {description}")
             response = self.ai_router.chat(
-                [{"role": "user", "content": prompt}],
-                model=None  # Use default model
+                [{"role": "user", "content": prompt}], model=None  # Use default model
             )
 
             # Extract JSON from response
             macro_data = self._extract_json_from_response(response)
 
             if not macro_data:
-                return None, "❌ Failed to extract macro data from AI response. Please try a different description."
+                return (
+                    None,
+                    "❌ Failed to extract macro data from AI response. Please try a different description.",
+                )
 
             # Validate the generated macro
             is_valid, errors = self._validate_macro_data(macro_data)
@@ -122,10 +136,7 @@ class MacroAIGenerator:
 
             # Get AI response
             logger.debug(f"Requesting macro refinement from AI: {instruction}")
-            response = self.ai_router.chat(
-                [{"role": "user", "content": prompt}],
-                model=None
-            )
+            response = self.ai_router.chat([{"role": "user", "content": prompt}], model=None)
 
             # Extract JSON from response
             macro_data = self._extract_json_from_response(response)
@@ -224,7 +235,8 @@ IMPORTANT: Return ONLY the JSON object, nothing else."""
 
             # Try to find JSON object in response
             import re
-            json_match = re.search(r'\{.*\}', response, re.DOTALL)
+
+            json_match = re.search(r"\{.*\}", response, re.DOTALL)
             if json_match:
                 return json.loads(json_match.group())
 
@@ -305,7 +317,7 @@ IMPORTANT: Return ONLY the JSON object, nothing else."""
                 y=step_data.get("y"),
                 scroll_amount=step_data.get("scroll_amount", 0),
                 meta=step_data.get("meta", {}),
-                delay_jitter_ms=step_data.get("delay_jitter_ms", 0)
+                delay_jitter_ms=step_data.get("delay_jitter_ms", 0),
             )
             steps.append(step)
 
@@ -319,7 +331,7 @@ IMPORTANT: Return ONLY the JSON object, nothing else."""
             repeat=macro_data.get("repeat", 1),
             randomize_delay=macro_data.get("randomize_delay", False),
             delay_jitter_ms=macro_data.get("delay_jitter_ms", 0),
-            enabled=True
+            enabled=True,
         )
 
         return macro
@@ -333,8 +345,8 @@ IMPORTANT: Return ONLY the JSON object, nothing else."""
                 "steps": [
                     {"type": "key_press", "key": "1"},
                     {"type": "delay", "duration_ms": 100},
-                    {"type": "key_press", "key": "2"}
-                ]
+                    {"type": "key_press", "key": "2"},
+                ],
             },
             {
                 "name": "Dodge Sequence",
@@ -342,8 +354,8 @@ IMPORTANT: Return ONLY the JSON object, nothing else."""
                 "steps": [
                     {"type": "key_press", "key": "space"},
                     {"type": "delay", "duration_ms": 200},
-                    {"type": "key_press", "key": "space"}
-                ]
+                    {"type": "key_press", "key": "space"},
+                ],
             },
             {
                 "name": "Click Coordinates",
@@ -351,9 +363,9 @@ IMPORTANT: Return ONLY the JSON object, nothing else."""
                 "steps": [
                     {"type": "mouse_move", "x": 500, "y": 400},
                     {"type": "delay", "duration_ms": 100},
-                    {"type": "mouse_click", "button": "left"}
-                ]
-            }
+                    {"type": "mouse_click", "button": "left"},
+                ],
+            },
         ]
 
         return json.dumps(examples, indent=2)

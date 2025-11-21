@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
+import threading
+
 """
 Test for interruptible macro delays
 """
 
 import time
-from src.macro_runner import MacroRunner, MacroExecutionState
+
 from src.macro_manager import Macro, MacroStep, MacroStepType
+from src.macro_runner import MacroExecutionState, MacroRunner
+
 
 def test_interruptible_delay():
     """Test that _interruptible_sleep can be stopped quickly"""
@@ -32,7 +36,7 @@ def test_interruptible_delay():
     start = time.time()
 
     # Start sleep in background
-    import threading
+
     def sleep_task():
         runner._interruptible_sleep(5.0)  # Long delay
 
@@ -77,6 +81,7 @@ def test_interruptible_delay():
 
     return True
 
+
 def test_macro_with_interruptible_delays():
     """Test that macros with delays can be stopped"""
     print("\nTesting macro execution with interruptible delays...")
@@ -87,17 +92,14 @@ def test_macro_with_interruptible_delays():
         name="Test Macro",
         description="Test macro with long delay",
         game_profile_id=None,
-        steps=[
-            MacroStep(type=MacroStepType.DELAY.value, duration_ms=10000)  # 10 second delay
-        ],
+        steps=[MacroStep(type=MacroStepType.DELAY.value, duration_ms=10000)],  # 10 second delay
         enabled=True,
-        repeat=1
+        repeat=1,
     )
 
     runner = MacroRunner(enabled=True)
 
     # Execute macro in background
-    import threading
 
     start = time.time()
     runner.execute_macro(macro)
@@ -118,6 +120,7 @@ def test_macro_with_interruptible_delays():
     else:
         print(f"  ✗ Macro did not stop quickly: {elapsed:.2f}s")
         return False
+
 
 if __name__ == "__main__":
     print("=" * 60)

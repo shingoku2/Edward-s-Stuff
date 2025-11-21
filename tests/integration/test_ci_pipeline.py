@@ -3,10 +3,12 @@ Integration tests for CI/CD pipeline components
 
 Tests that verify the CI/CD pipeline can properly test the application.
 """
-import pytest
+
 import os
 import sys
 from pathlib import Path
+
+import pytest
 
 
 @pytest.mark.integration
@@ -20,7 +22,9 @@ class TestCIPipeline:
 
         # Check required environment variables for CI
         if os.getenv("CI"):
-            assert os.getenv("QT_QPA_PLATFORM") == "offscreen", "Qt platform should be offscreen in CI"
+            assert (
+                os.getenv("QT_QPA_PLATFORM") == "offscreen"
+            ), "Qt platform should be offscreen in CI"
 
     def test_module_imports(self):
         """Test that all critical modules can be imported"""
@@ -48,7 +52,7 @@ class TestCIPipeline:
 
         config = Config(require_keys=False)
         assert config is not None
-        assert hasattr(config, 'ai_provider')
+        assert hasattr(config, "ai_provider")
 
     def test_game_detector_headless(self):
         """Test GameDetector works in headless environment"""
@@ -63,8 +67,8 @@ class TestCIPipeline:
 
     def test_ai_router_initialization_no_keys(self):
         """Test AIRouter can initialize without API keys"""
-        from config import Config
         from ai_router import AIRouter
+        from config import Config
 
         config = Config(require_keys=False)
         router = AIRouter(config)
@@ -75,16 +79,14 @@ class TestCIPipeline:
 
     def test_knowledge_system_headless(self, temp_dir):
         """Test knowledge system works in headless environment"""
+        from knowledge_index import KnowledgeIndex, SimpleTFIDFEmbedding
         from knowledge_pack import KnowledgePack, KnowledgeSource
         from knowledge_store import KnowledgePackStore
-        from knowledge_index import KnowledgeIndex, SimpleTFIDFEmbedding
 
         store = KnowledgePackStore(config_dir=temp_dir)
         embedding = SimpleTFIDFEmbedding()
         index = KnowledgeIndex(
-            config_dir=temp_dir,
-            embedding_provider=embedding,
-            knowledge_store=store
+            config_dir=temp_dir, embedding_provider=embedding, knowledge_store=store
         )
 
         # Create and index a pack
@@ -92,7 +94,7 @@ class TestCIPipeline:
             id="test_source",
             type="note",
             title="Test Note",
-            content="Test content for CI pipeline verification"
+            content="Test content for CI pipeline verification",
         )
 
         pack = KnowledgePack(
@@ -100,18 +102,14 @@ class TestCIPipeline:
             name="Test Pack",
             description="Test pack",
             game_profile_id="test_game",
-            sources=[source]
+            sources=[source],
         )
 
         store.save_pack(pack)
         index.add_pack(pack)
 
         # Query should work
-        results = index.query(
-            game_profile_id="test_game",
-            question="test",
-            top_k=1
-        )
+        results = index.query(game_profile_id="test_game", question="test", top_k=1)
         assert len(results) >= 0  # May be 0 if no matches
 
     def test_macro_system_headless(self):
@@ -122,9 +120,7 @@ class TestCIPipeline:
             id="test_macro",
             name="Test Macro",
             description="Test macro for CI",
-            steps=[
-                MacroStep(type=MacroStepType.DELAY.value, duration_ms=10)
-            ]
+            steps=[MacroStep(type=MacroStepType.DELAY.value, duration_ms=10)],
         )
 
         assert macro is not None
@@ -140,7 +136,7 @@ class TestCIPipeline:
             event_type="test",
             game_profile_id="test_game",
             content="Test event",
-            meta={"test": True}
+            meta={"test": True},
         )
 
         events = logger.get_recent_events("test_game")
@@ -234,6 +230,7 @@ class TestHeadlessGUI:
         """Test design system can be imported"""
         try:
             from ui.design_system import OmnixDesignSystem
+
             assert OmnixDesignSystem is not None
         except ImportError as e:
             pytest.skip(f"Design system import failed: {e}")
@@ -243,6 +240,7 @@ class TestHeadlessGUI:
         """Test theme manager works in headless environment"""
         try:
             from ui.theme_manager import OmnixThemeManager
+
             theme_mgr = OmnixThemeManager()
             assert theme_mgr is not None
         except ImportError as e:
@@ -275,7 +273,7 @@ class TestDatabaseIntegrity:
             id="test_profile_persist",
             display_name="Test Profile",
             exe_names=["test.exe"],
-            system_prompt="Test prompt"
+            system_prompt="Test prompt",
         )
 
         store.create_profile(profile)
@@ -299,9 +297,7 @@ class TestDatabaseIntegrity:
             id="test_macro_persist",
             name="Test Macro",
             description="Test",
-            steps=[
-                MacroStep(type=MacroStepType.DELAY.value, duration_ms=100)
-            ]
+            steps=[MacroStep(type=MacroStepType.DELAY.value, duration_ms=100)],
         )
 
         store.save_macro(macro)

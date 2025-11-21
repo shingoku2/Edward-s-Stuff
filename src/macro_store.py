@@ -3,14 +3,14 @@ Macro Store Module
 Handles persistence of macros to disk (JSON format)
 """
 
-import logging
 import json
+import logging
 import os
-from pathlib import Path
-from typing import List, Dict, Optional
 from datetime import datetime
+from pathlib import Path
+from typing import Dict, Optional
 
-from macro_manager import Macro, MacroStep
+from macro_manager import Macro
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ class MacroStore:
             # Save individual macro file
             macro_file = self.macros_dir / f"{macro.id}.json"
 
-            with open(macro_file, 'w') as f:
+            with open(macro_file, "w") as f:
                 json.dump(macro.to_dict(), f, indent=2)
 
             logger.info(f"Saved macro: {macro.name} (ID: {macro.id})")
@@ -82,7 +82,7 @@ class MacroStore:
                 logger.warning(f"Macro file not found: {macro_id}")
                 return None
 
-            with open(macro_file, 'r') as f:
+            with open(macro_file, "r") as f:
                 data = json.load(f)
 
             macro = Macro.from_dict(data)
@@ -134,7 +134,7 @@ class MacroStore:
 
             for macro_file in self.macros_dir.glob("*.json"):
                 try:
-                    with open(macro_file, 'r') as f:
+                    with open(macro_file, "r") as f:
                         data = json.load(f)
 
                     macro = Macro.from_dict(data)
@@ -229,7 +229,7 @@ class MacroStore:
                 logger.error(f"Macro not found: {macro_id}")
                 return False
 
-            with open(export_path, 'w') as f:
+            with open(export_path, "w") as f:
                 json.dump(macro.to_dict(), f, indent=2)
 
             logger.info(f"Exported macro {macro_id} to {export_path}")
@@ -250,7 +250,7 @@ class MacroStore:
             Imported Macro object or None if failed
         """
         try:
-            with open(import_path, 'r') as f:
+            with open(import_path, "r") as f:
                 data = json.load(f)
 
             macro = Macro.from_dict(data)
@@ -286,9 +286,9 @@ class MacroStore:
             game_profiles[profile_id] += 1
 
         return {
-            'total_macros': len(all_macros),
-            'total_steps': total_steps,
-            'total_duration_ms': total_duration,
-            'game_profiles': game_profiles,
-            'last_updated': datetime.now().isoformat()
+            "total_macros": len(all_macros),
+            "total_steps": total_steps,
+            "total_duration_ms": total_duration,
+            "game_profiles": game_profiles,
+            "last_updated": datetime.now().isoformat(),
         }

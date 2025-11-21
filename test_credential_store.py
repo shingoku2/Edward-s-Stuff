@@ -3,24 +3,25 @@
 Tests encryption, decryption, keyring integration, and error handling.
 """
 
-import os
-import sys
 import json
-import tempfile
-import shutil
+import os
+
+import sys
+
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
+
 import pytest
 from keyring.errors import KeyringError
 
 # Add src to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 from src.credential_store import (
+
     CredentialStore,
     CredentialStoreError,
-    CredentialDecryptionError,
-    KeyringUnavailableError
+    KeyringUnavailableError,
 )
 
 
@@ -52,7 +53,7 @@ class TestCredentialStoreBasics:
         credentials = {
             "anthropic_key": "sk-ant-12345",
             "openai_key": "sk-67890",
-            "gemini_key": "AIza-abcdef"
+            "gemini_key": "AIza-abcdef",
         }
 
         # Store all credentials
@@ -158,8 +159,7 @@ class TestKeyringIntegration:
 
     def test_keyring_is_used_when_available(self, temp_base_dir):
         """Test that keyring is used when available"""
-        with patch('keyring.get_password') as mock_get, \
-             patch('keyring.set_password') as mock_set:
+        with patch("keyring.get_password") as mock_get, patch("keyring.set_password") as mock_set:
 
             # Setup mock keyring
             stored_keys = {}
@@ -182,13 +182,13 @@ class TestKeyringIntegration:
 
     def test_fallback_when_keyring_unavailable(self, temp_base_dir):
         """Test fallback to file-based encryption when keyring unavailable"""
-        with patch('keyring.get_password', side_effect=KeyringError("Keyring unavailable")), \
-             patch('keyring.set_password', side_effect=KeyringError("Keyring unavailable")):
+        with patch("keyring.get_password", side_effect=KeyringError("Keyring unavailable")), patch(
+            "keyring.set_password", side_effect=KeyringError("Keyring unavailable")
+        ):
 
             # Should still work with file-based fallback
             store = CredentialStore(
-                config_dir=str(temp_base_dir),
-                master_password="test_password_123"
+                config_dir=str(temp_base_dir), master_password="test_password_123"
             )
 
             store.save_credentials({"key": "value"})
@@ -198,15 +198,12 @@ class TestKeyringIntegration:
 
     def test_master_password_required_without_keyring(self, temp_base_dir):
         """Test that master password is required when keyring unavailable"""
-        with patch('keyring.get_password', side_effect=KeyringError("Keyring unavailable")), \
-             patch('keyring.set_password', side_effect=KeyringError("Keyring unavailable")), \
-             patch.object(CredentialStore, "_get_master_password", return_value=None):
+        with patch("keyring.get_password", side_effect=KeyringError("Keyring unavailable")), patch(
+            "keyring.set_password", side_effect=KeyringError("Keyring unavailable")
+        ), patch.object(CredentialStore, "_get_master_password", return_value=None):
 
             with pytest.raises((KeyringUnavailableError, CredentialStoreError)):
-                store = CredentialStore(
-                    config_dir=str(temp_base_dir),
-                    master_password=None
-                )
+                store = CredentialStore(config_dir=str(temp_base_dir), master_password=None)
                 store.set_credential("service", "key", "value")
 
 
@@ -349,10 +346,7 @@ class TestConcurrency:
                 errors.append(e)
 
         # Create 10 threads writing concurrently
-        threads = [
-            threading.Thread(target=write_credential, args=(i,))
-            for i in range(10)
-        ]
+        threads = [threading.Thread(target=write_credential, args=(i,)) for i in range(10)]
 
         for thread in threads:
             thread.start()
@@ -381,14 +375,12 @@ class TestPersistence:
 
         # Create second store instance
         store2 = CredentialStore(config_dir=str(temp_base_dir))
-        value = store2.get_credential("service", "key")
-
+        value = store2.get_credential("service", "key")  # noqa: F841
         assert value == "persistent_value"
 
     def test_persistence_after_file_deletion_with_keyring(self, temp_base_dir):
         """Test recovery when credential file is deleted but keyring has data"""
-        with patch('keyring.get_password') as mock_get, \
-             patch('keyring.set_password') as mock_set:
+        with patch("keyring.get_password") as mock_get, patch("keyring.set_password") as mock_set:
 
             stored_keys = {}
 
@@ -414,7 +406,7 @@ class TestPersistence:
             store2 = CredentialStore(config_dir=str(temp_base_dir))
             # May return None since file is gone and keyring might not have the actual credential
             # This tests that it doesn't crash
-            value = store2.get("key")
+            store2.get("key")
             # Just verify no exception is raised
 
 
@@ -446,7 +438,7 @@ class TestSecurityProperties:
 
         cred_file = Path(temp_base_dir) / "credentials.enc"
 
-        if os.name != 'nt':  # Unix-like systems only
+        if os.name != "nt":  # Unix-like systems only
             file_stat = os.stat(cred_file)
             file_mode = stat.S_IMODE(file_stat.st_mode)
 
@@ -479,7 +471,7 @@ def test_integration_with_config(temp_base_dir, mock_keyring):
     api_keys = {
         "anthropic_api_key": "sk-ant-api03-1234567890",
         "openai_api_key": "sk-proj-1234567890",
-        "gemini_api_key": "AIzaSy1234567890"
+        "gemini_api_key": "AIzaSy1234567890",
     }
 
     # Store all keys

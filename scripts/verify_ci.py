@@ -5,21 +5,21 @@ CI/CD Pipeline Verification Script
 Verifies that the CI/CD pipeline components are properly configured and functional.
 """
 import os
-import sys
 import subprocess
-import json
+import sys
 from pathlib import Path
 from typing import Dict, List, Tuple
 
 
 class Colors:
     """ANSI color codes"""
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    RED = '\033[91m'
-    BLUE = '\033[94m'
-    RESET = '\033[0m'
-    BOLD = '\033[1m'
+
+    GREEN = "\033[92m"
+    YELLOW = "\033[93m"
+    RED = "\033[91m"
+    BLUE = "\033[94m"
+    RESET = "\033[0m"
+    BOLD = "\033[1m"
 
 
 def print_section(title: str):
@@ -47,13 +47,7 @@ def print_error(message: str):
 def run_command(cmd: List[str], cwd: str = None) -> Tuple[int, str, str]:
     """Run a command and return exit code, stdout, stderr"""
     try:
-        result = subprocess.run(
-            cmd,
-            cwd=cwd,
-            capture_output=True,
-            text=True,
-            timeout=30
-        )
+        result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=30)
         return result.returncode, result.stdout, result.stderr
     except subprocess.TimeoutExpired:
         return 1, "", "Command timed out"
@@ -82,7 +76,7 @@ def check_git_status() -> bool:
     code, stdout, stderr = run_command(["git", "remote", "-v"])
     if code == 0:
         print_success("Git remote configured")
-        for line in stdout.strip().split('\n')[:2]:  # Show first 2 lines
+        for line in stdout.strip().split("\n")[:2]:  # Show first 2 lines
             print(f"  {line}")
 
     return True
@@ -112,11 +106,11 @@ def check_workflow_files() -> bool:
         with open(wf) as f:
             content = f.read()
             if "runs-on: self-hosted" in content:
-                print_success(f"    Uses self-hosted runner ✓")
+                print_success("    Uses self-hosted runner ✓")
             if "pytest" in content:
-                print_success(f"    Includes pytest tests ✓")
+                print_success("    Includes pytest tests ✓")
             if "flake8" in content:
-                print_success(f"    Includes flake8 linting ✓")
+                print_success("    Includes flake8 linting ✓")
 
     return True
 
@@ -152,7 +146,7 @@ def check_test_suite() -> bool:
             print_success("  conftest.py found (fixtures configured)")
 
         # Check test organization
-        subdirs = [d for d in tests_dir.iterdir() if d.is_dir() and not d.name.startswith('__')]
+        subdirs = [d for d in tests_dir.iterdir() if d.is_dir() and not d.name.startswith("__")]
         if subdirs:
             print_success(f"  Test organization: {', '.join(d.name for d in subdirs)}")
     else:
@@ -185,7 +179,7 @@ def check_dependencies() -> bool:
     # Check if flake8 is available
     code, stdout, stderr = run_command([sys.executable, "-m", "flake8", "--version"])
     if code == 0:
-        version = stdout.strip().split('\n')[0]
+        version = stdout.strip().split("\n")[0]
         print_success(f"flake8 available: {version}")
     else:
         print_warning("flake8 not installed in current environment")
@@ -223,8 +217,8 @@ def run_sample_tests() -> bool:
     if code == 0:
         print_success("Sample tests passed")
         # Show summary
-        for line in stdout.split('\n'):
-            if 'passed' in line or 'PASSED' in line or 'failed' in line or 'FAILED' in line:
+        for line in stdout.split("\n"):
+            if "passed" in line or "PASSED" in line or "failed" in line or "FAILED" in line:
                 print(f"  {line}")
     else:
         print_warning("Sample tests had issues")
@@ -279,10 +273,14 @@ def main():
     print(f"\n{Colors.BOLD}Results: {passed}/{total} checks passed{Colors.RESET}")
 
     if passed == total:
-        print(f"\n{Colors.GREEN}{Colors.BOLD}✓ CI/CD pipeline is fully operational!{Colors.RESET}\n")
+        print(
+            f"\n{Colors.GREEN}{Colors.BOLD}✓ CI/CD pipeline is fully operational!{Colors.RESET}\n"
+        )
         return 0
     else:
-        print(f"\n{Colors.YELLOW}{Colors.BOLD}⚠ Some checks failed. Review the report above.{Colors.RESET}\n")
+        print(
+            f"\n{Colors.YELLOW}{Colors.BOLD}⚠ Some checks failed. Review the report above.{Colors.RESET}\n"
+        )
         return 1
 
 
