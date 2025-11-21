@@ -495,3 +495,10 @@ npm run lint            # ESLint checks
 
 ### Troubleshooting
 - Attempted `python scripts/ui_test_tool.py --message "UI test ping"` but exited early with `libGL.so.1` missing; tool now detects the missing OpenGL runtime and provides installation guidance while returning exit code 2.
+
+## 2026-XX-XX Security Hardening
+- Added `src/security.py` with helpers to enforce owner-only permissions on config assets and redact sensitive values.
+- Updated `Config` to secure the config directory, harden permissions for `.env`, keybind, macro, and theme files, and log warnings when permissions cannot be tightened.
+
+### Troubleshooting
+- Ran `python -m compileall src` to verify syntax after the security changes (pass).
