@@ -36,6 +36,10 @@ from PyQt6.QtWidgets import (
 from config import Config
 from credential_store import CredentialStore
 from ui.design_system import OmnixDesignSystem, design_system
+from keybind_manager import KeybindManager
+from macro_manager import MacroManager
+from theme_compat import ThemeManager
+from settings_dialog import TabbedSettingsDialog
 
 logger = logging.getLogger(__name__)
 
@@ -311,7 +315,9 @@ class GameStatusPanel(NeonCard):
 
 
 class SettingsPanel(NeonCard):
-    """Right side panel with tabbed settings and provider selection."""
+    """Right side panel with quick settings and provider selection."""
+
+    settings_requested = pyqtSignal(int)  # Signal to open settings dialog at specific tab
 
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
@@ -319,87 +325,48 @@ class SettingsPanel(NeonCard):
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(12)
 
+        title = QLabel("Quick Settings")
+        title.setObjectName("SectionTitle")
+        layout.addWidget(title)
+
         self.menu_buttons: Dict[str, NeonButton] = {}
         menu = QVBoxLayout()
-        for name in ["Overlay Mode", "General", "Notifications", "Privacy"]:
-            button = NeonButton(name, variant="toggle", checkable=True)
-            button.clicked.connect(lambda _, n=name: self.set_active_menu(n))
+
+        # Quick access buttons that open full settings dialog
+        settings_items = [
+            ("AI Providers", 0),  # Tab index 0
+            ("Game Profiles", 1),  # Tab index 1
+            ("Knowledge Packs", 2),  # Tab index 2
+            ("Macros", 4),  # Tab index 4
+        ]
+
+        for name, tab_index in settings_items:
+            button = NeonButton(name, variant="toggle")
+            button.clicked.connect(lambda _, idx=tab_index: self.settings_requested.emit(idx))
             menu.addWidget(button)
             self.menu_buttons[name] = button
-        self.menu_buttons["Overlay Mode"].setChecked(True)
-        layout.addLayout(menu)
 
-        self.stack = QStackedWidget()
-        self.stack.addWidget(self._build_overlay_page())
-        self.stack.addWidget(self._build_general_page())
-        self.stack.addWidget(self._build_notifications_page())
-        self.stack.addWidget(self._build_privacy_page())
-        layout.addWidget(self.stack, 1)
+        layout.addLayout(menu)
+        layout.addStretch()
 
         provider_label = QLabel("AI Provider")
         provider_label.setObjectName("SectionTitle")
         layout.addWidget(provider_label)
 
         provider_row = QHBoxLayout()
-        self.provider_synapse = NeonButton("Synapse", variant="provider", checkable=True)
-        self.provider_hybridenix = NeonButton("Hybridenix", variant="provider", checkable=True)
-        self.provider_synapse.setChecked(True)
-        self.provider_synapse.clicked.connect(lambda: self._select_provider(self.provider_synapse))
-        self.provider_hybridenix.clicked.connect(lambda: self._select_provider(self.provider_hybridenix))
-        provider_row.addWidget(self.provider_synapse)
-        provider_row.addWidget(self.provider_hybridenix)
+        self.provider_openai = NeonButton("OpenAI", variant="provider", checkable=True)
+        self.provider_anthropic = NeonButton("Anthropic", variant="provider", checkable=True)
+        self.provider_openai.clicked.connect(lambda: self._open_providers_settings())
+        self.provider_anthropic.clicked.connect(lambda: self._open_providers_settings())
+        provider_row.addWidget(self.provider_openai)
+        provider_row.addWidget(self.provider_anthropic)
         layout.addLayout(provider_row)
 
         layout.addStretch()
 
-    def _select_provider(self, button: NeonButton) -> None:
-        for btn in [self.provider_synapse, self.provider_hybridenix]:
-            btn.setChecked(btn is button)
-
-    def set_active_menu(self, name: str) -> None:
-        for index, key in enumerate(["Overlay Mode", "General", "Notifications", "Privacy"]):
-            self.stack.setCurrentIndex(index if key == name else self.stack.currentIndex())
-            self.menu_buttons[key].setChecked(key == name)
-        self.stack.setCurrentIndex(["Overlay Mode", "General", "Notifications", "Privacy"].index(name))
-
-    def _build_overlay_page(self) -> QWidget:
-        page = QWidget()
-        vbox = QVBoxLayout(page)
-        for text in [
-            "Window frame",
-            "Window location",
-            "Lock position",
-        ]:
-            vbox.addWidget(NeonButton(text, variant="toggle", checkable=True))
-        vbox.addStretch()
-        return page
-
-    def _build_general_page(self) -> QWidget:
-        page = QWidget()
-        vbox = QVBoxLayout(page)
-        for text in ["Launch on startup", "Power efficient", "Enable tool tips"]:
-            vbox.addWidget(NeonButton(text, variant="toggle", checkable=True))
-        vbox.addStretch()
-        return page
-
-    def _build_notifications_page(self) -> QWidget:
-        page = QWidget()
-        vbox = QVBoxLayout(page)
-        for text in ["Desktop notifications", "Sound alert", "AI alerts"]:
-            vbox.addWidget(NeonButton(text, variant="toggle", checkable=True))
-        vbox.addStretch()
-        return page
-
-    def _build_privacy_page(self) -> QWidget:
-        page = QWidget()
-        vbox = QVBoxLayout(page)
-        for text in ["Streamer mode", "Online status"]:
-            vbox.addWidget(NeonButton(text, variant="toggle", checkable=True))
-        share = NeonButton("Share usage data", variant="toggle", checkable=True)
-        share.setChecked(True)
-        vbox.addWidget(share)
-        vbox.addStretch()
-        return page
+    def _open_providers_settings(self) -> None:
+        """Open full settings dialog at providers tab"""
+        self.settings_requested.emit(0)  # Tab index 0 is AI Providers
 
 
 class OverlayWindow(QWidget):
@@ -437,8 +404,49 @@ class OverlayWindow(QWidget):
         if self.minimized:
             self.toggle_minimize()
 
+    def moveEvent(self, event: QEvent) -> None:
+        """Save overlay position when moved"""
+        super().moveEvent(event)
+        self.config.overlay_x = self.x()
+        self.config.overlay_y = self.y()
+        # Don't save immediately to avoid excessive I/O during drag
+        logger.debug(f"Overlay moved to ({self.x()}, {self.y()})")
+
+    def resizeEvent(self, event: QEvent) -> None:
+        """Save overlay size when resized"""
+        super().resizeEvent(event)
+        if not self.minimized:
+            self.config.overlay_width = self.width()
+            self.config.overlay_height = self.height()
+            logger.debug(f"Overlay resized to ({self.width()}x{self.height()})")
+
+    def closeEvent(self, event: QEvent) -> None:
+        """Save config when overlay is closed"""
+        super().closeEvent(event)
+        self._save_overlay_config()
+
+    def _save_overlay_config(self) -> None:
+        """Persist overlay configuration to .env"""
+        try:
+            Config.save_to_env(
+                provider=self.config.ai_provider,
+                session_tokens=self.config.session_tokens,
+                overlay_hotkey=self.config.overlay_hotkey,
+                check_interval=self.config.check_interval,
+                overlay_x=self.config.overlay_x,
+                overlay_y=self.config.overlay_y,
+                overlay_width=self.config.overlay_width,
+                overlay_height=self.config.overlay_height,
+                overlay_minimized=self.config.overlay_minimized,
+                overlay_opacity=self.config.overlay_opacity
+            )
+            logger.info("Overlay configuration saved")
+        except Exception as e:
+            logger.error(f"Failed to save overlay config: {e}")
+
     def toggle_minimize(self) -> None:
         self.minimized = not self.minimized
+        self.config.overlay_minimized = self.minimized
         if self.minimized:
             self._saved_height = self.height()
             self.chat.setVisible(False)
@@ -451,18 +459,35 @@ class OverlayWindow(QWidget):
 class MainWindow(QMainWindow):
     """Omnix main dashboard window."""
 
-    def __init__(self, ai_assistant, config: Config, credential_store: CredentialStore, design_system: OmnixDesignSystem = design_system):
+    def __init__(
+        self,
+        ai_assistant,
+        config: Config,
+        credential_store: CredentialStore,
+        design_system: OmnixDesignSystem = design_system,
+        game_detector=None
+    ):
         super().__init__()
         self.ai_assistant = ai_assistant
         self.config = config
         self.credential_store = credential_store
         self.design_system = design_system or OmnixDesignSystem()
+        self.game_detector = game_detector
+        self.current_game = None
 
         self.setWindowTitle("Omnix - All Knowing AI Companion")
         self.resize(1280, 760)
 
         base_styles = self.design_system.generate_complete_stylesheet()
         self.setStyleSheet(base_styles + "\n" + _load_qss())
+
+        # Initialize managers for settings dialog
+        self.keybind_manager = KeybindManager(config)
+        self.macro_manager = MacroManager(config)
+        self.theme_manager = ThemeManager()
+
+        # Initialize settings dialog (but don't show it yet)
+        self.settings_dialog = None
 
         self.overlay_window = OverlayWindow(ai_assistant, config, self.design_system)
 
@@ -477,6 +502,10 @@ class MainWindow(QMainWindow):
         layout.addLayout(self._build_header())
         layout.addLayout(self._build_main_grid())
         layout.addLayout(self._build_footer())
+
+        # Start game detection if available
+        if self.game_detector:
+            self._start_game_detection()
 
     def _build_header(self) -> QHBoxLayout:
         header = QHBoxLayout()
@@ -504,6 +533,7 @@ class MainWindow(QMainWindow):
         row.addWidget(self.game_status_panel, 2)
 
         self.settings_panel = SettingsPanel()
+        self.settings_panel.settings_requested.connect(self._open_settings_at_tab)
         row.addWidget(self.settings_panel, 2)
 
         return row
@@ -519,7 +549,7 @@ class MainWindow(QMainWindow):
 
         settings_button = NeonButton("Settings")
         settings_button.setObjectName("FooterSettingsButton")
-        settings_button.clicked.connect(lambda: self.settings_panel.set_active_menu("General"))
+        settings_button.clicked.connect(self._open_settings)
         footer.addWidget(settings_button)
 
         footer.addStretch()
@@ -532,16 +562,102 @@ class MainWindow(QMainWindow):
             self.overlay_window.show()
             self.overlay_window.raise_()
 
+    def _open_settings(self) -> None:
+        """Open the comprehensive settings dialog"""
+        self._open_settings_at_tab(0)  # Default to first tab
+
+    def _open_settings_at_tab(self, tab_index: int) -> None:
+        """Open settings dialog at specific tab"""
+        if self.settings_dialog is None:
+            self.settings_dialog = TabbedSettingsDialog(
+                self,
+                self.config,
+                self.keybind_manager,
+                self.macro_manager,
+                self.theme_manager
+            )
+            # Connect settings dialog signals
+            self.settings_dialog.settings_saved.connect(self._on_settings_saved)
+            self.settings_dialog.provider_config_changed.connect(self._on_provider_changed)
+
+        self.settings_dialog.set_current_tab(tab_index)
+        self.settings_dialog.exec()
+
+    def _on_settings_saved(self, settings: dict) -> None:
+        """Handle settings saved from dialog"""
+        logger.info("Settings saved from dialog")
+        # Update UI to reflect new settings
+        if 'default_provider' in settings:
+            self._update_provider_display(settings['default_provider'])
+
+    def _on_provider_changed(self, provider: str, credentials: dict) -> None:
+        """Handle AI provider configuration change"""
+        logger.info(f"Provider changed to: {provider}")
+        self._update_provider_display(provider)
+        # Reinitialize AI assistant if needed
+        # This would require restarting or recreating the assistant
+
+    def _update_provider_display(self, provider: str) -> None:
+        """Update provider button states in settings panel"""
+        self.settings_panel.provider_openai.setChecked(provider == "openai")
+        self.settings_panel.provider_anthropic.setChecked(provider == "anthropic")
+
+    def _start_game_detection(self) -> None:
+        """Start periodic game detection"""
+        from PyQt6.QtCore import QTimer
+        self.game_check_timer = QTimer()
+        self.game_check_timer.timeout.connect(self._check_for_game)
+        self.game_check_timer.start(5000)  # Check every 5 seconds
+        # Do initial check
+        self._check_for_game()
+
+    def _check_for_game(self) -> None:
+        """Check if a game is running and update UI"""
+        if not self.game_detector:
+            return
+
+        game = self.game_detector.detect_running_game()
+        if game and game.get('name') != self.current_game:
+            self.current_game = game.get('name')
+            self._update_game_status(game)
+            logger.info(f"Game detected: {self.current_game}")
+        elif not game and self.current_game:
+            self.current_game = None
+            self._clear_game_status()
+            logger.info("No game detected")
+
+    def _update_game_status(self, game: dict) -> None:
+        """Update the game status panel with detected game"""
+        if hasattr(self.game_status_panel, 'hex_widget'):
+            self.game_status_panel.hex_widget.game_label = game.get('name', 'Unknown')
+            self.game_status_panel.hex_widget.status_text = "Detected"
+            self.game_status_panel.hex_widget.update()
+
+    def _clear_game_status(self) -> None:
+        """Clear the game status display"""
+        if hasattr(self.game_status_panel, 'hex_widget'):
+            self.game_status_panel.hex_widget.game_label = "No Game"
+            self.game_status_panel.hex_widget.status_text = "Waiting..."
+            self.game_status_panel.hex_widget.update()
+
     def cleanup(self) -> None:
         if self.overlay_window:
             self.overlay_window.close()
+        if hasattr(self, 'game_check_timer'):
+            self.game_check_timer.stop()
 
 
-def run_gui(ai_assistant, config: Config, credential_store: CredentialStore, ds: OmnixDesignSystem = design_system) -> None:
+def run_gui(
+    ai_assistant,
+    config: Config,
+    credential_store: CredentialStore,
+    ds: OmnixDesignSystem = design_system,
+    game_detector=None
+) -> None:
     """Launch the Omnix GUI."""
 
     app = QApplication.instance() or QApplication(sys.argv)
-    window = MainWindow(ai_assistant, config, credential_store, ds)
+    window = MainWindow(ai_assistant, config, credential_store, ds, game_detector)
     window.show()
     sys.exit(app.exec())
 

@@ -154,7 +154,8 @@ def test_gui_creation():
         ai_assistant=None,
         config=config,
         credential_store=credential_store,
-        design_system=design_system
+        design_system=design_system,
+        game_detector=None
     )
     print("  ✓ Main window created")
 

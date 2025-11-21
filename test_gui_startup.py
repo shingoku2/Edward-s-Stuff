@@ -64,7 +64,8 @@ def test_basic_init():
             ai_assistant=None,  # No AI assistant for test
             config=config,
             credential_store=credential_store,
-            design_system=design_system
+            design_system=design_system,
+            game_detector=None  # No game detector for test
         )
         print("✓ MainWindow created")
 

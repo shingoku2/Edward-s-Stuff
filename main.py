@@ -247,7 +247,7 @@ def main():
         print()
 
         logger.info("Calling run_gui()...")
-        run_gui(ai_assistant, config, credential_store, design_system)
+        run_gui(ai_assistant, config, credential_store, design_system, game_detector)
         logger.info("GUI exited normally")
 
     except ValueError as e:
