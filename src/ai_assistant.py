@@ -154,7 +154,7 @@ class AIAssistant:
                 "Please try again or check your internet connection."
             )
 
-    def set_current_game(self, game_info: Dict[str, str]):
+    def set_current_game(self, game_info: Optional[Dict[str, str]]):
         """Set the current game context"""
         self.current_game = game_info
 
@@ -162,10 +162,14 @@ class AIAssistant:
             self.conversation_history = []
 
             # Add system context
-            game_name = game_info.get('name', 'Unknown Game')
-            self._add_system_context(game_name)
-
-        logger.info(f"Set current game context: {game_name}")
+            if game_info:
+                game_name = game_info.get('name', 'Unknown Game')
+                self._add_system_context(game_name)
+                logger.info(f"Set current game context: {game_name}")
+            else:
+                # No game detected, use default context
+                self._add_system_context(None)
+                logger.info("Game context cleared - no game detected")
 
     def set_game_profile(self, profile: "GameProfile", override_provider: bool = True):
         """
@@ -218,9 +222,10 @@ class AIAssistant:
 
         logger.info("Cleared game profile and reverted to default provider")
 
-    def _add_system_context(self, game_name: str):
+    def _add_system_context(self, game_name: Optional[str]):
         """Add system context about the current game"""
-        system_message = f"""You are a specialized gaming assistant ONLY for {game_name}.
+        if game_name:
+            system_message = f"""You are a specialized gaming assistant ONLY for {game_name}.
 
 CRITICAL RULES:
 - You ONLY answer questions about {game_name}
@@ -239,6 +244,18 @@ What you CAN help with for {game_name}:
 - Where to find items, NPCs, or locations
 
 Be concise, accurate, and helpful. Stay strictly focused on {game_name} only."""
+        else:
+            # No game detected - provide generic gaming assistant context
+            system_message = """You are Omnix, an AI gaming assistant.
+
+I can help with:
+- Game strategies and tips
+- Character/weapon/item builds
+- Quest walkthroughs and missions
+- Game mechanics and systems
+- General gaming advice
+
+Please start a game or tell me which game you'd like help with, and I'll provide specialized assistance for that game."""
 
         self.conversation_history.append({
             "role": "system",
