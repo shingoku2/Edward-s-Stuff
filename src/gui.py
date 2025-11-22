@@ -458,14 +458,25 @@ class SettingsPanel(NeonCard):
         provider_label.setObjectName("SectionTitle")
         layout.addWidget(provider_label)
 
-        provider_row = QHBoxLayout()
+        # First row: OpenAI and Anthropic
+        provider_row1 = QHBoxLayout()
         self.provider_openai = NeonButton("OpenAI", variant="provider", checkable=True)
         self.provider_anthropic = NeonButton("Anthropic", variant="provider", checkable=True)
         self.provider_openai.clicked.connect(lambda: self._open_providers_settings())
         self.provider_anthropic.clicked.connect(lambda: self._open_providers_settings())
-        provider_row.addWidget(self.provider_openai)
-        provider_row.addWidget(self.provider_anthropic)
-        layout.addLayout(provider_row)
+        provider_row1.addWidget(self.provider_openai)
+        provider_row1.addWidget(self.provider_anthropic)
+        layout.addLayout(provider_row1)
+
+        # Second row: Gemini and Ollama
+        provider_row2 = QHBoxLayout()
+        self.provider_gemini = NeonButton("Gemini", variant="provider", checkable=True)
+        self.provider_ollama = NeonButton("Ollama", variant="provider", checkable=True)
+        self.provider_gemini.clicked.connect(lambda: self._open_providers_settings())
+        self.provider_ollama.clicked.connect(lambda: self._open_providers_settings())
+        provider_row2.addWidget(self.provider_gemini)
+        provider_row2.addWidget(self.provider_ollama)
+        layout.addLayout(provider_row2)
 
         layout.addStretch()
 
@@ -498,6 +509,12 @@ class OverlayWindow(QWidget):
             int(getattr(config, "overlay_height", 360)),
         )
 
+        # Enable mouse tracking for drag and resize
+        self.setMouseTracking(True)
+        self._drag_position = None
+        self._resize_mode = None
+        self._resize_margin = 10  # Pixels from edge to trigger resize
+
         # Main layout with no margins (transparent background)
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
@@ -523,6 +540,44 @@ class OverlayWindow(QWidget):
         panel_layout.setContentsMargins(8, 8, 8, 8)
         panel_layout.setSpacing(8)
 
+        # Add title bar for dragging
+        title_bar = QFrame()
+        title_bar.setObjectName("OverlayTitleBar")
+        title_bar.setFixedHeight(30)
+        title_bar.setStyleSheet("""
+            QFrame#OverlayTitleBar {
+                background-color: rgba(0, 191, 255, 0.2);
+                border-radius: 6px;
+            }
+        """)
+        title_bar_layout = QHBoxLayout(title_bar)
+        title_bar_layout.setContentsMargins(8, 4, 8, 4)
+
+        title_label = QLabel("🎮 Omnix Overlay")
+        title_label.setStyleSheet("color: #00BFFF; font-weight: bold;")
+        title_bar_layout.addWidget(title_label)
+        title_bar_layout.addStretch()
+
+        # Minimize button
+        minimize_btn = QPushButton("−")
+        minimize_btn.setFixedSize(20, 20)
+        minimize_btn.setStyleSheet("""
+            QPushButton {
+                background-color: rgba(255, 184, 0, 0.3);
+                color: #FFB800;
+                border: 1px solid #FFB800;
+                border-radius: 10px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: rgba(255, 184, 0, 0.5);
+            }
+        """)
+        minimize_btn.clicked.connect(self.toggle_minimize)
+        title_bar_layout.addWidget(minimize_btn)
+
+        panel_layout.addWidget(title_bar)
+
         # Add chat widget to panel
         self.chat = ChatWidget(assistant, title="Overlay")
         panel_layout.addWidget(self.chat)
@@ -543,21 +598,96 @@ class OverlayWindow(QWidget):
         if self.minimized:
             self.toggle_minimize()
 
-    def moveEvent(self, event: QEvent) -> None:
-        """Save overlay position when moved"""
-        super().moveEvent(event)
-        self.config.overlay_x = self.x()
-        self.config.overlay_y = self.y()
-        # Don't save immediately to avoid excessive I/O during drag
-        logger.debug(f"Overlay moved to ({self.x()}, {self.y()})")
+    def mousePressEvent(self, event) -> None:
+        """Handle mouse press for window dragging and resizing"""
+        if event.button() == Qt.MouseButton.LeftButton:
+            # Determine if click is in resize zone
+            pos = event.position().toPoint()
+            rect = self.rect()
 
-    def resizeEvent(self, event: QEvent) -> None:
-        """Save overlay size when resized"""
-        super().resizeEvent(event)
-        if not self.minimized:
-            self.config.overlay_width = self.width()
-            self.config.overlay_height = self.height()
-            logger.debug(f"Overlay resized to ({self.width()}x{self.height()})")
+            # Check for resize zones (corners and edges)
+            margin = self._resize_margin
+            on_left = pos.x() < margin
+            on_right = pos.x() > rect.width() - margin
+            on_top = pos.y() < margin
+            on_bottom = pos.y() > rect.height() - margin
+
+            if on_bottom and on_right:
+                self._resize_mode = 'bottom_right'
+            elif on_bottom and on_left:
+                self._resize_mode = 'bottom_left'
+            elif on_top and on_right:
+                self._resize_mode = 'top_right'
+            elif on_top and on_left:
+                self._resize_mode = 'top_left'
+            elif on_bottom:
+                self._resize_mode = 'bottom'
+            elif on_top:
+                self._resize_mode = 'top'
+            elif on_left:
+                self._resize_mode = 'left'
+            elif on_right:
+                self._resize_mode = 'right'
+            else:
+                # Not in resize zone, enable dragging
+                self._resize_mode = None
+                self._drag_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+
+    def mouseMoveEvent(self, event) -> None:
+        """Handle mouse move for window dragging, resizing, and cursor changes"""
+        pos = event.position().toPoint()
+        rect = self.rect()
+        margin = self._resize_margin
+
+        # Update cursor based on position
+        on_left = pos.x() < margin
+        on_right = pos.x() > rect.width() - margin
+        on_top = pos.y() < margin
+        on_bottom = pos.y() > rect.height() - margin
+
+        if (on_bottom and on_right) or (on_top and on_left):
+            self.setCursor(Qt.CursorShape.SizeFDiagCursor)
+        elif (on_bottom and on_left) or (on_top and on_right):
+            self.setCursor(Qt.CursorShape.SizeBDiagCursor)
+        elif on_left or on_right:
+            self.setCursor(Qt.CursorShape.SizeHorCursor)
+        elif on_top or on_bottom:
+            self.setCursor(Qt.CursorShape.SizeVerCursor)
+        else:
+            self.setCursor(Qt.CursorShape.ArrowCursor)
+
+        # Handle dragging
+        if event.buttons() == Qt.MouseButton.LeftButton:
+            if self._resize_mode:
+                # Handle resizing
+                global_pos = event.globalPosition().toPoint()
+                geo = self.geometry()
+
+                if 'right' in self._resize_mode:
+                    geo.setRight(global_pos.x())
+                if 'left' in self._resize_mode:
+                    geo.setLeft(global_pos.x())
+                if 'bottom' in self._resize_mode:
+                    geo.setBottom(global_pos.y())
+                if 'top' in self._resize_mode:
+                    geo.setTop(global_pos.y())
+
+                # Enforce minimum size
+                if geo.width() < 300:
+                    geo.setWidth(300)
+                if geo.height() < 200:
+                    geo.setHeight(200)
+
+                self.setGeometry(geo)
+            elif self._drag_position is not None:
+                # Handle dragging
+                self.move(event.globalPosition().toPoint() - self._drag_position)
+
+    def mouseReleaseEvent(self, event) -> None:
+        """Handle mouse release to finish dragging or resizing"""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._drag_position = None
+            self._resize_mode = None
 
     def closeEvent(self, event: QEvent) -> None:
         """Save config when overlay is closed"""
@@ -767,6 +897,8 @@ class MainWindow(QMainWindow):
         """Update provider button states in settings panel"""
         self.settings_panel.provider_openai.setChecked(provider == "openai")
         self.settings_panel.provider_anthropic.setChecked(provider == "anthropic")
+        self.settings_panel.provider_gemini.setChecked(provider == "gemini")
+        self.settings_panel.provider_ollama.setChecked(provider == "ollama")
 
     def _start_game_detection(self) -> None:
         """Start periodic game detection"""

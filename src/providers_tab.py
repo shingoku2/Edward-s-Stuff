@@ -628,6 +628,15 @@ class ProvidersTab(QWidget):
         try:
             default_provider, credentials = self.get_provider_config()
 
+            # Track if restart is needed
+            provider_changed = default_provider != self.config.ai_provider
+            credentials_modified = any(self.modified_keys.values())
+
+            # Update AI provider in config
+            if provider_changed:
+                self.config.ai_provider = default_provider
+                logger.info(f"Updated default AI provider to: {default_provider}")
+
             # Save credentials using config.set_api_key() which updates both
             # the config object AND the credential store
             if self.modified_keys:
@@ -655,8 +664,37 @@ class ProvidersTab(QWidget):
                 self.config.ollama_host = host_value
                 self.provider_base_urls['ollama'] = host_value
 
+            # Persist configuration to .env file
+            try:
+                from config import Config
+                Config.save_to_env(
+                    provider=self.config.ai_provider,
+                    session_tokens=self.config.session_tokens,
+                    overlay_hotkey=self.config.overlay_hotkey,
+                    check_interval=self.config.check_interval,
+                    overlay_x=self.config.overlay_x,
+                    overlay_y=self.config.overlay_y,
+                    overlay_width=self.config.overlay_width,
+                    overlay_height=self.config.overlay_height,
+                    overlay_minimized=self.config.overlay_minimized,
+                    overlay_opacity=self.config.overlay_opacity
+                )
+                logger.info("Configuration persisted to .env file")
+            except Exception as save_error:
+                logger.warning(f"Failed to save to .env: {save_error}")
+
             # Emit signal
             self.provider_config_changed.emit(default_provider, credentials)
+
+            # Show restart notification if provider or credentials changed
+            if provider_changed or credentials_modified:
+                QMessageBox.information(
+                    self,
+                    "Restart Required",
+                    "Your settings have been saved successfully!\n\n"
+                    "⚠️  Please restart the application for the changes to take effect.\n\n"
+                    "The new AI provider configuration will be used after restarting."
+                )
 
             return True
 

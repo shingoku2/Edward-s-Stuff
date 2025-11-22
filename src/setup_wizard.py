@@ -852,6 +852,19 @@ class SetupWizard(QDialog):
                 self.credential_store.save_credentials(credentials)
                 logger.info(f"Saved {len(credentials)} credentials to secure storage")
 
+            # Save default provider to .env file
+            from config import Config
+            try:
+                Config.save_to_env(
+                    provider=self.default_provider,
+                    session_tokens={},
+                    overlay_hotkey='ctrl+shift+g',
+                    check_interval=5,
+                )
+                logger.info(f"Saved default provider '{self.default_provider}' to .env file")
+            except Exception as save_error:
+                logger.warning(f"Failed to save provider to .env: {save_error}")
+
             # Emit completion signal with default provider and credentials
             self.setup_complete.emit(self.default_provider, credentials)
 
@@ -859,9 +872,9 @@ class SetupWizard(QDialog):
             QMessageBox.information(
                 self,
                 "Setup Complete",
-                f"Your API keys have been saved securely!\n\n",
-                f"Default provider: {self.default_provider.title()}\n\n",
-                f"The assistant is ready to use. Press Ctrl+Shift+G to toggle the overlay.",
+                f"Your API keys have been saved securely!\n\n"
+                f"Default provider: {self.default_provider.title()}\n\n"
+                f"The assistant is ready to use. Press Ctrl+Shift+G to toggle the overlay."
             )
 
             self.accept()
@@ -871,8 +884,8 @@ class SetupWizard(QDialog):
             QMessageBox.critical(
                 self,
                 "Setup Failed",
-                f"Failed to save your credentials:\n{str(e)}\n\n",
-                f"Please try again or check the log file for details.",
+                f"Failed to save your credentials:\n{str(e)}\n\n"
+                f"Please try again or check the log file for details."
             )
 
     def closeEvent(self, event):
