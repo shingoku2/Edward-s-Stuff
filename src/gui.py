@@ -523,6 +523,7 @@ class OverlayWindow(QWidget):
         # Create background panel with semi-transparent background
         self.background_panel = QFrame()
         self.background_panel.setObjectName("OverlayBackground")
+        self.background_panel.setMouseTracking(True)
 
         # Apply semi-transparent background styling
         opacity = getattr(config, "overlay_opacity", 0.8)
@@ -541,16 +542,17 @@ class OverlayWindow(QWidget):
         panel_layout.setSpacing(8)
 
         # Add title bar for dragging
-        title_bar = QFrame()
-        title_bar.setObjectName("OverlayTitleBar")
-        title_bar.setFixedHeight(30)
-        title_bar.setStyleSheet("""
+        self.title_bar = QFrame()
+        self.title_bar.setObjectName("OverlayTitleBar")
+        self.title_bar.setFixedHeight(30)
+        self.title_bar.setMouseTracking(True)
+        self.title_bar.setStyleSheet("""
             QFrame#OverlayTitleBar {
                 background-color: rgba(0, 191, 255, 0.2);
                 border-radius: 6px;
             }
         """)
-        title_bar_layout = QHBoxLayout(title_bar)
+        title_bar_layout = QHBoxLayout(self.title_bar)
         title_bar_layout.setContentsMargins(8, 4, 8, 4)
 
         title_label = QLabel("🎮 Omnix Overlay")
@@ -576,7 +578,7 @@ class OverlayWindow(QWidget):
         minimize_btn.clicked.connect(self.toggle_minimize)
         title_bar_layout.addWidget(minimize_btn)
 
-        panel_layout.addWidget(title_bar)
+        panel_layout.addWidget(self.title_bar)
 
         # Add chat widget to panel
         self.chat = ChatWidget(assistant, title="Overlay")
@@ -589,6 +591,10 @@ class OverlayWindow(QWidget):
         overlay_styles = ds.generate_overlay_stylesheet(opacity) if ds else ""
         self.setStyleSheet(overlay_styles + "\n" + _load_qss())
 
+        # Forward mouse events from child panels to enable drag/resize
+        self.background_panel.installEventFilter(self)
+        self.title_bar.installEventFilter(self)
+
         # Debounce timer for position/size saving (reduces I/O during drag/resize)
         self._save_timer = QTimer(self)
         self._save_timer.setSingleShot(True)
@@ -597,6 +603,17 @@ class OverlayWindow(QWidget):
 
         if self.minimized:
             self.toggle_minimize()
+
+    def eventFilter(self, watched, event):  # type: ignore[override]
+        """Forward mouse events from child panels so overlay drag/resize works."""
+        if watched in (self.background_panel, self.title_bar):
+            if event.type() == QEvent.Type.MouseButtonPress:
+                self.mousePressEvent(event)
+            elif event.type() == QEvent.Type.MouseMove:
+                self.mouseMoveEvent(event)
+            elif event.type() == QEvent.Type.MouseButtonRelease:
+                self.mouseReleaseEvent(event)
+        return super().eventFilter(watched, event)
 
     def mousePressEvent(self, event) -> None:
         """Handle mouse press for window dragging and resizing"""
