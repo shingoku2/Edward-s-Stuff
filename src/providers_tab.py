@@ -49,6 +49,33 @@ class TestConnectionThread(QThread):
             self.test_complete.emit(False, f"Test failed: {str(e)}")
 
 
+class FetchOllamaModelsThread(QThread):
+    """Background thread for fetching Ollama models"""
+    models_fetched = pyqtSignal(list)  # List of model names
+    fetch_failed = pyqtSignal(str)  # Error message
+
+    def __init__(self, base_url: str):
+        super().__init__()
+        self.base_url = base_url
+
+    def run(self):
+        """Fetch models in background"""
+        try:
+            import ollama
+
+            client = ollama.Client(host=self.base_url)
+            models_response = client.list()
+            models = models_response.get("models", [])
+            model_names = [model.get("name", "") for model in models if model.get("name")]
+
+            self.models_fetched.emit(model_names)
+        except ImportError:
+            self.fetch_failed.emit("Ollama library not installed. Install with: pip install ollama")
+        except Exception as e:
+            logger.debug(f"Failed to fetch Ollama models: {e}")
+            self.fetch_failed.emit(str(e))
+
+
 class ProvidersTab(QWidget):
     """Tab for managing AI provider API keys and settings"""
 
@@ -60,6 +87,7 @@ class ProvidersTab(QWidget):
         self.config = config
         self.credential_store = CredentialStore()
         self.test_threads = {}
+        self.fetch_models_thread = None
         self.provider_base_urls = {
             'openai': None,
             'ollama': self.config.ollama_host,
@@ -85,6 +113,9 @@ class ProvidersTab(QWidget):
 
         self.init_ui()
         self.load_current_config()
+
+        # Automatically fetch Ollama models on initialization
+        self.auto_fetch_ollama_models()
 
     def init_ui(self):
         """Initialize the providers tab UI"""
@@ -485,45 +516,82 @@ class ProvidersTab(QWidget):
             # User cleared the field
             self.modified_keys[provider_id] = None
 
-    def refresh_ollama_models(self):
-        """Refresh the list of available Ollama models"""
-        try:
-            import ollama
+    def auto_fetch_ollama_models(self):
+        """Automatically fetch Ollama models on initialization (silent)"""
+        # Get base URL from config
+        base_url = self.ollama_host or "http://localhost:11434"
 
-            # Get base URL from input or use default
-            base_url = self.provider_sections.get('ollama', {}).get('base_url_input')
-            if base_url:
-                base_url = base_url.text().strip() or self.ollama_host
-            else:
-                base_url = self.ollama_host
+        # Start background thread
+        self.fetch_models_thread = FetchOllamaModelsThread(base_url)
+        self.fetch_models_thread.models_fetched.connect(self.on_models_fetched)
+        self.fetch_models_thread.fetch_failed.connect(self.on_models_fetch_failed)
+        self.fetch_models_thread.start()
 
-            # Fetch models
-            client = ollama.Client(host=base_url)
-            models_response = client.list()
-            models = models_response.get("models", [])
-
-            # Clear and repopulate combo box
-            current_model = self.ollama_model_combo.currentText()
+        # Update UI to show loading state
+        if hasattr(self, 'ollama_model_combo'):
             self.ollama_model_combo.clear()
+            self.ollama_model_combo.addItem("Loading models...")
+            self.ollama_model_combo.setEnabled(False)
 
-            if models:
-                for model in models:
-                    model_name = model.get("name", "")
-                    if model_name:
-                        self.ollama_model_combo.addItem(model_name)
+    def refresh_ollama_models(self):
+        """Refresh the list of available Ollama models (user-triggered)"""
+        # Get base URL from input or use default
+        base_url = self.provider_sections.get('ollama', {}).get('base_url_input')
+        if base_url:
+            base_url = base_url.text().strip() or self.ollama_host
+        else:
+            base_url = self.ollama_host
 
-                # Try to restore previous selection
-                index = self.ollama_model_combo.findText(current_model)
-                if index >= 0:
-                    self.ollama_model_combo.setCurrentIndex(index)
+        # Update UI to show loading state
+        current_model = self.ollama_model_combo.currentText()
+        self.ollama_model_combo.clear()
+        self.ollama_model_combo.addItem("🔄 Refreshing...")
+        self.ollama_model_combo.setEnabled(False)
 
+        # Start background thread
+        if self.fetch_models_thread and self.fetch_models_thread.isRunning():
+            self.fetch_models_thread.wait()
+
+        self.fetch_models_thread = FetchOllamaModelsThread(base_url)
+        self.fetch_models_thread.models_fetched.connect(
+            lambda models: self.on_models_fetched(models, show_message=True)
+        )
+        self.fetch_models_thread.fetch_failed.connect(
+            lambda error: self.on_models_fetch_failed(error, show_message=True)
+        )
+        self.fetch_models_thread.start()
+
+    def on_models_fetched(self, model_names: list, show_message: bool = False):
+        """Handle successful model fetching"""
+        # Get current selection before clearing
+        current_model = self.config.ollama_model or "llama3"
+
+        # Clear and repopulate combo box
+        self.ollama_model_combo.clear()
+        self.ollama_model_combo.setEnabled(True)
+
+        if model_names:
+            for model_name in model_names:
+                self.ollama_model_combo.addItem(model_name)
+
+            # Try to restore previous selection
+            index = self.ollama_model_combo.findText(current_model)
+            if index >= 0:
+                self.ollama_model_combo.setCurrentIndex(index)
+            else:
+                # If current model not found, select first one
+                self.ollama_model_combo.setCurrentIndex(0)
+
+            if show_message:
                 QMessageBox.information(
                     self,
                     "Models Refreshed",
-                    f"Found {len(models)} Ollama models:\n\n" + "\n".join([m.get("name", "") for m in models])
+                    f"Found {len(model_names)} Ollama models:\n\n" + "\n".join(model_names)
                 )
-            else:
-                self.ollama_model_combo.addItem(current_model or "llama3")
+        else:
+            # No models found
+            self.ollama_model_combo.addItem(current_model)
+            if show_message:
                 QMessageBox.information(
                     self,
                     "No Models Found",
@@ -531,19 +599,32 @@ class ProvidersTab(QWidget):
                     "ollama pull llama3"
                 )
 
-        except ImportError:
-            QMessageBox.warning(
-                self,
-                "Ollama Not Installed",
-                "The Ollama library is not installed. Please install it with:\n\n"
-                "pip install ollama"
-            )
-        except Exception as e:
-            QMessageBox.warning(
-                self,
-                "Refresh Failed",
-                f"Failed to refresh Ollama models:\n\n{str(e)}"
-            )
+        logger.info(f"Loaded {len(model_names)} Ollama models")
+
+    def on_models_fetch_failed(self, error: str, show_message: bool = False):
+        """Handle failed model fetching"""
+        # Restore to default
+        current_model = self.config.ollama_model or "llama3"
+        self.ollama_model_combo.clear()
+        self.ollama_model_combo.addItem(current_model)
+        self.ollama_model_combo.setEnabled(True)
+
+        logger.debug(f"Failed to fetch Ollama models: {error}")
+
+        if show_message:
+            if "not installed" in error.lower():
+                QMessageBox.warning(
+                    self,
+                    "Ollama Not Installed",
+                    f"The Ollama library is not installed. Please install it with:\n\n"
+                    f"pip install ollama"
+                )
+            else:
+                QMessageBox.warning(
+                    self,
+                    "Refresh Failed",
+                    f"Failed to refresh Ollama models:\n\n{error}"
+                )
 
     def test_connection(self, provider_id: str):
         """Test connection for a provider"""
