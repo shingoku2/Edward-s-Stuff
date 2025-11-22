@@ -962,6 +962,11 @@ class MainWindow(QMainWindow):
             self.game_status_panel.hex_widget.status_text = "Detected"
             self.game_status_panel.hex_widget.update()
 
+        # Inform the AI assistant about the detected game
+        if self.ai_assistant:
+            self.ai_assistant.set_current_game(game)
+            logger.info(f"AI assistant notified of game: {game.get('name', 'Unknown')}")
+
     def _clear_game_status(self) -> None:
         """Clear the game status display"""
         if hasattr(self.game_status_panel, 'update_game_info'):
@@ -971,6 +976,11 @@ class MainWindow(QMainWindow):
             self.game_status_panel.hex_widget.game_label = "No Game"
             self.game_status_panel.hex_widget.status_text = "Waiting..."
             self.game_status_panel.hex_widget.update()
+
+        # Clear the AI assistant's game context
+        if self.ai_assistant:
+            self.ai_assistant.set_current_game(None)
+            logger.info("AI assistant game context cleared")
 
     def cleanup(self) -> None:
         if self.overlay_window:
