@@ -515,8 +515,8 @@ class MainWindow(QMainWindow):
         self.setStyleSheet(base_styles + "\n" + _load_qss())
 
         # Initialize managers for settings dialog
-        self.keybind_manager = KeybindManager(config)
-        self.macro_manager = MacroManager(config)
+        self.keybind_manager = KeybindManager()
+        self.macro_manager = MacroManager()
         self.theme_manager = ThemeManager()
 
         # Initialize settings dialog (but don't show it yet)
