@@ -236,11 +236,64 @@ class HexStatusWidget(QWidget):
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.setMinimumSize(260, 260)
-        self.game_label = "CS:GO"
-        self.status_text = "Online"
+        self.game_label = "No Game Detected"
+        self.status_text = "Waiting..."
+        self.game_info = None
+        self._load_default_icon()
+
+    def _load_default_icon(self):
+        """Load the default Omnix logo"""
         icon_path = (Path(__file__).parent / ".." / "OMNIX-LOGO-PLAIN.png").resolve()
         pixmap = QPixmap(str(icon_path)) if icon_path.exists() else QPixmap()
         self.icon = pixmap.scaled(96, 96, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation) if not pixmap.isNull() else pixmap
+
+    def _load_game_icon(self, game_name: str):
+        """
+        Load game-specific icon or fall back to default.
+
+        Args:
+            game_name: Name of the game to load icon for
+        """
+        # Normalize game name for file lookup (lowercase, replace spaces with underscores)
+        normalized_name = game_name.lower().replace(" ", "_").replace(":", "")
+
+        # Try to load game-specific icon
+        icon_paths = [
+            Path(__file__).parent / ".." / "assets" / "game_icons" / f"{normalized_name}.png",
+            Path(__file__).parent / ".." / "assets" / "game_icons" / f"{normalized_name}.jpg",
+        ]
+
+        for icon_path in icon_paths:
+            if icon_path.exists():
+                pixmap = QPixmap(str(icon_path))
+                if not pixmap.isNull():
+                    self.icon = pixmap.scaled(96, 96, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                    logger.info(f"Loaded game icon: {icon_path}")
+                    return
+
+        # Fall back to default icon
+        logger.debug(f"No custom icon found for {game_name}, using default")
+        self._load_default_icon()
+
+    def update_game(self, game_info: Optional[Dict] = None):
+        """
+        Update widget with new game information.
+
+        Args:
+            game_info: Dictionary containing game details (name, pid, timestamp, etc.)
+        """
+        if game_info:
+            self.game_info = game_info
+            self.game_label = game_info.get('name', 'Unknown Game')
+            self.status_text = "Detected"
+            self._load_game_icon(self.game_label)
+        else:
+            self.game_info = None
+            self.game_label = "No Game Detected"
+            self.status_text = "Waiting..."
+            self._load_default_icon()
+
+        self.update()
 
     def paintEvent(self, event: QEvent) -> None:  # pragma: no cover - visual only
         painter = QPainter(self)
@@ -248,7 +301,10 @@ class HexStatusWidget(QWidget):
 
         center = QPoint(self.width() // 2, self.height() // 2)
         radius = min(self.width(), self.height()) // 2 - 12
-        pen = QPen(QColor("#13d5ff"))
+
+        # Use different colors based on game detection status
+        hex_color = "#13d5ff" if self.game_info else "#666677"
+        pen = QPen(QColor(hex_color))
         pen.setWidth(3)
         painter.setPen(pen)
 
@@ -261,17 +317,22 @@ class HexStatusWidget(QWidget):
             points.append(QPoint(int(x), int(y)))
         painter.drawPolygon(points)
 
-        painter.setPen(QColor("#ff4e4e"))
-        painter.setFont(QFont("Orbitron", 18, QFont.Weight.Bold))
-        painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignTop, self.game_label)
+        # Game name at top
+        title_color = "#ff4e4e" if self.game_info else "#888899"
+        painter.setPen(QColor(title_color))
+        painter.setFont(QFont("Orbitron", 16, QFont.Weight.Bold))
+        painter.drawText(self.rect().adjusted(5, 10, -5, 0), Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop, self.game_label)
 
+        # Game icon in center
         if not self.icon.isNull():
             icon_rect = self.rect().adjusted(40, 50, -40, -70)
             painter.drawPixmap(icon_rect, self.icon)
 
-        painter.setPen(QColor("#63f5a4"))
+        # Status text at bottom
+        status_color = "#63f5a4" if self.game_info else "#888899"
+        painter.setPen(QColor(status_color))
         painter.setFont(QFont("Rajdhani", 12, QFont.Weight.DemiBold))
-        painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignBottom, self.status_text)
+        painter.drawText(self.rect().adjusted(0, 0, 0, -10), Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignBottom, self.status_text)
 
 
 class GameStatusPanel(NeonCard):
@@ -284,34 +345,78 @@ class GameStatusPanel(NeonCard):
         layout.setContentsMargins(18, 18, 18, 18)
         layout.setSpacing(12)
 
-        title = QLabel("Game Detected")
-        title.setObjectName("SectionTitle")
-        layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.title = QLabel("Game Status")
+        self.title.setObjectName("SectionTitle")
+        layout.addWidget(self.title, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self.hex_widget = HexStatusWidget()
         self.hex_widget.setObjectName("HexWidget")
         layout.addWidget(self.hex_widget, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        stats = QGridLayout()
-        stats.setSpacing(10)
-        self.kd_label = self._build_stat(stats, 0, "K/D", "1.52")
-        self.match_label = self._build_stat(stats, 1, "MATCH", "24")
-        self.wins_label = self._build_stat(stats, 2, "WINS", "152")
-        layout.addLayout(stats)
+        # Stats grid - will be populated dynamically
+        self.stats_layout = QGridLayout()
+        self.stats_layout.setSpacing(10)
 
-    def _build_stat(self, layout: QGridLayout, column: int, label_text: str, value: str) -> QLabel:
+        # Create stat containers
+        self.stat_containers = {}
+        self.stat_labels = {}
+        self._build_stat(0, "STATUS", "Waiting")
+        self._build_stat(1, "PROFILE", "None")
+        self._build_stat(2, "PID", "--")
+
+        layout.addLayout(self.stats_layout)
+
+    def _build_stat(self, column: int, label_text: str, value: str) -> QLabel:
+        """Build a stat display container"""
         container = QFrame()
         container.setObjectName("StatContainer")
         vbox = QVBoxLayout(container)
         vbox.setContentsMargins(8, 8, 8, 8)
+
         lbl = QLabel(label_text)
         lbl.setObjectName("StatLabel")
+
         val = QLabel(value)
         val.setObjectName("StatValue")
+
         vbox.addWidget(lbl)
         vbox.addWidget(val)
-        layout.addWidget(container, 0, column)
+        self.stats_layout.addWidget(container, 0, column)
+
+        self.stat_containers[label_text] = container
+        self.stat_labels[label_text] = val
         return val
+
+    def update_game_info(self, game_info: Optional[Dict] = None, profile = None):
+        """
+        Update panel with game information.
+
+        Args:
+            game_info: Dictionary with game details (name, pid, timestamp, etc.)
+            profile: Game profile object with additional metadata
+        """
+        # Update hex widget
+        self.hex_widget.update_game(game_info)
+
+        # Update title
+        if game_info:
+            self.title.setText(f"Game Detected: {game_info.get('name', 'Unknown')}")
+        else:
+            self.title.setText("Game Status")
+
+        # Update stats
+        if game_info:
+            self.stat_labels["STATUS"].setText("Active")
+            self.stat_labels["PID"].setText(str(game_info.get('pid', '--')))
+
+            if profile:
+                self.stat_labels["PROFILE"].setText(profile.display_name[:15] + "..." if len(profile.display_name) > 15 else profile.display_name)
+            else:
+                self.stat_labels["PROFILE"].setText("Generic")
+        else:
+            self.stat_labels["STATUS"].setText("Waiting")
+            self.stat_labels["PROFILE"].setText("None")
+            self.stat_labels["PID"].setText("--")
 
 
 class SettingsPanel(NeonCard):
@@ -393,12 +498,40 @@ class OverlayWindow(QWidget):
             int(getattr(config, "overlay_height", 360)),
         )
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(8, 8, 8, 8)
-        self.chat = ChatWidget(assistant, title="Overlay")
-        layout.addWidget(self.chat)
+        # Main layout with no margins (transparent background)
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
 
-        overlay_styles = ds.generate_overlay_stylesheet(getattr(config, "overlay_opacity", 0.8)) if ds else ""
+        # Create background panel with semi-transparent background
+        self.background_panel = QFrame()
+        self.background_panel.setObjectName("OverlayBackground")
+
+        # Apply semi-transparent background styling
+        opacity = getattr(config, "overlay_opacity", 0.8)
+        bg_alpha = format(int(opacity * 255), '02x')
+        self.background_panel.setStyleSheet(f"""
+            QFrame#OverlayBackground {{
+                background-color: #0F0F1A{bg_alpha};
+                border: 2px solid #00BFFF;
+                border-radius: 12px;
+            }}
+        """)
+
+        # Layout for the panel content
+        panel_layout = QVBoxLayout(self.background_panel)
+        panel_layout.setContentsMargins(8, 8, 8, 8)
+        panel_layout.setSpacing(8)
+
+        # Add chat widget to panel
+        self.chat = ChatWidget(assistant, title="Overlay")
+        panel_layout.addWidget(self.chat)
+
+        # Add panel to main layout
+        main_layout.addWidget(self.background_panel)
+
+        # Apply overlay styles
+        overlay_styles = ds.generate_overlay_stylesheet(opacity) if ds else ""
         self.setStyleSheet(overlay_styles + "\n" + _load_qss())
 
         # Debounce timer for position/size saving (reduces I/O during drag/resize)
@@ -661,14 +794,31 @@ class MainWindow(QMainWindow):
 
     def _update_game_status(self, game: dict) -> None:
         """Update the game status panel with detected game"""
-        if hasattr(self.game_status_panel, 'hex_widget'):
+        # Try to find a matching game profile
+        profile = None
+        if hasattr(self, 'game_profile_store'):
+            try:
+                from src.game_profile import GameProfileStore
+                store = GameProfileStore()
+                profile = store.get_profile_for_game(game.get('name', ''))
+            except Exception as e:
+                logger.debug(f"Could not load game profile: {e}")
+
+        # Update the panel with game info and profile
+        if hasattr(self.game_status_panel, 'update_game_info'):
+            self.game_status_panel.update_game_info(game, profile)
+        elif hasattr(self.game_status_panel, 'hex_widget'):
+            # Fallback for older interface
             self.game_status_panel.hex_widget.game_label = game.get('name', 'Unknown')
             self.game_status_panel.hex_widget.status_text = "Detected"
             self.game_status_panel.hex_widget.update()
 
     def _clear_game_status(self) -> None:
         """Clear the game status display"""
-        if hasattr(self.game_status_panel, 'hex_widget'):
+        if hasattr(self.game_status_panel, 'update_game_info'):
+            self.game_status_panel.update_game_info(None, None)
+        elif hasattr(self.game_status_panel, 'hex_widget'):
+            # Fallback for older interface
             self.game_status_panel.hex_widget.game_label = "No Game"
             self.game_status_panel.hex_widget.status_text = "Waiting..."
             self.game_status_panel.hex_widget.update()
