@@ -14,7 +14,7 @@ A sophisticated desktop AI gaming companion that automatically detects what game
 
 ### Core Features
 - **🎯 Automatic Game Detection** - Monitors 15 pre-configured games with custom profile support
-- **🤖 Multi-Provider AI** - Seamlessly switch between OpenAI, Anthropic, and Google Gemini
+- **🤖 Multi-Provider AI** - Seamlessly switch between OpenAI, Anthropic, Google Gemini, and Ollama (local)
 - **📚 Knowledge System** - Per-game knowledge packs with semantic search (TF-IDF)
 - **⌨️ Macro & Automation** - Record and execute keyboard/mouse macros with hotkey support
 - **📊 Session Coaching** - AI-powered gameplay insights and improvement tips
@@ -47,10 +47,11 @@ The assistant automatically:
 ### Prerequisites
 
 - Python 3.8 or higher
-- An API key from one of:
-  - [Anthropic (Claude)](https://www.anthropic.com/) (recommended)
-  - [OpenAI (GPT)](https://platform.openai.com/)
-  - [Google (Gemini)](https://aistudio.google.com/app/apikey)
+- **One of the following AI providers:**
+  - [Anthropic (Claude)](https://www.anthropic.com/) - Cloud API (recommended)
+  - [OpenAI (GPT)](https://platform.openai.com/) - Cloud API
+  - [Google (Gemini)](https://aistudio.google.com/app/apikey) - Cloud API
+  - [Ollama](https://ollama.com/) - Local models (free, no API key required)
 
 ### Installation
 
@@ -71,8 +72,8 @@ The assistant automatically:
    ```
 
    **The Setup Wizard will appear on first run** and guide you through:
-   - Selecting your AI provider (Anthropic, OpenAI, or Google Gemini)
-   - Entering your API key
+   - Selecting your AI provider (Anthropic, OpenAI, Google Gemini, or Ollama)
+   - Entering your API key (or configuring Ollama host for local models)
    - Testing the connection
    - Saving your configuration
 
@@ -96,7 +97,53 @@ AI_PROVIDER=openai
 # OR for Google Gemini:
 GEMINI_API_KEY=your_api_key_here
 AI_PROVIDER=gemini
+
+# OR for Ollama (local models - no API key required):
+AI_PROVIDER=ollama
+OLLAMA_HOST=http://localhost:11434  # Default Ollama host
 ```
+
+### 🦙 Using Ollama (Local AI Models)
+
+Ollama allows you to run AI models **completely offline and for free** on your own computer! Perfect for privacy-conscious users or those who want unlimited usage without API costs.
+
+**Prerequisites:**
+1. Install Ollama from [ollama.com](https://ollama.com/)
+2. Pull at least one model (e.g., `ollama pull llama3`)
+
+**Setup Steps:**
+
+```bash
+# 1. Install Ollama (if not already installed)
+# Visit https://ollama.com/ and download the installer for your OS
+
+# 2. Pull a recommended model (choose one):
+ollama pull llama3          # Fast, general-purpose (recommended)
+ollama pull llama3.1        # Improved version of llama3
+ollama pull mistral         # Alternative, fast and efficient
+ollama pull codellama       # Optimized for coding assistance
+
+# 3. Verify Ollama is running:
+ollama list                 # Should show your installed models
+
+# 4. Configure Omnix to use Ollama:
+# - Open Omnix Settings > AI Providers tab
+# - Select "Ollama (Local)" from the dropdown
+# - Base URL should be: http://localhost:11434 (default)
+# - Click "Test Connection" to verify
+# - Click "Save" to apply changes
+```
+
+**Advantages:**
+- ✅ **Free** - No API costs
+- ✅ **Private** - All data stays on your machine
+- ✅ **Offline** - Works without internet
+- ✅ **No rate limits** - Use as much as you want
+
+**Disadvantages:**
+- ⚠️ Requires decent hardware (8GB+ RAM recommended)
+- ⚠️ Slower than cloud APIs (depends on your hardware)
+- ⚠️ May produce lower quality responses than GPT-4 or Claude
 
 ## 📖 Usage
 
@@ -504,7 +551,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## 🙏 Acknowledgments
 
 - Gaming wikis and communities for game information
-- OpenAI and Anthropic for AI capabilities
+- OpenAI, Anthropic, Google, and Ollama for AI capabilities
 - The gaming community for inspiration
 
 ## 🤝 Support
@@ -517,6 +564,12 @@ For issues, questions, or suggestions:
 ## 📝 Recent Updates
 
 ### Version 1.3+ (2025-11-20)
+**New Features:**
+- ✅ **Ollama Support** - Local AI model support re-added with full integration
+  - Run AI models completely offline and for free
+  - No API key required, unlimited usage
+  - Support for llama3, mistral, codellama, and other Ollama models
+
 **CI/CD & Infrastructure:**
 - ✅ **CI/CD Pipeline** - Self-hosted Proxmox infrastructure with automated testing
 - ✅ **Staging Deployment** - Automated deployment to staging environment
@@ -577,9 +630,10 @@ For issues, questions, or suggestions:
 - ✅ **Test Suite Cleanup** - Removed 1,000+ lines of deprecated code
 
 ### Supported AI Providers
-- ✅ **Anthropic Claude** - Opus, Sonnet, Haiku models
-- ✅ **OpenAI GPT** - GPT-4, GPT-3.5-turbo
-- ✅ **Google Gemini** - Gemini Pro, Gemini Pro Vision
+- ✅ **Anthropic Claude** - Opus, Sonnet, Haiku models (cloud API)
+- ✅ **OpenAI GPT** - GPT-4, GPT-3.5-turbo (cloud API)
+- ✅ **Google Gemini** - Gemini Pro, Gemini Pro Vision (cloud API)
+- ✅ **Ollama** - llama3, mistral, codellama, and more (local, free)
 
 ## 🗺️ Roadmap
 
@@ -596,7 +650,6 @@ For issues, questions, or suggestions:
 - [ ] **Advanced Macro Recorder** - Visual macro builder with conditional logic
 
 ### Under Consideration
-- [ ] **Local AI Models** - Support for local LLMs (Ollama integration)
 - [ ] **Screenshot Analysis** - AI vision for gameplay screenshots
 - [ ] **Streaming Integration** - Twitch/YouTube chat integration
 - [ ] **Tournament Mode** - Features for competitive gaming
