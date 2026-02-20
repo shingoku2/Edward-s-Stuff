@@ -35,7 +35,7 @@ jobs:
       - name: Check Rust
         run: |
           cd omnix-tauri/src-tauri
-          cargo check --locked 2>&1 || cargo check 2>&1
+          cargo check --locked
 
   frontend-build:
     runs-on: ubuntu-latest
