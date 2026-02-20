@@ -50,5 +50,5 @@ jobs:
       - name: Install and build frontend
         run: |
           cd omnix-tauri
-          npm ci 2>/dev/null || npm install
+          npm ci || npm install
           npm run build
