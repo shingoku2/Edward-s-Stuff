@@ -31,6 +31,8 @@ jobs:
             ~/.cargo/git
             omnix-tauri/src-tauri/target
           key: ${{ runner.os }}-cargo-${{ hashFiles('omnix-tauri/src-tauri/Cargo.lock', 'omnix-tauri/src-tauri/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ hashFiles('omnix-tauri/src-tauri/Cargo.toml') }}
 
       - name: Check Rust
         run: |
@@ -76,6 +78,17 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-action@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            omnix-tauri/src-tauri/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('omnix-tauri/src-tauri/Cargo.lock', 'omnix-tauri/src-tauri/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ hashFiles('omnix-tauri/src-tauri/Cargo.toml') }}
 
       - name: Install deps and run full Tauri build
         run: |
