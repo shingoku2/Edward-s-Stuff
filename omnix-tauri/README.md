@@ -1,6 +1,8 @@
 # Omnix (Tauri)
 
-Omnix Gaming Companion rebuilt with **Rust** and **Tauri 2**. Same data directory as the Python app (`~/.gaming_ai_assistant` on Unix, `%USERPROFILE%\.gaming_ai_assistant` on Windows) for migration.
+Omnix Gaming Companion rebuilt with **Rust** and **Tauri 2**. It uses the same user data directory as the Python app (`~/.gaming_ai_assistant` on Unix, `%USERPROFILE%\.gaming_ai_assistant` on Windows) so you can migrate or share data between versions.
+
+---
 
 ## Prerequisites
 
@@ -8,12 +10,16 @@ Omnix Gaming Companion rebuilt with **Rust** and **Tauri 2**. Same data director
 - **Rust** (rustup) and a C++ build toolchain (Windows: Visual Studio Build Tools)
 - **Ollama** running locally (e.g. `ollama serve`, `ollama pull llama3`)
 
+---
+
 ## Setup
 
 ```bash
 cd omnix-tauri
 npm install
 ```
+
+---
 
 ## Development
 
@@ -23,60 +29,73 @@ npm run tauri:dev
 
 This starts the Vite dev server and the Tauri app. Ensure Ollama is running for chat.
 
+---
+
 ## Build
 
 ```bash
 npm run tauri:build
 ```
 
-Produces installers in `src-tauri/target/release/bundle/`. For proper app icons, run:
+Produces installers in `src-tauri/target/release/bundle/`. To set app icons:
 
 ```bash
 npm run tauri icon path/to/your/icon.png
 ```
 
+---
+
 ## Features
 
-- **Config**: Load/save from `~/.gaming_ai_assistant` (same as Python app)
-- **Game detection**: Polls running processes and matches known games (sysinfo)
-- **Ollama chat**: Send message, with knowledge context and optional HRM reasoning prefix
-- **Settings**: AI model, theme, overlay opacity
-- **Overlay**: Toggle overlay window (compact second window). The overlay loads the full app (same `index.html`); a minimal overlay route can be added later for a lighter window.
-- **Game profiles**: Load/save `game_profiles.json` (compatible with Python)
-- **Macros**: Store and run macros (key press, delay, mouse click) via enigo
-- **Macro UI**: List, run, delete macros from the Macros modal
-- **Keybinds**: Config stored in `keybinds.json` (global hotkey registration can be added later)
-- **Knowledge**: TF-IDF index; search and add chunks; context injected into chat
-- **Session**: Events logged to `logs/session.jsonl`
-- **HRM**: Template-based reasoning prefix for complex questions
+| Area | Description |
+|------|-------------|
+| **Config** | Load/save from `~/.gaming_ai_assistant`; Ollama base URL and model, theme, overlay opacity. URL validated (http/https, no metadata hosts). |
+| **Game detection** | Polls running processes (sysinfo) and matches exe names to game profiles. |
+| **Ollama chat** | Send message; response via `message-received` event. Uses knowledge context and optional HRM-style reasoning prefix. |
+| **Settings** | Tabbed modal: General (AI), Game Profiles, Knowledge Packs, Keybindings, Macros, App Appearance, Overlay Appearance. |
+| **Game profiles** | CRUD for `game_profiles.json` (compatible with Python app). |
+| **Macros** | Store and run macros (delay, key press, key down/up, mouse click, move, scroll) via enigo. List, create, edit, run, delete from Settings or Macros modal. Events: `macro-finished`, `macro-error`. |
+| **Keybinds** | Overlay hotkey stored in `keybinds.json`; saved for future use (global hotkey registration not yet implemented). |
+| **Knowledge** | Per-game TF-IDF index; add chunks from Settings → Knowledge Packs; search augments chat context. |
+| **Session** | Events logged to `logs/session.jsonl`. |
+| **Overlay** | Toggle a second window. Currently loads the full app (same `index.html`); a minimal overlay route can be added later. |
+| **Exit** | Closing the main window exits the app. |
 
-## Commands (Rust)
+---
 
-- `get_config`, `save_settings` – config
-- `send_message` – send to Ollama (response via `message-received` event); uses knowledge context and HRM when applicable
-- `get_detected_game`, `list_ollama_models`
-- `get_game_profiles`, `save_game_profile`
-- `get_macros`, `save_macro`, `delete_macro`, `execute_macro`
-- `knowledge_search`, `knowledge_add_chunks`
-- `toggle_overlay`
+## Tauri API
 
-## Events
+**Commands:** `get_config`, `save_settings`, `send_message`, `get_detected_game`, `list_ollama_models`, `get_game_profiles`, `save_game_profile`, `delete_game_profile`, `get_macros`, `save_macro`, `delete_macro`, `execute_macro`, `knowledge_search`, `knowledge_add_chunks`, `get_keybinds`, `save_keybinds`, `toggle_overlay`.
 
-- `message-received` – AI response text (string)
-- `macro-finished` – macro ID (string) when execution completed successfully
-- `macro-error` – `(macro_id, error_message)` when execution failed
+**Events:** `message-received` (AI response string), `macro-finished` (macro id), `macro-error` (id, message).
+
+---
 
 ## Project layout
 
-- `src/` – Vite + React frontend
-- `src-tauri/` – Rust backend
-  - `src/config.rs` – config and user data dir
-  - `src/game.rs` – game detection (sysinfo)
-  - `src/ollama.rs` – Ollama API client (list models)
-  - `src/profile.rs` – game profiles (game_profiles.json)
-  - `src/macros.rs` – macro store and execution (enigo)
-  - `src/keybind.rs` – keybind config
-  - `src/knowledge.rs` – TF-IDF index and search
-  - `src/session.rs` – session event log
-  - `src/hrm.rs` – reasoning template for complex questions
-  - `src/lib.rs` – Tauri commands and app state
+| Path | Purpose |
+|------|---------|
+| `src/` | Vite + React frontend (`App.tsx`, `App.css`, `main.tsx`) |
+| `src-tauri/src/lib.rs` | Tauri commands, app state, window lifecycle |
+| `src-tauri/src/config.rs` | Config, config dir, Ollama URL validation |
+| `src-tauri/src/game.rs` | Game detection (sysinfo) |
+| `src-tauri/src/ollama.rs` | Ollama API client (list models) |
+| `src-tauri/src/profile.rs` | Game profiles (game_profiles.json) |
+| `src-tauri/src/macros.rs` | Macro store and execution (enigo) |
+| `src-tauri/src/keybind.rs` | Keybind config |
+| `src-tauri/src/knowledge.rs` | TF-IDF index and search |
+| `src-tauri/src/session.rs` | Session event log |
+| `src-tauri/src/hrm.rs` | Reasoning template for complex questions |
+
+---
+
+## For AI assistants and contributors
+
+See **[CLAUDE.md](./CLAUDE.md)** in this directory for an AI-oriented guide: architecture, backend modules, frontend structure, commands/events, data paths, and conventions.
+
+---
+
+## Related
+
+- Legacy Python/PyQt6 Omnix: see repository root `README.md`, `CLAUDE.md`, and `AGENTS.md`.
+- CI: `.github/workflows/omnix-tauri-ci.yml` (Rust check, frontend build).
