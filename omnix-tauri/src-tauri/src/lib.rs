@@ -69,6 +69,12 @@ async fn send_message(
         .map_err(|e| format!("Invalid Ollama URL: {}", e))?;
     let ollama_url = config.ollama_base_url.clone();
     let model = config.ollama_model.clone();
+    let current_game = state.game_detector.lock().ok().and_then(|mut d| d.current_game());
+    let game_context = current_game
+        .as_ref()
+        .map(|g| format!("The user is currently playing: {}. Give relevant, game-specific advice when possible.", g.name))
+        .unwrap_or_else(|| "The user may or may not be in a game; answer generally as a gaming assistant.".to_string());
+
     let context_chunks = knowledge::search(&message, 5).unwrap_or_default();
     let context = if context_chunks.is_empty() {
         message.clone()
@@ -77,8 +83,8 @@ async fn send_message(
         format!("Relevant context from knowledge base:\n{ctx}\n\nUser question: {message}")
     };
     let system_prompt = match hrm::reasoning_prefix_for_question(&message) {
-        Some(prefix) => format!("You are a helpful gaming assistant. Use any provided context to inform your answer. {prefix}"),
-        None => "You are a helpful gaming assistant. Use any provided context to inform your answer.".to_string(),
+        Some(prefix) => format!("You are a helpful gaming assistant. {game_context} Use any provided context to inform your answer. {prefix}"),
+        None => format!("You are a helpful gaming assistant. {game_context} Use any provided context to inform your answer."),
     };
     session::log_event("user_message", &message);
     tauri::async_runtime::spawn(async move {
@@ -232,6 +238,7 @@ async fn toggle_overlay(app: AppHandle) -> Result<(), String> {
             .inner_size(400.0, 300.0)
             .decorations(false)
             .transparent(true)
+            .set_always_on_top(true)
             .build()
             .map_err(|e| e.to_string())?;
     }
