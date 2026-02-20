@@ -153,7 +153,12 @@ function App() {
   const messageUnlistenRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
-    getCurrentWindow().then((w) => setIsOverlay(w.label === 'overlay')).catch(() => {})
+    try {
+      const w = getCurrentWindow()
+      setIsOverlay(w.label === 'overlay')
+    } catch {
+      // not in Tauri (e.g. browser dev)
+    }
   }, [])
 
   useEffect(() => {

@@ -72,6 +72,7 @@ impl GameDetector {
         let mut names: Vec<String> = self
             .sys
             .processes()
+            .iter()
             .map(|(_, p)| p.name().to_string_lossy().into_owned())
             .collect();
         names.sort();
