@@ -30,7 +30,7 @@ __pycache__/
 # Editors
 .vscode/
 .idea/
-.vs/
+.vs/                 # Visual Studio IDE workspace (local paths, do not commit)
 *.swp
 *.swo
 
