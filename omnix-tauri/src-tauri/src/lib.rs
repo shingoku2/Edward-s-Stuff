@@ -232,13 +232,16 @@ async fn toggle_overlay(app: AppHandle) -> Result<(), String> {
             overlay.set_focus().map_err(|e| e.to_string())?;
         }
     } else {
-        // Overlay loads the full app (index.html); a minimal overlay route could be used for a lighter window.
-        tauri::WebviewWindowBuilder::new(&app, "overlay", tauri::WebviewUrl::App("index.html".into()))
-            .title("Omnix Overlay")
-            .inner_size(400.0, 300.0)
-            .decorations(false)
-            .transparent(true)
-            .always_on_top(true)
+        // Create overlay from tauri.conf.json window config (label "overlay", create: false).
+        let overlay_config = app
+            .config()
+            .app
+            .windows
+            .iter()
+            .find(|w| w.label.as_deref() == Some("overlay"))
+            .ok_or("overlay window not in tauri.conf.json")?;
+        tauri::WebviewWindowBuilder::from_config(&app, overlay_config)
+            .map_err(|e: tauri::Error| e.to_string())?
             .build()
             .map_err(|e: tauri::Error| e.to_string())?;
     }
