@@ -1,0 +1,54 @@
+name: Omnix Tauri CI
+
+on:
+  push:
+    branches: [main, staging, dev]
+    paths:
+      - 'omnix-tauri/**'
+      - '.github/workflows/omnix-tauri-ci.yml'
+  pull_request:
+    branches: [main, staging]
+    paths:
+      - 'omnix-tauri/**'
+      - '.github/workflows/omnix-tauri-ci.yml'
+
+jobs:
+  rust-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-action@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            omnix-tauri/src-tauri/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('omnix-tauri/src-tauri/Cargo.lock', 'omnix-tauri/src-tauri/Cargo.toml') }}
+
+      - name: Check Rust
+        run: |
+          cd omnix-tauri/src-tauri
+          cargo check --locked 2>&1 || cargo check 2>&1
+
+  frontend-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install and build frontend
+        run: |
+          cd omnix-tauri
+          npm ci 2>/dev/null || npm install
+          npm run build
