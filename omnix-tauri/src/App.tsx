@@ -162,7 +162,7 @@ function App() {
     setSettingsOpen(true)
     invoke<AppConfig>('get_config').then((c) => { setConfig(c); setSettingsForm((s) => ({ ...s, model: c.ollama_model, theme: c.theme, opacity: c.overlay_opacity, baseUrl: c.ollama_base_url || 'http://localhost:11434' })); }).catch(() => {})
     invoke<KeybindConfig>('get_keybinds').then(setKeybindForm).catch(() => {})
-    invoke<GameProfile[]>('get_game_profiles').then(setGameProfiles).catch(() => [])
+    invoke<GameProfile[]>('get_game_profiles').then(setGameProfiles).catch(() => setGameProfiles([]))
   }
 
   useEffect(() => {
@@ -455,7 +455,7 @@ function App() {
                   <p className="placeholder">Add text chunks to the knowledge index for a game profile.</p>
                   <KnowledgePacksTabInline
                     gameProfiles={gameProfiles}
-                    onAdded={() => invoke<string[]>('list_ollama_models').then(() => {})}
+                    onAdded={() => {}}
                   />
                 </>
               )}
