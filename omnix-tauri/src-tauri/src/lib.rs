@@ -238,9 +238,9 @@ async fn toggle_overlay(app: AppHandle) -> Result<(), String> {
             .inner_size(400.0, 300.0)
             .decorations(false)
             .transparent(true)
-            .set_always_on_top(true)
+            .always_on_top(true)
             .build()
-            .map_err(|e| e.to_string())?;
+            .map_err(|e: tauri::Error| e.to_string())?;
     }
     Ok(())
 }
