@@ -36,6 +36,27 @@ body {
   padding: 16px;
   gap: 16px;
 }
+.app.app-overlay {
+  grid-template-rows: auto auto 1fr auto;
+}
+.overlay-drag-region {
+  grid-column: 1 / -1;
+  padding: 6px 12px;
+  background: rgba(0, 212, 255, 0.12);
+  border-bottom: 1px solid rgba(0, 212, 255, 0.4);
+  cursor: grab;
+  user-select: none;
+  display: flex;
+  align-items: center;
+}
+.overlay-drag-region:active {
+  cursor: grabbing;
+}
+.overlay-drag-label {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+}
 
 /* Top-left brand */
 .brand {
@@ -596,6 +617,54 @@ body {
 .btn-ghost:hover {
   color: var(--accent);
   border-color: var(--accent);
+}
+.process-picker {
+  margin-top: 8px;
+  padding: 12px;
+  border: 1px solid rgba(0, 212, 255, 0.25);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+}
+.process-picker-header {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.process-picker-filter {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--text-primary);
+  font-size: 13px;
+}
+.process-picker-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.process-picker-item {
+  margin: 0;
+}
+.process-picker-name {
+  display: block;
+  width: 100%;
+  padding: 6px 8px;
+  text-align: left;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+}
+.process-picker-name:hover {
+  background: rgba(0, 212, 255, 0.15);
+  color: var(--accent);
 }
 .macro-list {
   list-style: none;

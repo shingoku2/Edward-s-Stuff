@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
+import { getCurrentWindow } from '@tauri-apps/api/window'
 import './App.css'
 
 function slugFromDisplayName(name: string): string {
@@ -145,7 +146,15 @@ function App() {
   const [gameStats, setGameStats] = useState<GameStats>({ kd: '—', match: '—', wins: '—' })
   const [settingsLoadError, setSettingsLoadError] = useState<string | null>(null)
   const [keybindSaveFeedback, setKeybindSaveFeedback] = useState<string | null>(null)
+  const [isOverlay, setIsOverlay] = useState(false)
+  const [runningProcesses, setRunningProcesses] = useState<string[]>([])
+  const [processPickerOpen, setProcessPickerOpen] = useState(false)
+  const [processFilter, setProcessFilter] = useState('')
   const messageUnlistenRef = useRef<(() => void) | null>(null)
+
+  useEffect(() => {
+    getCurrentWindow().then((w) => setIsOverlay(w.label === 'overlay')).catch(() => {})
+  }, [])
 
   useEffect(() => {
     invoke<AppConfig>('get_config').then(setConfig).catch(console.error)
@@ -253,7 +262,12 @@ function App() {
   }
 
   return (
-    <div className="app">
+    <div className={`app ${isOverlay ? 'app-overlay' : ''}`}>
+      {isOverlay && (
+        <div className="overlay-drag-region" data-tauri-drag-region>
+          <span className="overlay-drag-label">OMNIX — drag to move</span>
+        </div>
+      )}
       <div className="brand">
         <div className="brand-text">
           <h1 className="brand-title">OMNIX</h1>
@@ -482,6 +496,51 @@ function App() {
                       <input value={profileEdit.display_name} onChange={(e) => setProfileEdit((p) => p && { ...p, display_name: e.target.value })} />
                       <label>Executables (comma-separated)</label>
                       <input value={(profileEdit.exe_names || []).join(', ')} onChange={(e) => setProfileEdit((p) => p && { ...p, exe_names: e.target.value.split(',').map((x) => x.trim()).filter(Boolean) })} />
+                      <p className="settings-hint">Start your game, then pick its process below so Omnix can detect when it&apos;s running.</p>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => {
+                          setProcessPickerOpen(true)
+                          setProcessFilter('')
+                          invoke<string[]>('get_running_processes').then(setRunningProcesses).catch(() => setRunningProcesses([]))
+                        }}
+                      >
+                        Pick from running processes…
+                      </button>
+                      {processPickerOpen && (
+                        <div className="process-picker">
+                          <div className="process-picker-header">
+                            <input
+                              type="text"
+                              placeholder="Filter by name…"
+                              value={processFilter}
+                              onChange={(e) => setProcessFilter(e.target.value)}
+                              className="process-picker-filter"
+                            />
+                            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setProcessPickerOpen(false)}>Done</button>
+                          </div>
+                          <ul className="process-picker-list">
+                            {runningProcesses
+                              .filter((name) => !processFilter.trim() || name.toLowerCase().includes(processFilter.toLowerCase()))
+                              .map((name) => (
+                                <li key={name} className="process-picker-item">
+                                  <button
+                                    type="button"
+                                    className="process-picker-name"
+                                    onClick={() => {
+                                      const current = profileEdit?.exe_names || []
+                                      if (current.includes(name)) return
+                                      setProfileEdit((p) => p && { ...p, exe_names: [...current, name] })
+                                    }}
+                                  >
+                                    {name}
+                                  </button>
+                                </li>
+                              ))}
+                          </ul>
+                        </div>
+                      )}
                       <label>System prompt</label>
                       <textarea value={profileEdit.system_prompt} onChange={(e) => setProfileEdit((p) => p && { ...p, system_prompt: e.target.value })} rows={3} />
                       <label>Default model</label>

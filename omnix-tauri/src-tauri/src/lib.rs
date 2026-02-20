@@ -124,6 +124,12 @@ fn get_detected_game(state: State<AppState>) -> Result<Option<game::GameInfo>, S
 }
 
 #[tauri::command]
+fn get_running_processes(state: State<AppState>) -> Result<Vec<String>, String> {
+    let mut detector = state.game_detector.lock().map_err(|e| e.to_string())?;
+    Ok(detector.running_process_names())
+}
+
+#[tauri::command]
 async fn list_ollama_models(state: State<'_, AppState>) -> Result<Vec<String>, String> {
     let url = state.config.lock().map_err(|e| e.to_string())?.ollama_base_url.clone();
     let inner = tauri::async_runtime::spawn_blocking(move || {
@@ -251,6 +257,7 @@ pub fn run() {
             save_settings,
             send_message,
             get_detected_game,
+            get_running_processes,
             list_ollama_models,
             get_game_profiles,
             save_game_profile,
