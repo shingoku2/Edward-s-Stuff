@@ -1,7 +1,16 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import './App.css'
+
+function slugFromDisplayName(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9_-]/g, '')
+    || `profile-${Date.now()}`
+}
 
 interface AppConfig {
   ai_provider: string
@@ -134,6 +143,9 @@ function App() {
   const [macroStepsJson, setMacroStepsJson] = useState('[]')
   const [overlayMode, setOverlayMode] = useState<'compact' | 'full'>('compact')
   const [gameStats, setGameStats] = useState<GameStats>({ kd: '—', match: '—', wins: '—' })
+  const [settingsLoadError, setSettingsLoadError] = useState<string | null>(null)
+  const [keybindSaveFeedback, setKeybindSaveFeedback] = useState<string | null>(null)
+  const messageUnlistenRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
     invoke<AppConfig>('get_config').then(setConfig).catch(console.error)
@@ -160,18 +172,39 @@ function App() {
   const openSettings = (tab: SettingsTabIndex = 0) => {
     setSettingsTabIndex(tab)
     setSettingsOpen(true)
-    invoke<AppConfig>('get_config').then((c) => { setConfig(c); setSettingsForm((s) => ({ ...s, model: c.ollama_model, theme: c.theme, opacity: c.overlay_opacity, baseUrl: c.ollama_base_url || 'http://localhost:11434' })); }).catch(() => {})
-    invoke<KeybindConfig>('get_keybinds').then(setKeybindForm).catch(() => {})
-    invoke<GameProfile[]>('get_game_profiles').then(setGameProfiles).catch(() => setGameProfiles([]))
+    setSettingsLoadError(null)
+    invoke<AppConfig>('get_config')
+      .then((c) => {
+        setConfig(c)
+        setSettingsForm((s) => ({ ...s, model: c.ollama_model, theme: c.theme, opacity: c.overlay_opacity, baseUrl: c.ollama_base_url || 'http://localhost:11434' }))
+      })
+      .catch((err) => {
+        setConfig(null)
+        setSettingsLoadError(err ? String(err) : 'Failed to load settings')
+      })
+      .finally(() => {
+        invoke<KeybindConfig>('get_keybinds').then(setKeybindForm).catch(() => {})
+        invoke<GameProfile[]>('get_game_profiles').then(setGameProfiles).catch(() => setGameProfiles([]))
+      })
   }
 
   useEffect(() => {
-    const unlisten = listen<string>('message-received', (e) => {
-      setMessages((prev) => [...prev, { role: 'assistant', content: e.payload }])
-      setLoading(false)
+    let cancelled = false
+    listen<string>('message-received', (e) => {
+      if (!cancelled) {
+        setMessages((prev) => [...prev, { role: 'assistant', content: e.payload }])
+        setLoading(false)
+      }
+    }).then((unlisten) => {
+      messageUnlistenRef.current = unlisten
     })
     return () => {
-      unlisten.then((fn) => fn())
+      cancelled = true
+      const fn = messageUnlistenRef.current
+      if (fn) {
+        messageUnlistenRef.current = null
+        fn()
+      }
     }
   }, [])
 
@@ -201,9 +234,18 @@ function App() {
   }
 
   const saveKeybinds = () => {
+    setKeybindSaveFeedback(null)
     invoke('save_keybinds', { config: keybindForm })
-      .then(() => {})
-      .catch(console.error)
+      .then(() => invoke<KeybindConfig>('get_keybinds'))
+      .then((k) => {
+        setKeybindForm(k)
+        setKeybindSaveFeedback('Keybinds saved.')
+        setTimeout(() => setKeybindSaveFeedback(null), 2000)
+      })
+      .catch((err) => {
+        console.error(err)
+        setKeybindSaveFeedback('Failed to save.')
+      })
   }
 
   const toggleOverlay = () => {
@@ -290,6 +332,7 @@ function App() {
                 <span className="stat-value stat-wins">{gameStats.wins}</span>
               </div>
             </div>
+            <p className="game-stats-hint">Stats from game when available.</p>
           </div>
         </section>
 
@@ -311,12 +354,12 @@ function App() {
               </li>
               <li className="settings-item" onClick={() => openSettings(0)}>
                 <span className="item-icon">◔</span>
-                <span>Notifications</span>
+                <span>Notifications (coming soon)</span>
                 <span className="item-chevron">›</span>
               </li>
               <li className="settings-item" onClick={() => openSettings(0)}>
                 <span className="item-icon">🔒</span>
-                <span>Privacy</span>
+                <span>Privacy (coming soon)</span>
                 <span className="item-chevron">›</span>
               </li>
             </ul>
@@ -348,8 +391,8 @@ function App() {
 
       {macrosOpen && (
         <div className="modal-overlay" onClick={() => setMacrosOpen(false)}>
-          <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
-            <h2>Macros</h2>
+          <div className="modal modal-wide" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="macros-title" onKeyDown={(e) => e.key === 'Escape' && setMacrosOpen(false)}>
+            <h2 id="macros-title">Macros</h2>
             <ul className="macro-list">
               {macros.map((m) => (
                 <li key={m.id} className="macro-item">
@@ -374,8 +417,9 @@ function App() {
 
       {settingsOpen && (
         <div className="modal-overlay" onClick={() => setSettingsOpen(false)}>
-          <div className="modal modal-settings" onClick={(e) => e.stopPropagation()}>
-            <h2>Settings</h2>
+          <div className="modal modal-settings" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="settings-title" onKeyDown={(e) => e.key === 'Escape' && setSettingsOpen(false)}>
+            <h2 id="settings-title">Settings</h2>
+            {settingsLoadError && <p className="settings-error" role="alert">{settingsLoadError}</p>}
             <div className="settings-tabs">
               {SETTINGS_TABS.map((label, i) => (
                 <button
@@ -444,7 +488,11 @@ function App() {
                       <input value={profileEdit.default_model || ''} onChange={(e) => setProfileEdit((p) => p && { ...p, default_model: e.target.value || null })} placeholder="ollama model" />
                       <div className="modal-actions">
                         <button type="button" className="btn btn-ghost" onClick={() => setProfileEdit(null)}>Cancel</button>
-                        <button type="button" className="btn btn-primary" onClick={() => { invoke('save_game_profile', { profile: profileEdit }).then(() => { setGameProfiles((prev) => { const idx = prev.findIndex((x) => x.id === profileEdit.id); const next = [...prev]; if (idx >= 0) next[idx] = profileEdit; else next.push(profileEdit); return next; }); setProfileEdit(null); }); }}>Save</button>
+                        <button type="button" className="btn btn-primary" onClick={() => {
+                          const profileToSave = profileEdit.id.trim() ? profileEdit : { ...profileEdit, id: slugFromDisplayName(profileEdit.display_name) }
+                          if (!profileToSave.id.trim()) { return }
+                          invoke('save_game_profile', { profile: profileToSave }).then(() => { setGameProfiles((prev) => { const idx = prev.findIndex((x) => x.id === profileToSave.id); const next = [...prev]; if (idx >= 0) next[idx] = profileToSave; else next.push(profileToSave); return next; }); setProfileEdit(null); })
+                        }}>Save</button>
                       </div>
                     </div>
                   )}
@@ -468,6 +516,8 @@ function App() {
                     onChange={(e) => setKeybindForm((k) => ({ ...k, overlay_hotkey: e.target.value }))}
                     placeholder="ctrl+shift+g"
                   />
+                  <p className="settings-hint">Saved for future use; overlay hotkey is not yet active (use the Overlay button for now).</p>
+                  {keybindSaveFeedback && <p className="settings-feedback" role="status">{keybindSaveFeedback}</p>}
                   <div className="modal-actions">
                     <button type="button" className="btn btn-primary" onClick={saveKeybinds}>Save</button>
                   </div>

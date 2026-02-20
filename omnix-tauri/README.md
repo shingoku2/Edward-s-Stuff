@@ -41,7 +41,7 @@ npm run tauri icon path/to/your/icon.png
 - **Game detection**: Polls running processes and matches known games (sysinfo)
 - **Ollama chat**: Send message, with knowledge context and optional HRM reasoning prefix
 - **Settings**: AI model, theme, overlay opacity
-- **Overlay**: Toggle overlay window (compact second window)
+- **Overlay**: Toggle overlay window (compact second window). The overlay loads the full app (same `index.html`); a minimal overlay route can be added later for a lighter window.
 - **Game profiles**: Load/save `game_profiles.json` (compatible with Python)
 - **Macros**: Store and run macros (key press, delay, mouse click) via enigo
 - **Macro UI**: List, run, delete macros from the Macros modal
@@ -63,6 +63,8 @@ npm run tauri icon path/to/your/icon.png
 ## Events
 
 - `message-received` – AI response text (string)
+- `macro-finished` – macro ID (string) when execution completed successfully
+- `macro-error` – `(macro_id, error_message)` when execution failed
 
 ## Project layout
 

@@ -40,6 +40,7 @@ fn save_settings(state: State<AppState>, settings: serde_json::Value) -> Result<
         }
         if let Some(v) = ai.get("base_url") {
             if let Some(s) = v.as_str() {
+                config::validate_ollama_base_url(s)?;
                 config.ollama_base_url = s.to_string();
             }
         }
@@ -64,6 +65,8 @@ async fn send_message(
     message: String,
 ) -> Result<(), String> {
     let config = state.config.lock().map_err(|e| e.to_string())?.clone();
+    config::validate_ollama_base_url(&config.ollama_base_url)
+        .map_err(|e| format!("Invalid Ollama URL: {}", e))?;
     let ollama_url = config.ollama_base_url.clone();
     let model = config.ollama_model.clone();
     let context_chunks = knowledge::search(&message, 5).unwrap_or_default();
@@ -121,10 +124,15 @@ fn get_detected_game(state: State<AppState>) -> Result<Option<game::GameInfo>, S
 }
 
 #[tauri::command]
-fn list_ollama_models(state: State<AppState>) -> Result<Vec<String>, String> {
-    let config = state.config.lock().map_err(|e| e.to_string())?;
-    let client = OllamaClient::new(config.ollama_base_url.clone());
-    client.list_models().map_err(|e| e.to_string())
+async fn list_ollama_models(state: State<'_, AppState>) -> Result<Vec<String>, String> {
+    let url = state.config.lock().map_err(|e| e.to_string())?.ollama_base_url.clone();
+    let inner = tauri::async_runtime::spawn_blocking(move || {
+        let client = OllamaClient::new(url);
+        client.list_models().map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+    inner
 }
 
 #[tauri::command]
@@ -170,9 +178,14 @@ fn delete_macro(id: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn execute_macro(macro_data: macros::Macro) -> Result<(), String> {
-    std::thread::spawn(move || {
-        let _ = macros::execute_macro(macro_data);
+fn execute_macro(app: AppHandle, macro_data: macros::Macro) -> Result<(), String> {
+    let id = macro_data.id.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let result = macros::execute_macro(macro_data);
+        let _ = match result {
+            Ok(()) => app.emit("macro-finished", id),
+            Err(e) => app.emit("macro-error", (id, e)),
+        };
     });
     Ok(())
 }
@@ -207,6 +220,7 @@ async fn toggle_overlay(app: AppHandle) -> Result<(), String> {
             overlay.set_focus().map_err(|e| e.to_string())?;
         }
     } else {
+        // Overlay loads the full app (index.html); a minimal overlay route could be used for a lighter window.
         tauri::WebviewWindowBuilder::new(&app, "overlay", tauri::WebviewUrl::App("index.html".into()))
             .title("Omnix Overlay")
             .inner_size(400.0, 300.0)

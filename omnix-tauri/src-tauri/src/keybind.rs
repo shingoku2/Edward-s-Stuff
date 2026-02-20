@@ -1,5 +1,8 @@
 //! Keybind config storage. Global hotkey registration (e.g. overlay toggle) can be
 //! added later via rdev or platform crates.
+//!
+//! Note: The overlay hotkey is saved for future use and is not yet active; overlay
+//! is opened via the UI button until global hotkey support is implemented.
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;

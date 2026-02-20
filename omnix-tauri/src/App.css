@@ -551,6 +551,22 @@ body {
   font-size: 14px;
   color: var(--accent);
 }
+.settings-error {
+  color: #f87171;
+  font-size: 13px;
+  margin: 0 0 8px;
+}
+.settings-feedback,
+.settings-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 0 0 8px;
+}
+.game-stats-hint {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin: 4px 0 0;
+}
 .modal-actions-footer {
   margin-top: 16px;
   padding-top: 12px;

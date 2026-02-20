@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+use url::Url;
 
 const CONFIG_DIR_NAME: &str = ".gaming_ai_assistant";
 const CONFIG_FILE: &str = "config.json";
@@ -26,6 +27,32 @@ impl Default for AppConfig {
             theme: "dark".to_string(),
         }
     }
+}
+
+/// Blocked hostnames for security (metadata/private).
+const BLOCKED_HOSTS: &[&str] = &["169.254.169.254", "metadata.google.internal"];
+
+/// Validates ollama_base_url: only http/https, must have a valid host.
+/// Rejects file: and blocks known metadata/private hosts.
+pub fn validate_ollama_base_url(url_str: &str) -> Result<(), String> {
+    let s = url_str.trim();
+    if s.is_empty() {
+        return Err("Ollama base URL cannot be empty".to_string());
+    }
+    let url = Url::parse(s).map_err(|e| format!("Invalid Ollama base URL: {}", e))?;
+    match url.scheme() {
+        "http" | "https" => {}
+        "file" => return Err("Ollama base URL cannot use file: scheme".to_string()),
+        other => return Err(format!("Ollama base URL must use http or https, got: {}", other)),
+    }
+    let host = url.host_str().ok_or("Ollama base URL must have a host")?;
+    let host_lower = host.to_lowercase();
+    for blocked in BLOCKED_HOSTS {
+        if host_lower == *blocked || host_lower.ends_with(&format!(".{}", blocked)) {
+            return Err(format!("Ollama base URL host is not allowed: {}", host));
+        }
+    }
+    Ok(())
 }
 
 impl AppConfig {

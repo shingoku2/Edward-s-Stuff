@@ -49,6 +49,21 @@ fn macros_dir() -> PathBuf {
     config_dir().join("macros")
 }
 
+/// Validates macro ID: only [a-zA-Z0-9_-]+. Rejects path segments and empty.
+fn validate_macro_id(id: &str) -> Result<(), String> {
+    if id.is_empty() {
+        return Err("Macro ID cannot be empty".to_string());
+    }
+    if id.contains('/') || id.contains('\\') || id.contains("..") || id.starts_with('.') {
+        return Err("Macro ID cannot contain path segments (/, \\, or .)".to_string());
+    }
+    let valid = id.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-');
+    if !valid {
+        return Err("Macro ID may only contain letters, numbers, underscores, and hyphens [a-zA-Z0-9_-]".to_string());
+    }
+    Ok(())
+}
+
 pub fn get_macros() -> Result<Vec<Macro>, String> {
     let dir = macros_dir();
     if !dir.exists() {
@@ -70,6 +85,7 @@ pub fn get_macros() -> Result<Vec<Macro>, String> {
 }
 
 pub fn save_macro(macro_data: Macro) -> Result<(), String> {
+    validate_macro_id(&macro_data.id)?;
     let dir = macros_dir();
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     let path = dir.join(format!("{}.json", macro_data.id));
@@ -79,7 +95,9 @@ pub fn save_macro(macro_data: Macro) -> Result<(), String> {
 }
 
 pub fn delete_macro(id: &str) -> Result<(), String> {
-    let path = macros_dir().join(format!("{}.json", id));
+    validate_macro_id(id)?;
+    let dir = macros_dir();
+    let path = dir.join(format!("{}.json", id));
     if path.exists() {
         std::fs::remove_file(path).map_err(|e| e.to_string())?;
     }
@@ -107,6 +125,8 @@ pub fn abort_macro() {
     MACRO_ABORT.store(true, Ordering::SeqCst);
 }
 
+/// Supported step types: delay, key_press, key_down, key_up, mouse_click, mouse_move, mouse_scroll.
+/// Unsupported types return an error instead of no-op.
 fn run_step(step: &MacroStep) -> Result<(), String> {
     match step.step_type.as_str() {
         "delay" => {
@@ -118,11 +138,31 @@ fn run_step(step: &MacroStep) -> Result<(), String> {
                 key_press(key)?;
             }
         }
+        "key_down" => {
+            if let Some(ref key) = step.key {
+                key_down(key)?;
+            }
+        }
+        "key_up" => {
+            if let Some(ref key) = step.key {
+                key_up(key)?;
+            }
+        }
         "mouse_click" => {
             let button = step.button.as_deref().unwrap_or("left");
             mouse_click(button)?;
         }
-        _ => {}
+        "mouse_move" => {
+            let x = step.x.unwrap_or(0);
+            let y = step.y.unwrap_or(0);
+            mouse_move(x, y)?;
+        }
+        "mouse_scroll" => {
+            mouse_scroll(step.scroll_amount)?;
+        }
+        other => {
+            return Err(format!("Unsupported macro step type: {}", other));
+        }
     }
     Ok(())
 }
@@ -135,6 +175,28 @@ fn key_press(key: &str) -> Result<(), String> {
         enigo.key(key_from_str(m), Direction::Press).map_err(|e| e.to_string())?;
     }
     enigo.key(key_from_str(&main_key), Direction::Click).map_err(|e| e.to_string())?;
+    for m in modifiers.iter().rev() {
+        enigo.key(key_from_str(m), Direction::Release).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+fn key_down(key: &str) -> Result<(), String> {
+    use enigo::{Direction, Enigo, Keyboard, Settings};
+    let (modifiers, main_key) = parse_key(key);
+    let mut enigo = Enigo::new(&Settings::default()).map_err(|e| e.to_string())?;
+    for m in &modifiers {
+        enigo.key(key_from_str(m), Direction::Press).map_err(|e| e.to_string())?;
+    }
+    enigo.key(key_from_str(&main_key), Direction::Press).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+fn key_up(key: &str) -> Result<(), String> {
+    use enigo::{Direction, Enigo, Keyboard, Settings};
+    let (modifiers, main_key) = parse_key(key);
+    let mut enigo = Enigo::new(&Settings::default()).map_err(|e| e.to_string())?;
+    enigo.key(key_from_str(&main_key), Direction::Release).map_err(|e| e.to_string())?;
     for m in modifiers.iter().rev() {
         enigo.key(key_from_str(m), Direction::Release).map_err(|e| e.to_string())?;
     }
@@ -201,5 +263,21 @@ fn mouse_click(button: &str) -> Result<(), String> {
     let mut enigo = Enigo::new(&Settings::default()).map_err(|e| e.to_string())?;
     enigo.button(b, Direction::Press).map_err(|e| e.to_string())?;
     enigo.button(b, Direction::Release).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Moves mouse to absolute coordinates (x, y). Uses platform coordinate system (pixels).
+fn mouse_move(x: i32, y: i32) -> Result<(), String> {
+    use enigo::{Coordinate, Enigo, Mouse, Settings};
+    let mut enigo = Enigo::new(&Settings::default()).map_err(|e| e.to_string())?;
+    enigo.move_mouse(x, y, Coordinate::Abs).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Scrolls vertically. Positive = down, negative = up (platform-dependent).
+fn mouse_scroll(length: i32) -> Result<(), String> {
+    use enigo::{Axis, Enigo, Mouse, Settings};
+    let mut enigo = Enigo::new(&Settings::default()).map_err(|e| e.to_string())?;
+    enigo.scroll(length, Axis::Vertical).map_err(|e| e.to_string())?;
     Ok(())
 }
