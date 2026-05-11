@@ -199,8 +199,11 @@ class GameWatcher(QObject):
         # Check if this is a game we recognize
         profile = self.profile_store.get_profile_by_executable(exe_name)
 
+        if profile is None:
+            return
+
         # Get the game name from the profile
-        game_name = profile.display_name
+        game_name = profile.display_name if profile.display_name else exe_name
 
         # Check if game changed
         if exe_name.lower() != (self.active_game_exe or "").lower():

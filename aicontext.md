@@ -135,6 +135,22 @@ scripts/                 # Automation scripts
 
 ## Recent Changes
 
+### 2026-05-10: Pure PyQt6 Migration (MAJOR — Option A)
+- ✅ REMOVED QWebEngineView from MainWindow and OverlayWindow
+- ✅ REMOVED JSBridge class and QWebChannel dependency
+- ✅ REMOVED React/Vite frontend (frontend/ removed from git tracking)
+- ✅ REMOVED PyQt6-WebEngine from requirements.txt
+- ✅ BUILT native PyQt6 MainWindow with 3-column dashboard layout
+- ✅ BUILT native PyQt6 OverlayWindow (draggable, minimizable, position-saving)
+- ✅ ADDED Supabase licensing layer (src/licensing.py, src/license_dialog.py)
+- ✅ ADDED OMNIX_DEV_MODE env var to bypass licensing in development
+- ✅ ADDED QSS styles for all new widget IDs (chat-display, hud-panel, neon-button-primary, etc.)
+- ✅ Binary size reduction: ~150MB → ~50-70MB target
+- ✅ Eliminated Node.js/npm as build dependency
+- ✅ Eliminated QWebEngineView Chromium overhead from runtime
+- ✅ UPDATED test_before_build.py to check PyQt6 instead of PyQt6-WebEngine
+- ✅ UPDATED GamingAIAssistant.spec to remove frontend/dist data
+
 ### 2026-01-13: Modular AI & Cleanup (MAJOR)
 - ✅ **Modular LLM Support** - Refactored AI system to support multiple providers via `LLMProvider` interface
 - ✅ **OpenAI-Compatible Support** - Added generic `OpenAIProvider` for LM Studio, AnythingLLM, etc.

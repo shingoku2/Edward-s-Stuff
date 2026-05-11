@@ -145,17 +145,18 @@ User Input → Game Detection → Profile Lookup → Knowledge Integration
 
 ## Technology Stack
 
-| Category | Technology | Purpose |
-|----------|-----------|---------|
-| **Language** | Python 3.8+ | Core language |
-| **GUI** | PyQt6 6.6.0+ | Desktop UI |
-| **AI** | Ollama 0.1.0+ | Local/remote LLM |
-| **Process** | psutil 5.9.0+ | Game detection |
-| **Automation** | pynput 1.7.6+ | Input simulation |
-| **Encryption** | cryptography 41.0.0+ | Credential security |
-| **Build** | PyInstaller | Executable creation |
+| Layer | Technology |
+|---|---|
+| Language | Python 3.10+ |
+| GUI Framework | PyQt6 6.6.0+ (100% native — no QWebEngineView) |
+| AI Inference | Ollama (local/remote LLM) |
+| Process Monitoring | psutil |
+| Macro Automation | pynput |
+| Security | cryptography (AES-256) + keyring |
+| Licensing | Supabase (REST API) |
+| Packaging | PyInstaller |
 
-**Platforms:** Windows 10/11 (primary), macOS, Linux
+**React/QWebEngineView removed in v2.1** — see git tag `archive/react-frontend`.
 
 ---
 

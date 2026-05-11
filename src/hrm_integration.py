@@ -15,21 +15,21 @@ logger = logging.getLogger(__name__)
 class HRMInterface:
     """
     Interface for Hierarchical Reasoning Model integration.
-    
+
     Provides reasoning capabilities for complex gaming scenarios like:
     - Strategy games requiring multi-step planning
     - Puzzle games requiring logical reasoning
     - Algorithmic problem solving within games
     """
-    
-    def __init__(self):
+
+    def __init__(self, config: Optional[Any] = None):
         self._model = None
         self._initialized = False
         self._lock = threading.Lock()
 
-        # Load configuration for timeout settings
+        # Reuse global Config singleton if available, otherwise create minimal instance
         from src.config import Config
-        self.config = Config(require_keys=False)
+        self.config = config if config is not None else Config()
 
         # For template-based reasoning, we don't need PyTorch
         # HRM is always available for structured reasoning outlines
@@ -87,7 +87,7 @@ class HRMInterface:
             'maze', 'path', 'sudoku', 'logic', 'deduction', 'reasoning',
             'tactic', 'multi-step', 'optimal', 'best approach', 'how to win',
             'pattern', 'solution', 'method', 'technique', 'approach',
-            'cipher', 'riddle', 'optimization', 'efficiency', 'quickest',
+            'cipher', 'riddle', 'optimization', 'efficiency', 'quickest', 'fastest',
             'analyze', 'calculate', 'determine', 'evaluate'
         ]
 

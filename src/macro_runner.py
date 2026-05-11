@@ -12,6 +12,7 @@ from typing import Optional, Callable
 from enum import Enum
 
 from src.macro_manager import Macro, MacroStep, MacroStepType, MacroManager
+from src.config import DEFAULT_MAX_MACRO_REPEAT
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +104,7 @@ class MacroRunner:
             return False
 
         # Validate repeat count against configured maximum (global or per-macro)
-        max_repeat = 100  # Default safety limit
+        max_repeat = DEFAULT_MAX_MACRO_REPEAT  # Default safety limit
         if self.config and hasattr(self.config, 'max_macro_repeat'):
             max_repeat = self.config.max_macro_repeat
         if getattr(macro, 'max_repeat', None) is not None:
@@ -131,7 +132,8 @@ class MacroRunner:
         # If macro is very short (no delays and single repeat), execute synchronously
         try:
             total_ms = macro.get_total_duration() if hasattr(macro, 'get_total_duration') else 0
-        except Exception:
+        except Exception as e:
+            logger.warning(f"get_total_duration failed: {e}, assuming 0")
             total_ms = 0
 
         if total_ms <= 50 and macro.repeat <= 1:

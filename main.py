@@ -167,6 +167,30 @@ def main():
         print()
 
         logger.info("Calling run_gui()...")
+
+        # ── License check ────────────────────────────────────────────────────────
+        import os
+        from src.licensing import get_validator
+
+        _license_key = credential_store.get_credential("omnix_license_key") or os.getenv("OMNIX_LICENSE_KEY", "")
+
+        _supabase_url = os.getenv("SUPABASE_URL", "")
+        _supabase_key = os.getenv("SUPABASE_ANON_KEY", "")
+
+        # Skip licensing in dev mode
+        _dev_mode = os.getenv("OMNIX_DEV_MODE", "").lower() in ("1", "true", "yes")
+
+        if not _dev_mode and _supabase_url:
+            _validator = get_validator(_supabase_url, _supabase_key)
+            _valid, _msg = _validator.validate(_license_key) if _license_key else (False, "No key")
+
+            if not _valid:
+                from src.license_dialog import LicenseDialog
+                dlg = LicenseDialog(_validator)
+                if dlg.exec() != dlg.DialogCode.Accepted:
+                    logger.warning("License not activated. Exiting.")
+                    sys.exit(1)
+
         run_gui(ai_assistant, config, credential_store, design_system, game_detector)
         logger.info("GUI exited normally")
 
@@ -179,9 +203,9 @@ def main():
         print("\nSetup instructions:")
         print("1. Make sure .env file exists in the same folder as the .exe")
         print()
-        print("2. Edit .env and add your API key:")
-        print("   ANTHROPIC_API_KEY=sk-ant-api03-your-key-here")
-        print("   AI_PROVIDER=anthropic")
+        print("2. Edit .env and configure Ollama:")
+        print("   OLLAMA_HOST=http://localhost:11434")
+        print("   OLLAMA_MODEL=llama3")
         print()
         print(f"3. Check the log file for details: {log_file_path}")
         print()

@@ -1,20 +1,12 @@
 import pytest
-
-try:
-    from PyQt6.QtCore import Qt
-    from PyQt6.QtWidgets import QStackedWidget, QWidget
-except Exception as exc:  # pragma: no cover - environment guard
-    pytest.skip(f"PyQt6 unavailable: {exc}", allow_module_level=True)
-
-import gui
-from src.gui import ChatWidget, OverlayWindow
-from src.ui.components.buttons import OmnixButton
-from src.ui.components.navigation import OmnixSidebar
-from src.ui.design_system import OmnixDesignSystem
+from unittest.mock import MagicMock
+import json
+from src.gui import OverlayWindow, MainWindow
 
 
 @pytest.mark.unit
 def test_design_system_neon_button_styles():
+    from src.ui.design_system import OmnixDesignSystem
     styles = OmnixDesignSystem().generate_button_stylesheet()
     assert "NEON" in styles
     assert "QPushButton" in styles
@@ -22,6 +14,10 @@ def test_design_system_neon_button_styles():
 
 @pytest.mark.ui
 def test_sidebar_navigation_switches_pages(qtbot):
+    from PyQt6.QtCore import Qt
+    from PyQt6.QtWidgets import QStackedWidget, QWidget
+    from src.ui.components.navigation import OmnixSidebar
+
     stack = QStackedWidget()
     stack.addWidget(QWidget())
     stack.addWidget(QWidget())
@@ -41,12 +37,14 @@ def test_sidebar_navigation_switches_pages(qtbot):
 
 @pytest.mark.ui
 def test_overlay_window_flags_and_toggle(qtbot):
+    from PyQt6.QtCore import Qt
+
     class DummyAssistant:
         def ask_question(self, question, game_context=None):
             return "ok"
 
     class DummyDesignSystem:
-        def generate_overlay_stylesheet(self, opacity):
+        def get_overlay_stylesheet(self, opacity):
             return ""
 
     class DummyConfig:
@@ -56,7 +54,7 @@ def test_overlay_window_flags_and_toggle(qtbot):
         overlay_height = 200
         overlay_minimized = False
         overlay_opacity = 0.5
-        ai_provider = "anthropic"
+        ai_provider = "ollama"
         session_tokens = {}
         check_interval = 5
         overlay_hotkey = "ctrl+g"
@@ -74,23 +72,50 @@ def test_overlay_window_flags_and_toggle(qtbot):
 
 
 @pytest.mark.ui
-def test_chat_widget_uses_worker_thread(monkeypatch, qtbot):
+def test_main_window_send_message(monkeypatch, qtbot):
+    """Test that MainWindow.send_message_to_ai properly triggers AI worker."""
+    from src.gui import MainWindow, AIWorkerThread
+
     started = []
 
     def fake_start(self):
         started.append(self.question)
 
-    monkeypatch.setattr(gui.AIWorkerThread, "start", fake_start, raising=False)
+    monkeypatch.setattr(AIWorkerThread, "start", fake_start, raising=False)
 
     class DummyAssistant:
         def ask_question(self, question, game_context=None):
             return "response"
 
-    widget = ChatWidget(DummyAssistant())
-    qtbot.addWidget(widget)
+    class DummyCredentialStore:
+        pass
 
-    widget.input_field.setText("Hello")
-    qtbot.mouseClick(widget.send_button, Qt.MouseButton.LeftButton)
+    class DummyDesignSystem:
+        pass
+
+    class DummyConfig:
+        overlay_x = 100
+        overlay_y = 100
+        overlay_width = 900
+        overlay_height = 700
+        overlay_minimized = False
+        overlay_opacity = 0.95
+        ai_provider = "ollama"
+        session_tokens = {}
+        check_interval = 5
+        overlay_hotkey = "ctrl+shift+g"
+        ollama_model = "llama3"
+
+    window = MainWindow(
+        ai_assistant=DummyAssistant(),
+        config=DummyConfig(),
+        credential_store=DummyCredentialStore(),
+        design_system=DummyDesignSystem(),
+        game_detector=None,
+    )
+    qtbot.addWidget(window)
+
+    # Use the public API to send a message
+    window.send_message_to_ai("Hello")
 
     assert started == ["Hello"]
-    assert not widget.send_button.isEnabled()

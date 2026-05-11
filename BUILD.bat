@@ -46,7 +46,7 @@ python -m pip --version
 echo.
 
 REM 3. Install dependencies
-echo [1/4] Installing dependencies...
+echo [1/5] Installing dependencies...
 python -m pip install -r requirements.txt --quiet --upgrade
 if errorlevel 1 (
     echo ERROR: Failed to install dependencies
@@ -56,7 +56,11 @@ if errorlevel 1 (
 echo    [✓] Dependencies installed
 
 echo.
-echo [2/4] Installing PyInstaller...
+echo [2/5] React frontend removed - pure PyQt6 UI (see feature/pure-pyqt6-migration)
+REM React frontend removed - pure PyQt6 UI (see feature/pure-pyqt6-migration)
+
+echo.
+echo [3/5] Installing PyInstaller...
 python -m pip install pyinstaller --quiet --upgrade
 if errorlevel 1 (
     echo ERROR: Failed to install PyInstaller
@@ -67,14 +71,14 @@ echo    [✓] PyInstaller installed
 
 REM 4. Clean
 echo.
-echo [3/4] Cleaning previous builds...
+echo [4/5] Cleaning previous builds...
 if exist "build" rmdir /s /q "build" 2>nul
 if exist "dist" rmdir /s /q "dist" 2>nul
 echo    [✓] Cleaned build folders
 
 REM 5. Build
 echo.
-echo [4/4] Building executable...
+echo [5/5] Building executable...
 
 if /i "%MODE%"=="debug" (
     echo Using GamingAIAssistant_DEBUG.spec...

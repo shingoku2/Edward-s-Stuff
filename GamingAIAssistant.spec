@@ -1,12 +1,15 @@
 # -*- mode: python ; coding: utf-8 -*-
 # Omnix Gaming Companion - PyInstaller Build Specification
-# Version 1.3+ (November 2025)
+# Version 2.1+ (Pure PyQt6 - no React frontend)
 #
 # Recent Updates:
-# - CI/CD Pipeline integration (2025-11-20)
+# - Removed React HUD (frontend/dist) — pure PyQt6 UI (2026-05)
+# - Removed PyQt6-WebEngine dependency (2026-05)
 # - Knowledge index persistence fix (2025-11-19)
-# - Unified theme system (2025-11-17)
-# - Removed PyQt6-WebEngine dependency (2025-11-17)
+
+import os
+
+_SPEC_DIR = os.path.dirname(os.path.abspath(SPEC))
 
 a = Analysis(
     ['main.py'],

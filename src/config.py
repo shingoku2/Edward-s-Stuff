@@ -480,9 +480,9 @@ class Config:
                         key, value = line.split("=", 1)
                         existing_content[key.strip()] = value.strip()
 
-        # Update with new values
-        existing_content["OVERLAY_HOTKEY"] = overlay_hotkey
-        existing_content["CHECK_INTERVAL"] = str(check_interval)
+        # Update with new values (use setdefault to preserve existing values)
+        existing_content.setdefault("OVERLAY_HOTKEY", overlay_hotkey)
+        existing_content.setdefault("CHECK_INTERVAL", str(check_interval))
 
         if ollama_host:
             existing_content["OLLAMA_HOST"] = ollama_host
@@ -515,15 +515,29 @@ class Config:
 
             f.write("# Ollama Configuration\n")
             f.write(
-                f"OLLAMA_HOST={existing_content.get('OLLAMA_HOST', 'http://localhost:11434')}\n"
+                f"OLLAMA_HOST={existing_content.setdefault('OLLAMA_HOST', 'http://localhost:11434')}\n"
             )
             f.write(
-                f"OLLAMA_MODEL={existing_content.get('OLLAMA_MODEL', 'llama3')}\n\n"
+                f"OLLAMA_MODEL={existing_content.setdefault('OLLAMA_MODEL', 'llama3')}\n\n"
             )
 
             f.write("# Application Settings\n")
-            f.write(f"OVERLAY_HOTKEY={existing_content['OVERLAY_HOTKEY']}\n")
-            f.write(f"CHECK_INTERVAL={existing_content['CHECK_INTERVAL']}\n\n")
+            f.write(f"OVERLAY_HOTKEY={existing_content.setdefault('OVERLAY_HOTKEY', overlay_hotkey)}\n")
+            f.write(f"CHECK_INTERVAL={existing_content.setdefault('CHECK_INTERVAL', str(check_interval))}\n\n")
+
+            # Write AI API settings (preserve values from file if not being updated)
+            ai_api_key = existing_content.get("AI_API_KEY", "")
+            ai_base_url = existing_content.get("AI_BASE_URL", "")
+            ai_model = existing_content.get("AI_MODEL", "")
+            if ai_api_key or ai_base_url or ai_model:
+                f.write("# AI API Settings\n")
+                if ai_api_key:
+                    f.write(f"AI_API_KEY={ai_api_key}\n")
+                if ai_base_url:
+                    f.write(f"AI_BASE_URL={ai_base_url}\n")
+                if ai_model:
+                    f.write(f"AI_MODEL={ai_model}\n")
+                f.write("\n")
 
             # Write overlay settings if they exist
             if "OVERLAY_X" in existing_content:

@@ -2,37 +2,34 @@
 Omnix GUI Module
 ================
 
-PyQt6 interface styled with the Omnix QSS theme. Provides the main dashboard,
-chat panel, settings panel, and in-game overlay window matching the reference
-visual design.
+PyQt6 interface styled with the Omnix QSS theme. Pure native PyQt6 — no QWebEngineView.
+Provides the main dashboard, chat panel, and in-game overlay window.
 """
 
 from __future__ import annotations
 
 import logging
 import sys
-import json
 from pathlib import Path
 from typing import Dict, Optional
 import psutil
 
-from PyQt6.QtCore import QEvent, Qt, QThread, QTimer, pyqtSignal, QSize, QObject, pyqtSlot
-from PyQt6.QtGui import QColor, QFont, QAction
+from PyQt6.QtCore import QEvent, Qt, QThread, QTimer, pyqtSignal
+from PyQt6.QtGui import QColor, QFont
 from PyQt6.QtWidgets import (
     QApplication,
+    QComboBox,
     QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QMainWindow,
+    QPushButton,
+    QSizePolicy,
+    QTextEdit,
     QVBoxLayout,
     QWidget,
-    QPushButton,
-    QSpacerItem,
-    QSizePolicy,
 )
-from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtWebChannel import QWebChannel
 
 from src.config import Config
 from src.credential_store import CredentialStore
@@ -41,10 +38,7 @@ from src.keybind_manager import KeybindManager
 from src.macro_manager import MacroManager
 from src.ui.theme_manager import OmnixThemeManager
 from src.settings_dialog import TabbedSettingsDialog
-
-# New HUD primitives
 from src.omnix_hud import (
-    HudPanel,
     NeonButton,
     ChatPanel,
     GameStatusWidget,
@@ -53,175 +47,6 @@ from src.omnix_hud import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-class JSBridge(QObject):
-    """Bridge for communication between JS/React and Python."""
-
-    messageReceived = pyqtSignal(str)
-    settingsChanged = pyqtSignal(dict)
-    systemStatsUpdated = pyqtSignal(str)
-
-    def __init__(self, main_window: MainWindow):
-        super().__init__()
-        self.main_window = main_window
-
-    @pyqtSlot(str)
-    def sendMessage(self, content: str):
-        """Called from React when user sends a message."""
-        self.main_window.send_message_to_ai(content)
-
-    @pyqtSlot(str, str)
-    def updateSetting(self, key: str, value: str):
-        """Called from React to update a config setting."""
-        logger.info(f"Setting updated from JS: {key} = {value}")
-        # Add logic to update config here
-
-    @pyqtSlot()
-    def toggleOverlay(self):
-        """Called from React to toggle the overlay window."""
-        self.main_window._toggle_overlay()
-
-    @pyqtSlot(result=str)
-    def getConfig(self):
-        """Called from React to get current config."""
-        cfg = self.main_window.config
-        config_data = {
-            "ai": {
-                "provider": cfg.ai_provider,
-                "model": cfg.ollama_model,
-            },
-            "ui": {
-                "opacity": cfg.overlay_opacity,
-                "theme": cfg.theme,
-            }
-        }
-        return json.dumps(config_data)
-
-    @pyqtSlot(str, result=bool)
-    def saveSettings(self, settings_json: str):
-        """Called from React to save settings."""
-        try:
-            data = json.loads(settings_json)
-            updates = {}
-            
-            # Map UI settings
-            if "ui" in data:
-                if "opacity" in data["ui"]:
-                    updates["overlay_opacity"] = float(data["ui"]["opacity"])
-                
-            # Map AI settings
-            if "ai" in data:
-                if "model" in data["ai"]:
-                    updates["ollama_model"] = data["ai"]["model"]
-            
-            if updates:
-                self.main_window.config.update(updates)
-                self.main_window.config.save()
-                self.settingsChanged.emit(updates)
-            return True
-        except Exception as e:
-            logger.error(f"Failed to save settings: {e}")
-            return False
-
-    @pyqtSlot(result=str)
-    def getMacros(self):
-        """Called from React to get all macros."""
-        macros = self.main_window.macro_manager.get_all_macros()
-        return json.dumps([m.to_dict() for m in macros])
-
-    @pyqtSlot(str, result=bool)
-    def saveMacro(self, macro_json: str):
-        """Called from React to save (update or create) a macro."""
-        try:
-            data = json.loads(macro_json)
-            from src.macro_manager import Macro
-            
-            # Reconstruct macro from JSON
-            macro = Macro.from_dict(data)
-            
-            # Update manager
-            self.main_window.macro_manager.macros[macro.id] = macro
-            
-            # Persist to disk
-            all_macros = self.main_window.macro_manager.save_to_dict()
-            self.main_window.config.save_macros(all_macros)
-            return True
-        except Exception as e:
-            logger.error(f"Failed to save macro: {e}")
-            return False
-
-    @pyqtSlot()
-    def startMacroRecording(self):
-        """Start recording a macro."""
-        # Use a default name, user can rename later
-        self.main_window.macro_manager.start_recording("New Recording")
-
-    @pyqtSlot()
-    def stopMacroRecording(self):
-        """Stop recording."""
-        macro = self.main_window.macro_manager.stop_recording()
-        if macro:
-            all_macros = self.main_window.macro_manager.save_to_dict()
-            self.main_window.config.save_macros(all_macros)
-            # Signal could be emitted here to refresh UI
-
-
-def _load_qss() -> str:
-    """Load the legacy Omnix QSS stylesheet.
-
-    DEPRECATED: This function loads hardcoded styles that should be replaced
-    with design system tokens. This is kept for backward compatibility only.
-
-    TODO: Migrate all styling to use OmnixDesignSystem tokens instead.
-    """
-    qss_path = Path(__file__).parent / "ui" / "omnix.qss"
-    if not qss_path.exists():
-        logger.warning("Legacy QSS stylesheet not found at %s", qss_path)
-        return _generate_token_based_styles()
-
-    try:
-        legacy_qss = qss_path.read_text(encoding="utf-8")
-        logger.warning(
-            "Loading legacy QSS stylesheet - consider migrating to design system tokens"
-        )
-        # For now, return legacy styles but log migration warning
-        return legacy_qss
-    except Exception as e:
-        logger.error("Failed to load legacy QSS stylesheet: %s", e)
-        return _generate_token_based_styles()
-
-
-def _generate_token_based_styles() -> str:
-    """Generate QSS styles using design system tokens (future migration target)."""
-    try:
-        from .ui.design_system import design_system
-
-        # Generate minimal styles using design tokens
-        styles = f"""
-        /* Omnix Design System Generated Styles */
-        QWidget {{
-            background-color: {design_system.colors.background.primary};
-            color: {design_system.colors.text.primary};
-            font-family: {design_system.typography.font_primary};
-        }}
-        
-        QPushButton {{
-            background-color: {design_system.colors.primary.default};
-            color: {design_system.colors.primary.foreground};
-            border: none;
-            border-radius: {design_system.radius.md}px;
-            padding: {design_system.spacing.sm}px {design_system.spacing.md}px;
-        }}
-        
-        QPushButton:hover {{
-            background-color: {design_system.colors.primary.hover};
-        }}
-        """
-        return styles
-    except ImportError:
-        # Fallback if design system not available
-        return "/* Design system not available - using minimal fallback styles */"
 
 
 class AIWorkerThread(QThread):
@@ -251,13 +76,20 @@ class AIWorkerThread(QThread):
 
 
 class OverlayWindow(QWidget):
-    """Frameless always-on-top overlay with React-based HUD."""
+    """
+    Frameless always-on-top in-game overlay — pure PyQt6, no WebEngine.
+    Draggable, resizable, minimizable. Saves position/size to config.
+    """
 
     def __init__(self, assistant, config: Config, ds: OmnixDesignSystem):
         super().__init__()
         self.assistant = assistant
         self.config = config
         self.design_system = ds
+        self.ai_worker: Optional[AIWorkerThread] = None
+        self._drag_pos = None
+        self._minimized = bool(getattr(config, "overlay_minimized", False))
+        self._saved_height = int(getattr(config, "overlay_height", 420))
 
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint
@@ -265,77 +97,158 @@ class OverlayWindow(QWidget):
             | Qt.WindowType.Tool
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
-
         self.setGeometry(
             int(getattr(config, "overlay_x", 100)),
             int(getattr(config, "overlay_y", 100)),
-            int(getattr(config, "overlay_width", 1200)),
-            int(getattr(config, "overlay_height", 800)),
+            int(getattr(config, "overlay_width", 420)),
+            self._saved_height,
         )
+        self.setStyleSheet(ds.get_overlay_stylesheet(
+            float(getattr(config, "overlay_opacity", 0.92))
+        ))
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
+        # Root layout
+        root = QVBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(0)
 
-        self.web_view = QWebEngineView()
-        self.web_view.page().setBackgroundColor(Qt.GlobalColor.transparent)
-        layout.addWidget(self.web_view)
+        # Outer frame (gives the frosted-glass border look)
+        self._frame = QFrame()
+        self._frame.setObjectName("overlay-frame")
+        frame_layout = QVBoxLayout(self._frame)
+        frame_layout.setContentsMargins(10, 6, 10, 10)
+        frame_layout.setSpacing(6)
 
-        # Load Frontend with overlay mode
-        frontend_path = Path(__file__).parent.parent / "frontend" / "dist" / "index.html"
-        if frontend_path.exists():
-            url = frontend_path.absolute().as_uri() + "?mode=overlay"
-            from PyQt6.QtCore import QUrl
-            self.web_view.load(QUrl(url))
-        else:
-            from PyQt6.QtCore import QUrl
-            self.web_view.load(QUrl("http://localhost:3001?mode=overlay"))
+        # Title bar
+        title_bar = self._build_title_bar()
+        frame_layout.addLayout(title_bar)
 
+        # Chat display
+        self.chat_display = QTextEdit()
+        self.chat_display.setObjectName("chat-display")
+        self.chat_display.setReadOnly(True)
+        self.chat_display.setAcceptRichText(True)
+        self.chat_display.setMinimumHeight(160)
+        frame_layout.addWidget(self.chat_display, 1)
+
+        # Input row
+        input_row = QHBoxLayout()
+        self.chat_input = QLineEdit()
+        self.chat_input.setObjectName("chat-input")
+        self.chat_input.setPlaceholderText("Ask OMNIX...")
+        self.chat_input.returnPressed.connect(self._on_send)
+        input_row.addWidget(self.chat_input, 1)
+
+        send_btn = QPushButton("▶")
+        send_btn.setFixedWidth(36)
+        send_btn.clicked.connect(self._on_send)
+        input_row.addWidget(send_btn)
+
+        frame_layout.addLayout(input_row)
+        root.addWidget(self._frame)
+
+        # Save timer (debounced position/size save)
         self._save_timer = QTimer(self)
         self._save_timer.setSingleShot(True)
-        self._save_timer.timeout.connect(self._save_position_and_size)
-        self._save_delay_ms = 500
+        self._save_timer.timeout.connect(self._save_geometry)
 
-    def closeEvent(self, event: QEvent) -> None:
-        super().closeEvent(event)
-        self._save_overlay_config()
+        if self._minimized:
+            self._apply_minimized_state()
 
-    def _save_overlay_config(self) -> None:
-        try:
-            Config.save_to_env(
-                provider=self.config.ai_provider,
-                session_tokens=self.config.session_tokens,
-                overlay_hotkey=self.config.overlay_hotkey,
-                check_interval=self.config.check_interval,
-                overlay_x=self.config.overlay_x,
-                overlay_y=self.config.overlay_y,
-                overlay_width=self.config.overlay_width,
-                overlay_height=self.config.overlay_height,
-                overlay_minimized=self.config.overlay_minimized,
-                overlay_opacity=self.config.overlay_opacity,
-            )
-        except Exception as e:
-            logger.error(f"Failed to save overlay config: {e}")
+    def _build_title_bar(self) -> QHBoxLayout:
+        bar = QHBoxLayout()
+        bar.setContentsMargins(0, 0, 0, 0)
+
+        logo = QLabel("OMNIX //")
+        logo.setObjectName("omnix-logo-subtitle")
+        bar.addWidget(logo)
+        bar.addStretch()
+
+        min_btn = QPushButton("─")
+        min_btn.setFixedSize(22, 22)
+        min_btn.setToolTip("Minimize overlay")
+        min_btn.clicked.connect(self.toggle_minimize)
+        bar.addWidget(min_btn)
+
+        close_btn = QPushButton("✕")
+        close_btn.setFixedSize(22, 22)
+        close_btn.setToolTip("Hide overlay")
+        close_btn.clicked.connect(self.hide)
+        bar.addWidget(close_btn)
+
+        return bar
 
     def toggle_minimize(self) -> None:
-        self.minimized = not self.minimized
-        self.config.overlay_minimized = self.minimized
-        if self.minimized:
+        self._minimized = not self._minimized
+        self.config.overlay_minimized = self._minimized
+        if self._minimized:
             self._saved_height = self.height()
-            self.chat.setVisible(False)
-            self.setFixedHeight(40)
+            self._apply_minimized_state()
         else:
-            self.chat.setVisible(True)
-            self.setFixedHeight(getattr(self, "_saved_height", 400))
+            self.chat_display.setVisible(True)
+            self.chat_input.setVisible(True)
+            self.setFixedHeight(self._saved_height)
+            self.setMinimumHeight(0)
+            self.setMaximumHeight(16777215)
+
+    def _apply_minimized_state(self) -> None:
+        self.chat_display.setVisible(False)
+        self.chat_input.setVisible(False)
+        self.setFixedHeight(40)
+
+    def _on_send(self) -> None:
+        text = self.chat_input.text().strip()
+        if not text or self.ai_worker is not None:
+            return
+        self.chat_input.clear()
+        self._append_chat("YOU", text, is_user=True)
+        self.ai_worker = AIWorkerThread(self.assistant, text)
+        self.ai_worker.finished.connect(self._on_response)
+        self.ai_worker.error.connect(self._on_error)
+        self.ai_worker.start()
+
+    def _on_response(self, response: str) -> None:
+        self._append_chat("OMNIX", response, is_user=False)
+        self.ai_worker = None
+
+    def _on_error(self, msg: str) -> None:
+        self._append_chat("OMNIX", f"[ERROR] {msg}", is_user=False)
+        self.ai_worker = None
+
+    def _append_chat(self, sender: str, text: str, is_user: bool) -> None:
+        color = "#ec4899" if is_user else "#22d3ee"
+        html = (
+            f'<p style="margin:2px 0;">'
+            f'<span style="color:{color};font-size:8px;letter-spacing:2px;">{sender}</span><br/>'
+            f'<span style="color:#e5e7eb;font-size:11px;">{text}</span>'
+            f'</p>'
+        )
+        self.chat_display.append(html)
+        sb = self.chat_display.verticalScrollBar()
+        sb.setValue(sb.maximum())
+
+    # Drag-to-move
+    def mousePressEvent(self, event) -> None:
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._drag_pos = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+
+    def mouseMoveEvent(self, event) -> None:
+        if self._drag_pos and event.buttons() == Qt.MouseButton.LeftButton:
+            self.move(event.globalPosition().toPoint() - self._drag_pos)
+            self._save_timer.start(400)
+
+    def mouseReleaseEvent(self, event) -> None:
+        self._drag_pos = None
 
     def moveEvent(self, event) -> None:
         super().moveEvent(event)
-        self._save_timer.start(self._save_delay_ms)
+        self._save_timer.start(400)
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
-        self._save_timer.start(self._save_delay_ms)
+        self._save_timer.start(400)
 
-    def _save_position_and_size(self) -> None:
+    def _save_geometry(self) -> None:
         try:
             self.config.overlay_x = self.x()
             self.config.overlay_y = self.y()
@@ -343,11 +256,18 @@ class OverlayWindow(QWidget):
             self.config.overlay_height = self.height()
             self.config.save()
         except Exception as e:
-            logger.warning(f"Failed to save overlay position: {e}")
+            logger.warning(f"Failed to save overlay geometry: {e}")
+
+    def closeEvent(self, event) -> None:
+        self._save_geometry()
+        super().closeEvent(event)
 
 
 class MainWindow(QMainWindow):
-    """Omnix main dashboard window with new HUD layout."""
+    """
+    Omnix main dashboard — pure PyQt6, no QWebEngineView.
+    Layout: Header | [Chat Panel | Game Status | Stats/Settings] | Footer
+    """
 
     def __init__(
         self,
@@ -363,13 +283,12 @@ class MainWindow(QMainWindow):
         self.credential_store = credential_store
         self.design_system = design_system or OmnixDesignSystem()
         self.game_detector = game_detector
-        self.current_game = None
+        self.current_game: Optional[Dict] = None
         self.ai_worker: Optional[AIWorkerThread] = None
 
         self.setWindowTitle("OMNIX // HUD")
         self.resize(1280, 800)
-
-        # Apply Global QSS
+        self.setMinimumSize(960, 640)
         self.setStyleSheet(OMNIX_GLOBAL_QSS)
 
         self.keybind_manager = KeybindManager()
@@ -377,129 +296,320 @@ class MainWindow(QMainWindow):
         self.theme_manager = OmnixThemeManager()
         self.settings_dialog = None
 
+        # Build overlay (native PyQt6 — no WebEngine)
         self.overlay_window = OverlayWindow(ai_assistant, config, self.design_system)
 
-        # Setup Web View
-        self.web_view = QWebEngineView()
-        self.setCentralWidget(self.web_view)
+        # Central widget container
+        central = QWidget()
+        self.setCentralWidget(central)
+        root_layout = QVBoxLayout(central)
+        root_layout.setContentsMargins(0, 0, 0, 0)
+        root_layout.setSpacing(0)
 
-        # Setup Web Channel for JS-Python communication
-        self.bridge = JSBridge(self)
-        self.channel = QWebChannel()
-        self.channel.registerObject("bridge", self.bridge)
-        self.web_view.page().setWebChannel(self.channel)
+        # ── Header ──────────────────────────────────────────────────────────
+        header = self._build_header()
+        root_layout.addLayout(header)
 
-        # Load Frontend
-        frontend_path = Path(__file__).parent.parent / "frontend" / "dist" / "index.html"
-        if frontend_path.exists():
-            self.web_view.load(frontend_path.absolute().as_uri())
-        else:
-            # Fallback for development (vite dev server)
-            from PyQt6.QtCore import QUrl
-            self.web_view.load(QUrl("http://localhost:3001"))
+        # ── Body (3-column grid) ─────────────────────────────────────────────
+        body = QHBoxLayout()
+        body.setContentsMargins(12, 8, 12, 8)
+        body.setSpacing(12)
 
-        # Start services
-        if self.game_detector:
-            self._start_game_detection()
-            
-        self._start_system_stats()
+        # Column 1 — Chat (flex: 3)
+        self.chat_panel = self._build_chat_panel()
+        body.addWidget(self.chat_panel, 3)
 
-    def _start_system_stats(self) -> None:
-        """Start periodic system stats collection."""
+        # Column 2 — Game status + session (flex: 4)
+        self.game_panel = self._build_game_panel()
+        body.addWidget(self.game_panel, 4)
+
+        # Column 3 — Stats + quick settings (flex: 3)
+        right_column = QVBoxLayout()
+        right_column.setSpacing(8)
+        self.stats_panel = self._build_stats_panel()
+        self.quick_settings_panel = self._build_quick_settings_panel()
+        right_column.addWidget(self.stats_panel, 2)
+        right_column.addWidget(self.quick_settings_panel, 3)
+        right_wrapper = QWidget()
+        right_wrapper.setLayout(right_column)
+        body.addWidget(right_wrapper, 3)
+
+        root_layout.addLayout(body, 1)
+
+        # ── Footer ───────────────────────────────────────────────────────────
+        footer = self._build_footer()
+        root_layout.addLayout(footer)
+
+        # ── Timers ───────────────────────────────────────────────────────────
         self.stats_timer = QTimer()
         self.stats_timer.timeout.connect(self._update_system_stats)
         self.stats_timer.start(1000)
 
-    def _update_system_stats(self) -> None:
-        """Collect and emit system stats."""
-        try:
-            cpu = psutil.cpu_percent()
-            ram = psutil.virtual_memory().percent
-            data = {"cpu": cpu, "ram": ram}
-            self.bridge.systemStatsUpdated.emit(json.dumps(data))
-        except Exception as e:
-            logger.error(f"Error updating system stats: {e}")
+        if self.game_detector:
+            self._start_game_detection()
 
-    def send_message_to_ai(self, text: str) -> None:
-        """Handle message sending initiated from React."""
-        if self.ai_worker is not None:
-            return  # Already processing
+    # ── PANEL BUILDERS ────────────────────────────────────────────────────────
 
-        self.ai_worker = AIWorkerThread(self.ai_assistant, text)
+    def _build_header(self) -> QHBoxLayout:
+        layout = QHBoxLayout()
+        frame = QFrame()
+        frame.setObjectName("top-bar")
+        frame.setFixedHeight(54)
+        frame.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+
+        h = QHBoxLayout(frame)
+        h.setContentsMargins(20, 0, 20, 0)
+
+        logo = QLabel("OMNIX")
+        logo.setObjectName("omnix-logo")
+        h.addWidget(logo)
+
+        sub = QLabel("// ALL-KNOWING GAMING COMPANION")
+        sub.setObjectName("omnix-logo-subtitle")
+        sub.setContentsMargins(10, 6, 0, 0)
+        h.addWidget(sub)
+
+        h.addStretch()
+
+        self.game_status_label = QLabel("NO GAME DETECTED")
+        self.game_status_label.setObjectName("top-bar-user")
+        h.addWidget(self.game_status_label)
+
+        layout.addWidget(frame)
+        return layout
+
+    def _build_chat_panel(self) -> QFrame:
+        """Left column: chat history + input."""
+        panel = QFrame()
+        panel.setObjectName("hud-panel")
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(8)
+
+        title = QLabel("CHAT")
+        title.setObjectName("panel-title")
+        layout.addWidget(title)
+
+        # Chat display
+        self.chat_display = QTextEdit()
+        self.chat_display.setObjectName("chat-display")
+        self.chat_display.setReadOnly(True)
+        self.chat_display.setAcceptRichText(True)
+        layout.addWidget(self.chat_display, 1)
+
+        # Input row
+        input_row = QHBoxLayout()
+        self.chat_input = QLineEdit()
+        self.chat_input.setObjectName("chat-input")
+        self.chat_input.setPlaceholderText("Ask OMNIX anything...")
+        self.chat_input.returnPressed.connect(self._on_send_clicked)
+        input_row.addWidget(self.chat_input, 1)
+
+        send_btn = QPushButton("SEND")
+        send_btn.setObjectName("neon-button-primary")
+        send_btn.setFixedWidth(72)
+        send_btn.clicked.connect(self._on_send_clicked)
+        input_row.addWidget(send_btn)
+
+        layout.addLayout(input_row)
+        return panel
+
+    def _build_game_panel(self) -> QFrame:
+        """Center column: detected game info + session."""
+        panel = QFrame()
+        panel.setObjectName("hud-panel")
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(8)
+
+        title = QLabel("GAME INTELLIGENCE")
+        title.setObjectName("panel-title")
+        layout.addWidget(title)
+
+        self.game_name_label = QLabel("── STANDBY ──")
+        self.game_name_label.setObjectName("game-name-label")
+        self.game_name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.game_name_label)
+
+        self.game_info_label = QLabel("Launch a game to begin session tracking.")
+        self.game_info_label.setObjectName("game-info-label")
+        self.game_info_label.setWordWrap(True)
+        self.game_info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.game_info_label)
+
+        layout.addStretch()
+
+        session_title = QLabel("SESSION")
+        session_title.setObjectName("panel-title")
+        layout.addWidget(session_title)
+
+        self.session_label = QLabel("No active session.")
+        self.session_label.setObjectName("game-info-label")
+        self.session_label.setWordWrap(True)
+        layout.addWidget(self.session_label)
+
+        return panel
+
+    def _build_stats_panel(self) -> QFrame:
+        """Top-right: CPU / RAM live stats."""
+        panel = QFrame()
+        panel.setObjectName("hud-panel")
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(6)
+
+        title = QLabel("SYSTEM TELEMETRY")
+        title.setObjectName("panel-title")
+        layout.addWidget(title)
+
+        self.cpu_label = QLabel("CPU: ---%")
+        self.cpu_label.setObjectName("stat-value")
+        layout.addWidget(self.cpu_label)
+
+        self.ram_label = QLabel("RAM: ---%")
+        self.ram_label.setObjectName("stat-value")
+        layout.addWidget(self.ram_label)
+
+        self.ai_status_label = QLabel("AI: IDLE")
+        self.ai_status_label.setObjectName("stat-value")
+        layout.addWidget(self.ai_status_label)
+
+        return panel
+
+    def _build_quick_settings_panel(self) -> QFrame:
+        """Bottom-right: quick access settings."""
+        panel = QFrame()
+        panel.setObjectName("hud-panel")
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(8)
+
+        title = QLabel("QUICK SETTINGS")
+        title.setObjectName("panel-title")
+        layout.addWidget(title)
+
+        model_label = QLabel("AI Model")
+        model_label.setObjectName("stat-label")
+        layout.addWidget(model_label)
+
+        self.model_combo = QComboBox()
+        self.model_combo.setObjectName("omnix-combo")
+        self.model_combo.addItem(getattr(self.config, "ollama_model", "llama3"))
+        self.model_combo.currentTextChanged.connect(self._on_model_changed)
+        layout.addWidget(self.model_combo)
+
+        layout.addStretch()
+
+        macro_btn = QPushButton("MACRO MANAGER")
+        macro_btn.setObjectName("neon-button-secondary")
+        macro_btn.clicked.connect(self._open_macro_manager)
+        layout.addWidget(macro_btn)
+
+        knowledge_btn = QPushButton("KNOWLEDGE BASE")
+        knowledge_btn.setObjectName("neon-button-secondary")
+        knowledge_btn.clicked.connect(self._open_knowledge_manager)
+        layout.addWidget(knowledge_btn)
+
+        return panel
+
+    def _build_footer(self) -> QHBoxLayout:
+        footer = QHBoxLayout()
+        footer.setContentsMargins(12, 6, 12, 10)
+        footer.setSpacing(12)
+
+        overlay_btn = QPushButton("TOGGLE OVERLAY")
+        overlay_btn.setObjectName("neon-button-primary")
+        overlay_btn.setMinimumHeight(44)
+        overlay_btn.clicked.connect(self._toggle_overlay)
+        footer.addWidget(overlay_btn, 1)
+
+        settings_btn = QPushButton("SYSTEM SETTINGS")
+        settings_btn.setObjectName("neon-button-secondary")
+        settings_btn.setMinimumHeight(44)
+        settings_btn.clicked.connect(self._open_settings)
+        footer.addWidget(settings_btn, 1)
+
+        return footer
+
+    # ── SLOT HANDLERS ─────────────────────────────────────────────────────────
+
+    def _on_send_clicked(self) -> None:
+        text = self.chat_input.text().strip()
+        if not text or self.ai_worker is not None:
+            return
+        self.chat_input.clear()
+        self._append_chat("YOU", text, is_user=True)
+        self.ai_status_label.setText("AI: THINKING...")
+        game_context = self.current_game or {}
+        self.ai_worker = AIWorkerThread(self.ai_assistant, text, game_context)
         self.ai_worker.finished.connect(self._handle_response)
         self.ai_worker.error.connect(self._handle_error)
         self.ai_worker.start()
 
     def _handle_response(self, response: str) -> None:
-        """Send AI response back to React."""
-        self.bridge.messageReceived.emit(response)
+        self._append_chat("OMNIX", response, is_user=False)
+        self.ai_status_label.setText("AI: IDLE")
         self.ai_worker = None
 
     def _handle_error(self, message: str) -> None:
-        """Send error message back to React."""
-        self.bridge.messageReceived.emit(f"Error: {message}")
+        self._append_chat("OMNIX", f"[ERROR] {message}", is_user=False)
+        self.ai_status_label.setText("AI: ERROR")
         self.ai_worker = None
 
-    def _build_header(self) -> QHBoxLayout:
-        # Recreating header to match logic flow
-        layout = QHBoxLayout()
+    def _append_chat(self, sender: str, text: str, is_user: bool) -> None:
+        color = "#ec4899" if is_user else "#22d3ee"
+        html = (
+            f'<p style="margin:4px 0;">'
+            f'<span style="color:{color};font-size:9px;letter-spacing:2px;'
+            f'text-transform:uppercase;">{sender}</span><br/>'
+            f'<span style="color:#e5e7eb;font-size:12px;">{text}</span>'
+            f'</p><hr style="border:none;border-top:1px solid #1e293b;"/>'
+        )
+        self.chat_display.append(html)
+        sb = self.chat_display.verticalScrollBar()
+        sb.setValue(sb.maximum())
 
-        frame = QFrame()
-        frame.setObjectName("top-bar")
-        frame.setFixedHeight(50)
-        frame.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+    def _update_system_stats(self) -> None:
+        try:
+            cpu = psutil.cpu_percent()
+            ram = psutil.virtual_memory().percent
+            self.cpu_label.setText(f"CPU: {cpu:.1f}%")
+            self.ram_label.setText(f"RAM: {ram:.1f}%")
+        except Exception as e:
+            logger.error(f"Stats update error: {e}")
 
-        h_layout = QHBoxLayout(frame)
-        h_layout.setContentsMargins(20, 0, 20, 0)
+    def _start_game_detection(self) -> None:
+        self.game_timer = QTimer()
+        self.game_timer.timeout.connect(self._check_game)
+        self.game_timer.start(5000)
 
-        logo = QLabel("OMNIX")
-        logo.setObjectName("omnix-logo")
-        h_layout.addWidget(logo)
-
-        sub = QLabel(" // SYSTEM READY")
-        sub.setObjectName("omnix-logo-subtitle")
-        sub.setContentsMargins(10, 6, 0, 0)
-        h_layout.addWidget(sub)
-
-        h_layout.addStretch()
-
-        user = QLabel("PILOT ID: ADMIN")
-        user.setObjectName("top-bar-user")
-        h_layout.addWidget(user)
-
-        layout.addWidget(frame)
-        return layout
-
-    def _build_footer(self) -> QHBoxLayout:
-        footer = QHBoxLayout()
-        footer.setSpacing(20)
-
-        # Large Overlay Button
-        overlay_btn = NeonButton("TOGGLE OVERLAY", primary=True)
-        overlay_btn.setMinimumHeight(48)
-        overlay_btn.clicked.connect(self._toggle_overlay)
-        footer.addWidget(overlay_btn, 1)
-
-        # Large Settings Button
-        settings_btn = NeonButton("SYSTEM SETTINGS", primary=False)
-        settings_btn.setMinimumHeight(48)
-        settings_btn.clicked.connect(self._open_settings)
-        footer.addWidget(settings_btn, 1)
-
-        return footer
+    def _check_game(self) -> None:
+        try:
+            if self.game_detector:
+                detected = self.game_detector.detect_game()
+                if detected:
+                    name = detected.get("name", "Unknown")
+                    self.current_game = detected
+                    self.game_status_label.setText(f"GAME: {name.upper()}")
+                    self.game_name_label.setText(name.upper())
+                    info = detected.get("description", "Game detected. Ask OMNIX for assistance.")
+                    self.game_info_label.setText(info)
+                else:
+                    self.current_game = None
+                    self.game_status_label.setText("NO GAME DETECTED")
+                    self.game_name_label.setText("── STANDBY ──")
+                    self.game_info_label.setText("Launch a game to begin session tracking.")
+        except Exception as e:
+            logger.error(f"Game detection error: {e}")
 
     def _toggle_overlay(self) -> None:
         if self.overlay_window.isVisible():
             self.overlay_window.hide()
         else:
             self.overlay_window.show()
-            self.overlay_window.raise_()
 
     def _open_settings(self) -> None:
-        self._open_settings_at_tab(0)
-
-    def _open_settings_at_tab(self, tab_index: int) -> None:
-        if self.settings_dialog is None:
+        if not self.settings_dialog:
             self.settings_dialog = TabbedSettingsDialog(
                 self,
                 self.config,
@@ -507,56 +617,35 @@ class MainWindow(QMainWindow):
                 self.macro_manager,
                 self.theme_manager,
             )
-            self.settings_dialog.settings_saved.connect(self._on_settings_saved)
-        self.settings_dialog.set_current_tab(tab_index)
         self.settings_dialog.exec()
 
-    def _on_settings_saved(self, settings: dict) -> None:
-        pass
+    def _open_macro_manager(self) -> None:
+        from PyQt6.QtWidgets import QMessageBox
+        QMessageBox.information(self, "Macro Manager", "Macro manager coming in next phase.")
 
-    def _start_game_detection(self) -> None:
-        self.game_check_timer = QTimer()
-        self.game_check_timer.timeout.connect(self._check_for_game)
-        self.game_check_timer.start(5000)
-        self._check_for_game()
+    def _open_knowledge_manager(self) -> None:
+        from PyQt6.QtWidgets import QMessageBox
+        QMessageBox.information(self, "Knowledge Base", "Knowledge manager coming in next phase.")
 
-    def _check_for_game(self) -> None:
-        if not self.game_detector:
-            return
-        game = self.game_detector.detect_running_game()
+    def _on_model_changed(self, model: str) -> None:
+        if model:
+            self.config.ollama_model = model
+            try:
+                self.config.save()
+            except Exception as e:
+                logger.error(f"Failed to save model config: {e}")
 
-        if game and game.get("name") != self.current_game:
-            self.current_game = game.get("name")
-            self._update_game_status(game)
-        elif not game and self.current_game:
-            self.current_game = None
-            self._update_game_status(None)
+    def send_message_to_ai(self, text: str) -> None:
+        """Public API — kept for backward compat."""
+        self.chat_input.setText(text)
+        self._on_send_clicked()
 
-    def _update_game_status(self, game: Optional[Dict]) -> None:
-        online = bool(game)
-        name = game.get("name") if game else None
-        pid = str(game.get("pid", "--")) if game else "--"
-
-        # Update Center Widget
-        self.game_status.set_game(name, online)
-
-        # Update Stats (Mock stats for now, could come from DB)
-        if online:
-            self.stat_block.set_stats(kd="1.2", matches="42", wins="54%")
-        else:
-            self.stat_block.set_stats(kd="--", matches="--", wins="--")
-
-        # Notify AI
-        if self.ai_assistant:
-            self.ai_assistant.set_current_game(game)
-
-    def cleanup(self) -> None:
+    def closeEvent(self, event) -> None:
         if self.overlay_window:
             self.overlay_window.close()
-        if hasattr(self, "game_check_timer"):
-            self.game_check_timer.stop()
-        if hasattr(self, "stats_timer"):
+        if self.stats_timer:
             self.stats_timer.stop()
+        super().closeEvent(event)
 
 
 def run_gui(
@@ -579,7 +668,6 @@ def run_gui(
 
 __all__ = [
     "AIWorkerThread",
-    "ChatWidget",
     "OverlayWindow",
     "MainWindow",
     "run_gui",

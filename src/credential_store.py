@@ -547,7 +547,7 @@ class CredentialStore:
             return env_password
 
         # 3. Interactive prompt (only if allowed and stdin is a TTY)
-        if self._allow_password_prompt and os.isatty(0):
+        if self._allow_password_prompt and sys.stdin.isatty():
             try:
                 password = getpass.getpass(
                     "Enter master password for credential encryption: "
@@ -563,6 +563,10 @@ class CredentialStore:
 
     @staticmethod
     def _set_permissions(path: Path, mode: int) -> None:
+        # On Windows, os.chmod is limited by User Account Control and does not
+        # provide meaningful security guarantees. Skip silently.
+        if os.name == "nt":
+            return
         try:
             os.chmod(path, mode)
         except PermissionError:

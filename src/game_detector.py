@@ -293,7 +293,8 @@ class GameDetector:
         """Generate cache key based on current game list and system state"""
         try:
             # Include game list hash and process count for cache invalidation
-            games_hash = hash(tuple(sorted(self.common_games.items())))
+            # Use frozenset of keys since dict values (lists) aren't hashable
+            games_hash = hash(frozenset(self.common_games.keys()))
             process_count = len(self._running_processes_cache)
             return f"{games_hash}:{process_count}"
         except Exception:

@@ -377,7 +377,7 @@ class MacroManager:
         if enabled is not None:
             macro.enabled = enabled
 
-        macro.modified_at = time.time()
+        macro.updated_at = time.time()
         logger.info(f"Updated macro: {macro.name}")
         return True
 

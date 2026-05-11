@@ -30,10 +30,10 @@ def test_no_circular_imports():
             importlib.import_module(module_name)
             # print(f"✅ {module_name}")
         except ImportError as e:
-            print(f"❌ {module_name}: {e}")
+            print(f"FAIL: {module_name}: {e}")
             failed.append(module_name)
         except Exception as e:
-            print(f"❌ {module_name}: {e} (Runtime Error during import)")
+            print(f"FAIL: {module_name}: {e} (Runtime Error during import)")
             failed.append(module_name)
 
     if failed:

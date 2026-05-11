@@ -22,6 +22,9 @@ jaraco.context>=4.0.0
 filelock>=3.14.0
 pynput>=1.7.6
 
+# Licensing
+supabase>=2.0.0
+
 # PDF processing (optional but recommended for knowledge packs)
 PyPDF2>=3.0.0
 pdfplumber>=0.9.0

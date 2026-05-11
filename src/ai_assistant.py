@@ -40,28 +40,6 @@ if TYPE_CHECKING:
     from src.game_profile import GameProfile
 
 
-class AIWorkerThread(QThread):
-    """Background thread for AI API calls to prevent GUI freezing"""
-
-    response_ready = pyqtSignal(str)
-    error_occurred = pyqtSignal(str)
-
-    def __init__(self, ai_assistant, question, game_context=None):
-        super().__init__()
-        self.ai_assistant = ai_assistant
-        self.question = question
-        self.game_context = game_context
-
-    def run(self):
-        """Run AI query in background"""
-        try:
-            response = self.ai_assistant.ask_question(self.question, self.game_context)
-            self.response_ready.emit(response)
-        except Exception as e:
-            logger.error(f"AI worker thread error: {e}", exc_info=True)
-            self.error_occurred.emit(str(e))
-
-
 class AIAssistant:
     """AI-powered gaming assistant with conversation context management"""
 
@@ -108,8 +86,8 @@ class AIAssistant:
             Callable[[str, str, Dict[str, str]], None]
         ] = None
 
-        # Thread safety for conversation history
-        self._history_lock = threading.Lock()
+        # Thread safety for conversation history (RLock allows re-entry from same thread)
+        self._history_lock = threading.RLock()
 
         # Initialize knowledge integration
         self.knowledge_integration = get_knowledge_integration()
@@ -259,7 +237,8 @@ I can help with:
 
 Please start a game or tell me which game you'd like help with, and I'll provide specialized assistance for that game."""
 
-        self.conversation_history.append({"role": "system", "content": system_message})
+        with self._history_lock:
+            self.conversation_history.append({"role": "system", "content": system_message})
 
     def _trim_conversation_history(self):
         """Trim conversation history to prevent token limit issues"""

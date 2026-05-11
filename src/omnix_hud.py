@@ -503,4 +503,121 @@ QFrame#settings-row[active="true"] {
     border-color: #22d3ee;
     box-shadow: 0 0 16px rgba(56, 189, 248, 0.9);
 }
+
+/* ── Main panels ── */
+QFrame#hud-panel {
+    background-color: rgba(10, 16, 32, 0.97);
+    border-radius: 14px;
+    border: 1px solid rgba(34, 211, 238, 0.35);
+}
+
+QFrame#overlay-frame {
+    background-color: rgba(5, 11, 20, 0.94);
+    border-radius: 12px;
+    border: 1px solid rgba(34, 211, 238, 0.5);
+}
+
+/* ── Labels ── */
+QLabel#panel-title {
+    font-size: 9px;
+    letter-spacing: 0.30em;
+    text-transform: uppercase;
+    color: #22d3ee;
+    padding-bottom: 4px;
+    border-bottom: 1px solid rgba(34, 211, 238, 0.2);
+}
+
+QLabel#game-name-label {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    color: #f0f9ff;
+    padding: 12px 0;
+}
+
+QLabel#game-info-label {
+    font-size: 11px;
+    color: #94a3b8;
+    padding: 4px 8px;
+}
+
+QLabel#stat-value {
+    font-size: 12px;
+    color: #22d3ee;
+    letter-spacing: 0.1em;
+}
+
+QLabel#stat-label {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: #64748b;
+}
+
+/* ── Chat ── */
+QTextEdit#chat-display {
+    background-color: rgba(8, 11, 25, 0.95);
+    border-radius: 8px;
+    border: 1px solid rgba(39, 39, 80, 0.8);
+    color: #e5e7eb;
+    font-size: 12px;
+    padding: 8px;
+}
+
+QLineEdit#chat-input {
+    background-color: rgba(8, 11, 25, 0.98);
+    border-radius: 999px;
+    border: 1px solid rgba(39, 39, 80, 0.9);
+    padding: 8px 16px;
+    font-size: 12px;
+    color: #e5e7eb;
+}
+QLineEdit#chat-input:focus {
+    border-color: rgba(34, 211, 238, 0.8);
+}
+
+/* ── Buttons ── */
+QPushButton#neon-button-primary {
+    background-color: rgba(34, 211, 238, 0.12);
+    color: #22d3ee;
+    border: 1px solid rgba(34, 211, 238, 0.7);
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    font-weight: 700;
+}
+QPushButton#neon-button-primary:hover {
+    background-color: #22d3ee;
+    color: #000;
+}
+
+QPushButton#neon-button-secondary {
+    background-color: rgba(99, 102, 241, 0.12);
+    color: #818cf8;
+    border: 1px solid rgba(99, 102, 241, 0.5);
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+QPushButton#neon-button-secondary:hover {
+    background-color: #6366f1;
+    color: #fff;
+}
+
+/* ── Combo ── */
+QComboBox#omnix-combo {
+    background-color: rgba(8, 11, 25, 0.95);
+    border: 1px solid rgba(34, 211, 238, 0.4);
+    border-radius: 6px;
+    color: #e5e7eb;
+    padding: 4px 8px;
+    font-size: 11px;
+}
+QComboBox#omnix-combo:focus {
+    border-color: #22d3ee;
+}
 """

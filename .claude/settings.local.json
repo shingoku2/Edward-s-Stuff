@@ -10,7 +10,15 @@
       "Bash(dir:*)",
       "Bash(python test_before_build.py:*)",
       "Bash(python -m pip:*)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(pip install:*)",
+      "Bash(python tests/integration/test_before_build.py)",
+      "Bash(flake8 --version)",
+      "Bash(python -m flake8 --version)",
+      "Bash(python test_imports.py)",
+      "Bash(pip list:*)",
+      "Bash(pip show:*)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []
