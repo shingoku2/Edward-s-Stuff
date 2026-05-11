@@ -23,7 +23,7 @@ mypy>=1.5.0               # Type checking
 
 # Security
 bandit>=1.7.5             # Security vulnerability scanning
-safety>=2.3.5             # Dependency vulnerability checking
+safety>=3.7.0             # Dependency vulnerability checking
 
 # Testing Utilities
 freezegun>=1.2.2          # Time mocking
