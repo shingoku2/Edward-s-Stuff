@@ -63,6 +63,6 @@ jobs:
         with:
           node-version: '20'
       - name: Install frontend dependencies
-        run: cd frontend && npm ci
+        run: cd frontend && npm install --legacy-peer-deps
       - name: TypeScript type check
         run: cd frontend && npx tsc --noEmit

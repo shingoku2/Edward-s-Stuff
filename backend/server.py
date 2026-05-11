@@ -28,7 +28,7 @@ from src.knowledge_store import KnowledgePackStore
 from src.macro_manager import MacroManager
 from src.macro_runner import MacroRunner
 from src.session_logger import SessionLogger
-from src.session_coaching import SessionCoaching
+from src.session_coaching import SessionCoach
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -46,7 +46,7 @@ _config: Optional[Config] = None
 _assistant: Optional[AIAssistant] = None
 _detector: Optional[GameDetector] = None
 _macro_manager: Optional[MacroManager] = None
-_session_coaching: Optional[SessionCoaching] = None
+_session_coaching: Optional[SessionCoach] = None
 
 
 def get_config() -> Config:
@@ -55,11 +55,13 @@ def get_config() -> Config:
         _config = Config()
     return _config
 
+
 def get_assistant() -> AIAssistant:
     global _assistant
     if _assistant is None:
         _assistant = AIAssistant(config=get_config())
     return _assistant
+
 
 def get_detector() -> GameDetector:
     global _detector
@@ -67,16 +69,18 @@ def get_detector() -> GameDetector:
         _detector = GameDetector()
     return _detector
 
+
 def get_macro_manager() -> MacroManager:
     global _macro_manager
     if _macro_manager is None:
-        _macro_manager = MacroManager(config=get_config())
+        _macro_manager = MacroManager()
     return _macro_manager
 
-def get_session_coaching() -> SessionCoaching:
+
+def get_session_coaching() -> SessionCoach:
     global _session_coaching
     if _session_coaching is None:
-        _session_coaching = SessionCoaching(config=get_config())
+        _session_coaching = SessionCoach(config=get_config())
     return _session_coaching
 
 
@@ -84,13 +88,16 @@ class ChatRequest(BaseModel):
     message: str
     game_context: Optional[Dict[str, Any]] = None
 
+
 class KnowledgeIngestRequest(BaseModel):
     source: str
     game_profile_id: str
     pack_name: Optional[str] = None
 
+
 class LicenseRequest(BaseModel):
     license_key: str
+
 
 class OllamaConfigRequest(BaseModel):
     host: str
@@ -131,17 +138,35 @@ async def startup():
 
 async def _game_detection_loop():
     detector = get_detector()
-    last_game = None
+    last_name: Optional[str] = None
     while True:
         try:
-            game = detector.detect_game()
-            game_id = game.get("id") if game else None
-            if game_id != last_game:
-                last_game = game_id
-                await manager.broadcast({"type": "game_changed", "data": game or {"name": None, "id": None}})
+            game = detector.detect_running_game()
+            game_name = game.get("name") if game else None
+            if game_name != last_name:
+                last_name = game_name
+                payload = (
+                    {"name": game.get("name"), "id": game.get("process_name", "")}
+                    if game
+                    else {"name": None, "id": None}
+                )
+                await manager.broadcast({"type": "game_changed", "data": payload})
         except Exception as e:
             logger.error(f"Game detection loop error: {e}")
         await asyncio.sleep(5)
+
+
+def _game_to_payload(game: Optional[dict]) -> dict:
+    if not game:
+        return {"name": None, "id": None}
+    return {"name": game.get("name"), "id": game.get("process_name", "")}
+
+
+def _context_str(game_context: Optional[Dict[str, Any]]) -> Optional[str]:
+    if not game_context:
+        return None
+    parts = [f"{k}: {v}" for k, v in game_context.items() if v is not None]
+    return ", ".join(parts) if parts else None
 
 
 @app.get("/api/v2/health")
@@ -153,7 +178,9 @@ def health():
 async def chat(req: ChatRequest):
     try:
         response = await asyncio.to_thread(
-            get_assistant().ask_question, req.message, game_context=req.game_context or {}
+            get_assistant().ask_question,
+            req.message,
+            game_context=_context_str(req.game_context),
         )
         return {"response": response}
     except Exception as e:
@@ -167,7 +194,9 @@ async def websocket_endpoint(ws: WebSocket):
         while True:
             payload = await ws.receive_json()
             if payload.get("type") == "chat":
-                await _handle_chat_ws(ws, payload.get("message", ""), payload.get("game_context", {}))
+                await _handle_chat_ws(
+                    ws, payload.get("message", ""), payload.get("game_context", {})
+                )
             elif payload.get("type") == "ping":
                 await ws.send_json({"type": "pong"})
     except WebSocketDisconnect:
@@ -180,12 +209,13 @@ async def websocket_endpoint(ws: WebSocket):
 async def _handle_chat_ws(ws: WebSocket, message: str, game_context: dict):
     try:
         assistant = get_assistant()
+        ctx_str = _context_str(game_context)
         if hasattr(assistant, "stream"):
-            async for token in assistant.stream(message, game_context=game_context):
+            async for token in assistant.stream(message, game_context=ctx_str):
                 await ws.send_json({"type": "token", "data": token})
         else:
             response = await asyncio.to_thread(
-                assistant.ask_question, message, game_context=game_context
+                assistant.ask_question, message, game_context=ctx_str
             )
             for word in response.split(" "):
                 await ws.send_json({"type": "token", "data": word + " "})
@@ -198,7 +228,8 @@ async def _handle_chat_ws(ws: WebSocket, message: str, game_context: dict):
 @app.get("/api/v2/game/current")
 def current_game():
     try:
-        return get_detector().detect_game() or {"name": None, "id": None}
+        game = get_detector().detect_running_game()
+        return _game_to_payload(game)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -208,7 +239,7 @@ def game_profiles():
     try:
         from src.game_profile import GameProfileStore
         store = GameProfileStore()
-        return {"profiles": [p.__dict__ for p in store.get_all_profiles()]}
+        return {"profiles": [p.to_dict() for p in store.list_profiles()]}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -216,7 +247,8 @@ def game_profiles():
 @app.get("/api/v2/knowledge/packs")
 def list_knowledge_packs():
     try:
-        return {"packs": [p.__dict__ for p in KnowledgePackStore().get_all_packs()]}
+        packs = KnowledgePackStore().load_all_packs()
+        return {"packs": [p.to_dict() for p in packs.values()]}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -224,13 +256,13 @@ def list_knowledge_packs():
 @app.post("/api/v2/knowledge/ingest")
 async def ingest_knowledge(req: KnowledgeIngestRequest):
     try:
-        from src.knowledge_ingestion import KnowledgeIngestion
-        result = await asyncio.to_thread(
-            KnowledgeIngestion().ingest,
-            source=req.source,
-            game_profile_id=req.game_profile_id,
-            pack_name=req.pack_name,
-        )
+        from src.knowledge_ingestion import IngestionPipeline
+        pipeline = IngestionPipeline()
+        src = req.source.strip()
+        if src.startswith("http://") or src.startswith("https://"):
+            result = await asyncio.to_thread(pipeline.ingest, "url", url=src)
+        else:
+            result = await asyncio.to_thread(pipeline.ingest, "file", file_path=src)
         return {"success": True, "result": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -248,7 +280,8 @@ def delete_knowledge_pack(pack_id: str):
 @app.get("/api/v2/macros")
 def list_macros():
     try:
-        return {"macros": list(get_macro_manager().get_all_macros().values())}
+        macros = get_macro_manager().get_all_macros()
+        return {"macros": [m.to_dict() for m in macros]}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -256,8 +289,15 @@ def list_macros():
 @app.post("/api/v2/macros/{macro_id}/execute")
 def execute_macro(macro_id: str):
     try:
-        MacroRunner(get_macro_manager()).execute_macro(macro_id)
+        mgr = get_macro_manager()
+        macros = mgr.get_all_macros()
+        macro = next((m for m in macros if m.id == macro_id), None)
+        if macro is None:
+            raise HTTPException(status_code=404, detail=f"Macro '{macro_id}' not found")
+        MacroRunner(macro_manager=mgr).execute_macro(macro)
         return {"success": True}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -274,9 +314,9 @@ def delete_macro(macro_id: str):
 @app.get("/api/v2/session/summary")
 def session_summary():
     try:
-        game = get_detector().detect_game()
-        game_id = game.get("id", "default") if game else "default"
-        return SessionLogger(config=get_config()).get_session_summary(game_id)
+        game = get_detector().detect_running_game()
+        game_id = game.get("process_name", "default") if game else "default"
+        return SessionLogger().get_session_summary(game_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -284,8 +324,8 @@ def session_summary():
 @app.post("/api/v2/session/recap")
 async def generate_recap():
     try:
-        game = get_detector().detect_game()
-        game_id = game.get("id", "default") if game else "default"
+        game = get_detector().detect_running_game()
+        game_id = game.get("process_name", "default") if game else "default"
         recap = await asyncio.to_thread(
             get_session_coaching().generate_session_recap,
             game_id,
@@ -328,7 +368,9 @@ def list_ollama_models():
         import ollama
         cfg = get_config()
         resp = ollama.Client(host=cfg.ollama_host).list()
-        return {"models": [m.get("name", "") for m in resp.get("models", []) if m.get("name")]}
+        return {
+            "models": [m.get("name", "") for m in resp.get("models", []) if m.get("name")]
+        }
     except Exception as e:
         return {"models": [], "error": str(e)}
 
