@@ -10,7 +10,7 @@ lxml>=4.9.0
 ollama>=0.3.0
 
 # GUI
-PyQt6>=6.6.0
+PyQt6>=6.11.0
 
 # Additional utilities
 python-dotenv>=1.0.0
