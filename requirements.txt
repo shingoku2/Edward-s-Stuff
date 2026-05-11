@@ -19,7 +19,7 @@ pywin32>=306; platform_system=="Windows"
 cryptography>=41.0.0
 keyring>=24.2.0
 jaraco.context>=4.0.0
-filelock>=3.14.0
+filelock>=3.29.0
 pynput>=1.7.6
 
 # Licensing
