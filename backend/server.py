@@ -9,8 +9,9 @@ import asyncio
 import logging
 import os
 import sys
+from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, AsyncIterator, Dict, Optional
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
@@ -32,15 +33,6 @@ from src.session_coaching import SessionCoach
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
-
-app = FastAPI(title="Omnix V2 API", version="2.0.0")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["tauri://localhost", "http://localhost:5173"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 _config: Optional[Config] = None
 _assistant: Optional[AIAssistant] = None
@@ -84,6 +76,31 @@ def get_session_coaching() -> SessionCoach:
     return _session_coaching
 
 
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    logger.info("Omnix V2 backend starting...")
+    get_config()
+    get_detector()
+    task = asyncio.create_task(_game_detection_loop())
+    logger.info("Omnix V2 backend ready on port 7432")
+    yield
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
+
+
+app = FastAPI(title="Omnix V2 API", version="2.0.0", lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["tauri://localhost", "http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
 class ChatRequest(BaseModel):
     message: str
     game_context: Optional[Dict[str, Any]] = None
@@ -125,15 +142,6 @@ class ConnectionManager:
 
 
 manager = ConnectionManager()
-
-
-@app.on_event("startup")
-async def startup():
-    logger.info("Omnix V2 backend starting...")
-    get_config()
-    get_detector()
-    asyncio.create_task(_game_detection_loop())
-    logger.info("Omnix V2 backend ready on port 7432")
 
 
 async def _game_detection_loop():

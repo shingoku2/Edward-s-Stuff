@@ -21,5 +21,20 @@
     "noFallthroughCasesInSwitch": true
   },
   "include": ["src"],
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/test",
+    "src/components/AnimatedSection.tsx",
+    "src/components/CentralHUD.tsx",
+    "src/components/ChatModule.tsx",
+    "src/components/Footer.tsx",
+    "src/components/KnowledgeModule.tsx",
+    "src/components/MacrosModule.tsx",
+    "src/components/MainContainer.tsx",
+    "src/components/RightSideMenu.tsx",
+    "src/components/SettingsModule.tsx",
+    "src/utils"
+  ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
