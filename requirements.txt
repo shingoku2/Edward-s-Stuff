@@ -9,8 +9,15 @@ lxml>=4.9.0
 # AI Integration
 ollama>=0.3.0
 
-# GUI
+# GUI (V1 - PyQt6 desktop app)
 PyQt6>=6.6.0
+
+# V2 Backend - FastAPI sidecar
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+websockets>=12.0
+sse-starlette>=2.1.0
+python-multipart>=0.0.9
 
 # Additional utilities
 python-dotenv>=1.0.0

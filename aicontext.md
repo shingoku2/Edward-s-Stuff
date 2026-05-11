@@ -1,7 +1,83 @@
 # AI Context - Omnix Gaming Companion
 
 **Quick Reference for AI Assistants**
-**Last Updated:** 2025-12-10
+**Last Updated:** 2026-05-11
+
+---
+
+### 2026-05-11: V2 Full Build — All Phases Complete
+
+**Branch:** `version-2`
+
+**What was built:**
+- ✅ Phase 0: V2 repo structure — `backend/`, `src-tauri/`, `frontend/` (overhauled)
+- ✅ Phase 1: `backend/server.py` — FastAPI sidecar exposing all V1 modules via REST + WebSocket on port 7432
+- ✅ Phase 2: `src-tauri/` — Tauri v2 shell (adapted plan's v1 API to Tauri v2 `tray::TrayIconBuilder`, `menu::Menu`); launches Python backend as subprocess
+- ✅ Phase 3: `frontend/src/lib/api.ts`, `hooks/useOmnixWS.ts`, `stores/appStore.ts` — API client, WebSocket streaming hook, Zustand store
+- ✅ Phase 4: All UI components — `Panel`, `NeonButton`, `TitleBar`, `ParticleField`, `ScanLine`, `ChatBubble`, `ChatPanel`, `GamePanel`, `StatsPanel`, `OverlayPanel`
+- ✅ Phase 5: Settings modal — `AIConfigTab`, `KnowledgeTab`, `MacrosTab`, `LicenseTab`, `SettingsModal`
+- ✅ Phase 6: Voice input hook (`useVoiceInput.ts`); streaming already built in Phase 1/3
+- ✅ Phase 8: `tests/v2/test_api.py` — async httpx tests for all API endpoints
+- ✅ Phase 9: CI updated — added `backend-v2-tests` and `frontend-typecheck` jobs
+- ✅ Phase 10: This aicontext.md update
+
+**Deviations from plan:**
+- Tauri `main.rs` rewritten for Tauri v2 API (plan used v1 `SystemTray` etc.)
+- `asyncio.to_thread()` used in backend for all blocking V1 calls (plan had some missing)
+- Settings stubs (Knowledge, Macros, License tabs) fully implemented
+- `useVoiceInput.ts` typed safely without `any` where avoidable
+
+**New files created:**
+```
+backend/__init__.py
+backend/server.py
+src-tauri/Cargo.toml
+src-tauri/build.rs
+src-tauri/tauri.conf.json
+src-tauri/src/main.rs
+src-tauri/capabilities/default.json
+frontend/src/lib/api.ts
+frontend/src/hooks/useOmnixWS.ts
+frontend/src/hooks/useVoiceInput.ts
+frontend/src/stores/appStore.ts
+frontend/src/styles/globals.css
+frontend/src/components/shared/Panel.tsx
+frontend/src/components/shared/NeonButton.tsx
+frontend/src/components/shared/TitleBar.tsx
+frontend/src/components/FX/ParticleField.tsx
+frontend/src/components/FX/ScanLine.tsx
+frontend/src/components/Chat/ChatBubble.tsx
+frontend/src/components/Chat/ChatPanel.tsx
+frontend/src/components/Dashboard/GamePanel.tsx
+frontend/src/components/Dashboard/StatsPanel.tsx
+frontend/src/components/Overlay/OverlayPanel.tsx
+frontend/src/components/Settings/SettingsModal.tsx
+frontend/src/components/Settings/AIConfigTab.tsx
+frontend/src/components/Settings/KnowledgeTab.tsx
+frontend/src/components/Settings/MacrosTab.tsx
+frontend/src/components/Settings/LicenseTab.tsx
+tests/v2/__init__.py
+tests/v2/test_api.py
+```
+
+**Modified files:**
+```
+frontend/package.json   — V2 deps (Tauri, Three.js, Zustand, Recharts, etc.)
+frontend/vite.config.ts — path alias @/, port 5173
+frontend/tailwind.config.js — Omnix V2 design tokens
+frontend/tsconfig.json — path alias support
+frontend/index.html     — Google Fonts (Orbitron, Rajdhani, JetBrains Mono)
+frontend/src/App.tsx    — Full V2 App
+frontend/src/main.tsx   — Updated entry point
+requirements.txt        — Added FastAPI/uvicorn/websockets
+.github/workflows/ci.yml — Added V2 backend and frontend typecheck jobs
+```
+
+**Known issues for next phase:**
+- `src-tauri/` Cargo.lock not generated yet (needs `cargo build` on a machine with Rust)
+- `frontend/package-lock.json` will need `npm install` to regenerate against new deps
+- Screenshot AI analysis endpoint (Phase 6 Feature 4) not yet implemented — requires llava model
+- Session coaching chart component (Phase 6 Feature 2) not yet wired into Dashboard
 
 ---
 

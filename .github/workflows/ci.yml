@@ -2,37 +2,37 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [ main, staging, dev ]
+    branches: [ main, staging, dev, version-2 ]
   pull_request:
     branches: [ main, staging ]
 
 jobs:
   test:
     runs-on: self-hosted
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v6
-    
+
     - name: Set up Python
       run: |
         cd /opt/omnix
         source venv/bin/activate
         python --version
-    
+
     - name: Install dependencies
       run: |
         cd /opt/omnix
         source venv/bin/activate
         pip install -r requirements.txt -r requirements-dev.txt
-    
+
     - name: Run linters
       run: |
         cd /opt/omnix
         source venv/bin/activate
         flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics
         flake8 src/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    
+
     - name: Run tests
       run: |
         cd /opt/omnix
@@ -40,3 +40,29 @@ jobs:
         xvfb-run -a pytest tests/ -v --tb=short
       env:
         QT_QPA_PLATFORM: offscreen
+
+  backend-v2-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install V2 backend dependencies
+        run: pip install -r requirements.txt pytest httpx pytest-asyncio
+      - name: Run V2 API tests
+        run: OMNIX_DEV_MODE=1 pytest tests/v2/ -v
+        env:
+          OMNIX_DEV_MODE: "1"
+
+  frontend-typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install frontend dependencies
+        run: cd frontend && npm ci
+      - name: TypeScript type check
+        run: cd frontend && npx tsc --noEmit
