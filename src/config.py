@@ -97,8 +97,10 @@ class Config:
                     self._protect_file(env_path)
                     break
 
-        # Credential storage (kept for potential secured Ollama endpoints)
-        self.credential_store = CredentialStore()
+        # Credential storage (kept for potential secured Ollama endpoints).
+        # Scoped to this Config's own config_dir so custom-profile/test
+        # instances don't read or write into the real user vault.
+        self.credential_store = CredentialStore(config_dir=self.config_dir)
 
         # AI Configuration - Ollama and OpenAI-compatible
         self.ai_provider = os.getenv("AI_PROVIDER", DEFAULT_AI_PROVIDER)
@@ -545,19 +547,27 @@ class Config:
 
             # AI API key: migrate any plaintext value found in the existing
             # .env into the encrypted credential store instead of writing it
-            # back to disk in plaintext on every settings save.
+            # back to disk in plaintext on every settings save. Only drop it
+            # from .env once the vault write actually succeeds - otherwise
+            # (e.g. keyring unavailable and no master password configured)
+            # keep writing it in plaintext so the key isn't silently lost.
             ai_api_key = existing_content.get("AI_API_KEY", "")
             ai_base_url = existing_content.get("AI_BASE_URL", "")
             ai_model = existing_content.get("AI_MODEL", "")
+            migrated = False
             if ai_api_key:
                 try:
                     CredentialStore().save_credentials({"AI_API_KEY": ai_api_key})
+                    migrated = True
                 except CredentialStoreError as exc:
                     logger.warning(
-                        "Could not migrate AI_API_KEY to credential store: %s", exc
+                        "Could not migrate AI_API_KEY to credential store, "
+                        "keeping it in .env: %s", exc
                     )
-            if ai_base_url or ai_model:
+            if (ai_api_key and not migrated) or ai_base_url or ai_model:
                 f.write("# AI API Settings\n")
+                if ai_api_key and not migrated:
+                    f.write(f"AI_API_KEY={ai_api_key}\n")
                 if ai_base_url:
                     f.write(f"AI_BASE_URL={ai_base_url}\n")
                 if ai_model:

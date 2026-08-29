@@ -33,7 +33,7 @@ This is the React/TypeScript + Tailwind CSS frontend for the Omnix Gaming Compan
 ## Setup Instructions
 
 ### Prerequisites
-- Node.js 18+ and npm/yarn
+- Node.js 20.19+ (or 22.12+) and npm/yarn - required by the installed Vite version
 
 ### Installation
 

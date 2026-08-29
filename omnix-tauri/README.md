@@ -6,7 +6,7 @@ Omnix Gaming Companion rebuilt with **Rust** and **Tauri 2**. It uses the same u
 
 ## Prerequisites
 
-- **Node.js** 18+ and npm
+- **Node.js** 20.19+ (or 22.12+) and npm - required by the installed Vite version
 - **Rust** (rustup) and a C++ build toolchain (Windows: Visual Studio Build Tools)
 - **Ollama** running locally (e.g. `ollama serve`, `ollama pull llama3`)
 
