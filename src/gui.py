@@ -46,6 +46,7 @@ from src.omnix_hud import (
     StatBlock,
     OMNIX_GLOBAL_QSS,
 )
+from src.providers_tab import FetchModelsThread
 
 logger = logging.getLogger(__name__)
 
@@ -104,7 +105,7 @@ class OverlayWindow(QWidget):
             int(getattr(config, "overlay_width", 420)),
             self._saved_height,
         )
-        self.setStyleSheet(ds.get_overlay_stylesheet(
+        self.setStyleSheet(ds.generate_overlay_stylesheet(
             float(getattr(config, "overlay_opacity", 0.92))
         ))
 
@@ -288,6 +289,7 @@ class MainWindow(QMainWindow):
         self.game_detector = game_detector
         self.current_game: Optional[Dict] = None
         self.ai_worker: Optional[AIWorkerThread] = None
+        self.model_fetch_thread: Optional[FetchModelsThread] = None
 
         self.setWindowTitle("OMNIX // HUD")
         self.resize(1280, 800)
@@ -500,6 +502,7 @@ class MainWindow(QMainWindow):
         self.model_combo.addItem(getattr(self.config, "ollama_model", "llama3"))
         self.model_combo.currentTextChanged.connect(self._on_model_changed)
         layout.addWidget(self.model_combo)
+        self._refresh_model_list()
 
         layout.addStretch()
 
@@ -640,6 +643,28 @@ class MainWindow(QMainWindow):
             except Exception as e:
                 logger.error(f"Failed to save model config: {e}")
 
+    def _refresh_model_list(self) -> None:
+        """Populate the Quick Settings model dropdown with installed Ollama models."""
+        base_url = getattr(self.config, "ollama_host", None) or "http://localhost:11434"
+
+        if self.model_fetch_thread and self.model_fetch_thread.isRunning():
+            return
+
+        self.model_fetch_thread = FetchModelsThread(base_url)
+        self.model_fetch_thread.models_fetched.connect(self._on_models_fetched)
+        self.model_fetch_thread.start()
+
+    def _on_models_fetched(self, models: list) -> None:
+        if not models:
+            return
+        current = self.model_combo.currentText() or getattr(self.config, "ollama_model", "")
+        self.model_combo.blockSignals(True)
+        self.model_combo.clear()
+        self.model_combo.addItems(models)
+        if current and current in models:
+            self.model_combo.setCurrentText(current)
+        self.model_combo.blockSignals(False)
+
     def send_message_to_ai(self, text: str) -> None:
         """Public API — kept for backward compat."""
         self.chat_input.setText(text)
@@ -650,6 +675,9 @@ class MainWindow(QMainWindow):
             self.overlay_window.close()
         if self.stats_timer:
             self.stats_timer.stop()
+        if self.model_fetch_thread and self.model_fetch_thread.isRunning():
+            self.model_fetch_thread.terminate()
+            self.model_fetch_thread.wait(1000)
         super().closeEvent(event)
 
 

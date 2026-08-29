@@ -172,7 +172,7 @@ def main():
         import os
         from src.licensing import get_validator
 
-        _license_key = credential_store.get_credential("omnix_license_key") or os.getenv("OMNIX_LICENSE_KEY", "")
+        _license_key = credential_store.get_credential("omnix", "license_key") or os.getenv("OMNIX_LICENSE_KEY", "")
 
         _supabase_url = os.getenv("SUPABASE_URL", "")
         _supabase_key = os.getenv("SUPABASE_ANON_KEY", "")

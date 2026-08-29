@@ -65,11 +65,24 @@ class FetchModelsThread(QThread):
 
             client = ollama.Client(host=self.base_url)
             models_response = client.list()
-            models = [
-                m.get("name", "")
-                for m in models_response.get("models", [])
-                if m.get("name")
-            ]
+
+            # Support both the older dict-shaped response and the current
+            # ollama library's ListResponse/Model pydantic objects.
+            raw_models = (
+                models_response.get("models", [])
+                if isinstance(models_response, dict)
+                else getattr(models_response, "models", [])
+            )
+
+            models = []
+            for m in raw_models:
+                if isinstance(m, dict):
+                    name = m.get("name") or m.get("model") or ""
+                else:
+                    name = getattr(m, "model", "") or getattr(m, "name", "")
+                if name:
+                    models.append(name)
+
             self.models_fetched.emit(models)
         except ImportError:
             self.fetch_failed.emit(

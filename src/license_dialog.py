@@ -68,6 +68,6 @@ class LicenseDialog(QDialog):
             # Save the key to config/keyring
             from src.credential_store import CredentialStore
             store = CredentialStore()
-            store.set_credential("omnix_license_key", key)
+            store.set_credential("omnix", "license_key", key)
             QMessageBox.information(self, "Activated", "License activated successfully!")
             self.accept()
