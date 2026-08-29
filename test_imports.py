@@ -38,12 +38,17 @@ def test_no_circular_imports():
 
     if failed:
         print(f"\nFailed to import {len(failed)} modules.")
-        sys.exit(1)
     else:
         print("\nAll modules imported successfully.")
-        sys.exit(0)
+
+    assert not failed, f"Failed to import {len(failed)} module(s): {failed}"
 
 if __name__ == '__main__':
     # Ensure current directory is in python path
     sys.path.insert(0, os.path.dirname(__file__))
-    test_no_circular_imports()
+    try:
+        test_no_circular_imports()
+    except AssertionError as exc:
+        print(exc)
+        sys.exit(1)
+    sys.exit(0)

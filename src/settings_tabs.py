@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QColor
 
+from src.config import Config
 from src.keybind_manager import Keybind, KeybindManager, KeybindAction, MacroKeybind, DEFAULT_KEYBINDS
 from src.macro_manager import Macro, MacroManager, MacroStep, MacroStepType, DEFAULT_MACROS
 

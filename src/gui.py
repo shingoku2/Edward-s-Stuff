@@ -8,6 +8,7 @@ Provides the main dashboard, chat panel, and in-game overlay window.
 
 from __future__ import annotations
 
+import html
 import logging
 import sys
 from pathlib import Path
@@ -217,13 +218,15 @@ class OverlayWindow(QWidget):
 
     def _append_chat(self, sender: str, text: str, is_user: bool) -> None:
         color = "#ec4899" if is_user else "#22d3ee"
-        html = (
+        safe_sender = html.escape(sender)
+        safe_text = html.escape(text).replace("\n", "<br/>")
+        chat_html = (
             f'<p style="margin:2px 0;">'
-            f'<span style="color:{color};font-size:8px;letter-spacing:2px;">{sender}</span><br/>'
-            f'<span style="color:#e5e7eb;font-size:11px;">{text}</span>'
+            f'<span style="color:{color};font-size:8px;letter-spacing:2px;">{safe_sender}</span><br/>'
+            f'<span style="color:#e5e7eb;font-size:11px;">{safe_text}</span>'
             f'</p>'
         )
-        self.chat_display.append(html)
+        self.chat_display.append(chat_html)
         sb = self.chat_display.verticalScrollBar()
         sb.setValue(sb.maximum())
 
@@ -558,14 +561,16 @@ class MainWindow(QMainWindow):
 
     def _append_chat(self, sender: str, text: str, is_user: bool) -> None:
         color = "#ec4899" if is_user else "#22d3ee"
-        html = (
+        safe_sender = html.escape(sender)
+        safe_text = html.escape(text).replace("\n", "<br/>")
+        chat_html = (
             f'<p style="margin:4px 0;">'
             f'<span style="color:{color};font-size:9px;letter-spacing:2px;'
-            f'text-transform:uppercase;">{sender}</span><br/>'
-            f'<span style="color:#e5e7eb;font-size:12px;">{text}</span>'
+            f'text-transform:uppercase;">{safe_sender}</span><br/>'
+            f'<span style="color:#e5e7eb;font-size:12px;">{safe_text}</span>'
             f'</p><hr style="border:none;border-top:1px solid #1e293b;"/>'
         )
-        self.chat_display.append(html)
+        self.chat_display.append(chat_html)
         sb = self.chat_display.verticalScrollBar()
         sb.setValue(sb.maximum())
 

@@ -5,9 +5,11 @@ from __future__ import annotations
 import base64
 import concurrent.futures
 import getpass
+import hashlib
 import json
 import logging
 import os
+import sys
 import tempfile
 import threading
 from pathlib import Path
@@ -82,6 +84,16 @@ class CredentialStore:
         self._lock = threading.RLock()
         self._keyring_available = True
 
+        # Instance-scoped fallback key directory: hashed from service_name +
+        # config_dir so distinct CredentialStore instances (e.g. different
+        # config dirs, or tests running alongside a real install) never share
+        # or clobber each other's password-derived key.
+        instance_key = hashlib.sha256(
+            f"{self.service_name}:{self.config_dir}".encode("utf-8")
+        ).hexdigest()[:32]
+        self._fallback_dir = _SECURE_TEMP_DIR / instance_key
+        self._file_lock = FileLock(str(self.credential_path) + ".lock")
+
         try:
             keyring.get_keyring()
         except Exception as exc:  # pragma: no cover - defensive guard
@@ -98,7 +110,7 @@ class CredentialStore:
     # ------------------------------------------------------------------
     def save_credentials(self, values: Dict[str, Optional[str]]) -> None:
         """Persist credentials securely."""
-        with self._lock:
+        with self._lock, self._file_lock:
             data = self._load_raw()
             for key, value in values.items():
                 if value:
@@ -106,17 +118,13 @@ class CredentialStore:
                 elif key in data:
                     del data[key]
 
-            payload = json.dumps(data).encode("utf-8")
-            ciphertext = self._get_cipher().encrypt(payload)
-            with open(self.credential_path, "wb") as fh:
-                fh.write(ciphertext)
-            self._set_permissions(self.credential_path, 0o600)
+            self._save_raw(data)
             logger.debug("Stored %d credential(s) in encrypted vault", len(values))
 
     def load_credentials(self) -> Dict[str, str]:
         """Load credentials for the default service."""
 
-        with self._lock:
+        with self._lock, self._file_lock:
             return self._load_raw()
 
     def get(self, key: str) -> Optional[str]:
@@ -150,15 +158,11 @@ class CredentialStore:
 
     def delete(self, key: str) -> None:
         """Remove a credential from the vault."""
-        with self._lock:
+        with self._lock, self._file_lock:
             data = self._load_raw()
             if key in data:
                 del data[key]
-                payload = json.dumps(data).encode("utf-8")
-                ciphertext = self._get_cipher().encrypt(payload)
-                with open(self.credential_path, "wb") as fh:
-                    fh.write(ciphertext)
-                self._set_permissions(self.credential_path, 0o600)
+                self._save_raw(data)
                 logger.debug("Removed credential %s from vault", key)
 
     def delete_credential(self, service: str, key: str) -> None:
@@ -301,22 +305,16 @@ class CredentialStore:
 
         return {k: v for k, v in data.items() if v is not None}
 
-    def _write_data(self, data: Dict[str, Optional[str]]) -> None:
-        payload = json.dumps(data).encode("utf-8")
-        ciphertext = self._get_cipher().encrypt(payload)
-        with open(self.credential_path, "wb") as fh:
-            fh.write(ciphertext)
-        self._set_permissions(self.credential_path, 0o600)
-
     def _ensure_directories(self) -> None:
         # Create main config directory
         self.config_dir.mkdir(parents=True, exist_ok=True)
         self._set_permissions(self.config_dir, 0o700)
 
-        # Create secure temp directory for fallback keys
+        # Create secure temp directory for fallback keys, scoped to this instance
         try:
-            _SECURE_TEMP_DIR.mkdir(parents=True, exist_ok=True)
+            self._fallback_dir.mkdir(parents=True, exist_ok=True)
             self._set_permissions(_SECURE_TEMP_DIR, _SECURE_TEMP_DIR_MODE)
+            self._set_permissions(self._fallback_dir, _SECURE_TEMP_DIR_MODE)
         except Exception as exc:
             logger.warning("Failed to create secure temp directory: %s", exc)
 
@@ -422,8 +420,9 @@ class CredentialStore:
         cipher = Fernet(password_key)
         encrypted_key = cipher.encrypt(key_bytes)
 
-        # Store in secure temp directory instead of user-writable location
-        fallback_path = _SECURE_TEMP_DIR / _FALLBACK_KEY_FILE
+        # Store in an instance-scoped secure temp directory instead of a
+        # user-writable location shared by every CredentialStore instance
+        fallback_path = self._fallback_dir / _FALLBACK_KEY_FILE
         data = {
             "salt": base64.b64encode(salt).decode("utf-8"),
             "encrypted_key": base64.b64encode(encrypted_key).decode("utf-8"),
@@ -440,10 +439,12 @@ class CredentialStore:
 
     def _load_fallback_key(self) -> Optional[bytes]:
         """Load encryption key from password-based fallback storage."""
-        # Check both old and new locations for backward compatibility
+        # Check current instance-scoped location plus older locations for
+        # backward compatibility with keys written before per-instance scoping
         fallback_paths = [
-            _SECURE_TEMP_DIR / _FALLBACK_KEY_FILE,  # New secure location
-            self.config_dir / _FALLBACK_KEY_FILE,  # Legacy location
+            self._fallback_dir / _FALLBACK_KEY_FILE,  # Current instance-scoped location
+            _SECURE_TEMP_DIR / _FALLBACK_KEY_FILE,  # Legacy shared-global location
+            self.config_dir / _FALLBACK_KEY_FILE,  # Legacy per-config-dir location
         ]
 
         fallback_path = None
@@ -510,18 +511,6 @@ class CredentialStore:
             raise CredentialDecryptionError(
                 "Failed to decrypt master key. Your password may be incorrect."
             ) from exc
-
-    def _write_encrypted(self, data: Dict[str, Optional[str]]) -> None:
-        """Encrypt and persist the provided credential mapping safely."""
-
-        payload = json.dumps(data)
-        ciphertext = self._get_cipher().encrypt(payload.encode("utf-8")).decode("utf-8")
-        envelope = {"ciphertext": ciphertext}
-
-        with self._lock:
-            with open(self.credential_path, "w", encoding="utf-8") as fh:
-                json.dump(envelope, fh)
-            self._set_permissions(self.credential_path, 0o600)
 
     def _get_master_password(self) -> Optional[str]:
         """Get master password from various sources.

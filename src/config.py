@@ -97,8 +97,10 @@ class Config:
                     self._protect_file(env_path)
                     break
 
-        # Credential storage (kept for potential secured Ollama endpoints)
-        self.credential_store = CredentialStore()
+        # Credential storage (kept for potential secured Ollama endpoints).
+        # Scoped to this Config's own config_dir so custom-profile/test
+        # instances don't read or write into the real user vault.
+        self.credential_store = CredentialStore(config_dir=self.config_dir)
 
         # AI Configuration - Ollama and OpenAI-compatible
         self.ai_provider = os.getenv("AI_PROVIDER", DEFAULT_AI_PROVIDER)
@@ -113,6 +115,24 @@ class Config:
         self.ai_api_key = os.getenv("AI_API_KEY")
         self.ai_base_url = os.getenv("AI_BASE_URL")
         self.ai_model = os.getenv("AI_MODEL")
+
+        if self.ai_api_key:
+            # A plaintext key found in .env (legacy) is migrated into the
+            # encrypted credential store; save_to_env() no longer writes it
+            # back to disk in plaintext once this has run.
+            try:
+                self.credential_store.save_credentials(
+                    {"AI_API_KEY": self.ai_api_key}
+                )
+            except CredentialStoreError as exc:
+                logger.warning(
+                    "Could not migrate AI_API_KEY into credential store: %s", exc
+                )
+        else:
+            try:
+                self.ai_api_key = self.credential_store.get("AI_API_KEY")
+            except CredentialStoreError as exc:
+                logger.warning("Could not read AI_API_KEY from credential store: %s", exc)
 
         # Application Settings
         self.overlay_hotkey = os.getenv("OVERLAY_HOTKEY", DEFAULT_OVERLAY_HOTKEY)
@@ -525,13 +545,28 @@ class Config:
             f.write(f"OVERLAY_HOTKEY={existing_content.setdefault('OVERLAY_HOTKEY', overlay_hotkey)}\n")
             f.write(f"CHECK_INTERVAL={existing_content.setdefault('CHECK_INTERVAL', str(check_interval))}\n\n")
 
-            # Write AI API settings (preserve values from file if not being updated)
+            # AI API key: migrate any plaintext value found in the existing
+            # .env into the encrypted credential store instead of writing it
+            # back to disk in plaintext on every settings save. Only drop it
+            # from .env once the vault write actually succeeds - otherwise
+            # (e.g. keyring unavailable and no master password configured)
+            # keep writing it in plaintext so the key isn't silently lost.
             ai_api_key = existing_content.get("AI_API_KEY", "")
             ai_base_url = existing_content.get("AI_BASE_URL", "")
             ai_model = existing_content.get("AI_MODEL", "")
-            if ai_api_key or ai_base_url or ai_model:
+            migrated = False
+            if ai_api_key:
+                try:
+                    CredentialStore().save_credentials({"AI_API_KEY": ai_api_key})
+                    migrated = True
+                except CredentialStoreError as exc:
+                    logger.warning(
+                        "Could not migrate AI_API_KEY to credential store, "
+                        "keeping it in .env: %s", exc
+                    )
+            if (ai_api_key and not migrated) or ai_base_url or ai_model:
                 f.write("# AI API Settings\n")
-                if ai_api_key:
+                if ai_api_key and not migrated:
                     f.write(f"AI_API_KEY={ai_api_key}\n")
                 if ai_base_url:
                     f.write(f"AI_BASE_URL={ai_base_url}\n")

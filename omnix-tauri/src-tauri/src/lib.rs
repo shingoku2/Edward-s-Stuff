@@ -238,7 +238,7 @@ async fn toggle_overlay(app: AppHandle) -> Result<(), String> {
             .app
             .windows
             .iter()
-            .find(|w| w.label.as_deref() == Some("overlay"))
+            .find(|w| w.label == "overlay")
             .ok_or("overlay window not in tauri.conf.json")?;
         tauri::WebviewWindowBuilder::from_config(&app, overlay_config)
             .map_err(|e: tauri::Error| e.to_string())?

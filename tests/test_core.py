@@ -28,6 +28,9 @@ class DummyCredentialStore:
     def delete(self, key):
         self._data.pop(key, None)
 
+    def get(self, key):
+        return self._data.get(key)
+
 
 @pytest.mark.unit
 def test_config_loads_env_and_defaults(tmp_path, monkeypatch):
@@ -95,7 +98,9 @@ def test_credential_store_keyring_fallback_uses_master_password(tmp_path, monkey
         store = CredentialStore(base_dir=tmp_path, allow_password_prompt=False)
 
     store.save_credentials({"API": "value"})
-    assert (Path(tmp_path) / "master.key").exists()
+    from src.credential_store import _FALLBACK_KEY_FILE
+
+    assert (store._fallback_dir / _FALLBACK_KEY_FILE).exists()
     assert store.load_credentials()["API"] == "value"
 
 

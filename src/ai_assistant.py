@@ -417,7 +417,7 @@ Please start a game or tell me which game you'd like help with, and I'll provide
         game_name = (
             self.current_game.get("name", "Unknown Game")
             if self.current_game
-            else "Unknown Game"
+            else None
         )
 
         with self._history_lock:

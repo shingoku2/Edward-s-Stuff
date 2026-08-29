@@ -16,11 +16,21 @@ class TestHRMInterface:
 
     def test_initialization_without_pytorch(self):
         """Test HRM initializes gracefully without PyTorch."""
+        real_import = __import__
+
+        def fake_import(name, *args, **kwargs):
+            if name == 'torch':
+                raise ImportError("No module named 'torch'")
+            return real_import(name, *args, **kwargs)
+
         with patch('src.hrm_integration.logger') as mock_logger:
-            with patch('builtins.__import__', side_effect=ImportError("No module named 'torch'")):
+            with patch('builtins.__import__', side_effect=fake_import):
                 hrm = HRMInterface()
                 assert isinstance(hrm, HRMInterface)
-                assert hrm.hrm_available is False
+                # HRM always provides template-based reasoning even without
+                # PyTorch; only the (future) neural-inference path is gated.
+                assert hrm.hrm_available is True
+                assert hrm.pytorch_available is False
                 assert hrm._model is None
 
     def test_initialization_with_pytorch(self):
@@ -268,12 +278,23 @@ class TestErrorHandling:
         self.hrm = get_hrm_interface()
 
     def test_analyze_without_pytorch(self):
-        """Test analyze() returns None when PyTorch unavailable."""
+        """Test analyze() still returns a template-based reasoning outline
+        when PyTorch is unavailable (HRM's structured-template mode doesn't
+        require PyTorch; only the future neural-inference path does)."""
+        real_import = __import__
+
+        def fake_import(name, *args, **kwargs):
+            if name == 'torch':
+                raise ImportError("No module named 'torch'")
+            return real_import(name, *args, **kwargs)
+
         # Create a new HRM instance that definitely has no PyTorch
-        with patch('builtins.__import__', side_effect=ImportError()):
+        with patch('builtins.__import__', side_effect=fake_import):
             hrm_no_pytorch = HRMInterface()
+            assert hrm_no_pytorch.pytorch_available is False
             result = hrm_no_pytorch.analyze("Test question")
-            assert result is None
+            assert result is not None
+            assert isinstance(result, str)
 
     def test_timeout_behavior(self):
         """Test that timeout protection works."""
