@@ -6,7 +6,6 @@
       "Bash(python -c:*)",
       "Bash(find:*)",
       "Bash(python -m pytest:*)",
-      "Bash(python test_hrm_quick.py:*)",
       "Bash(dir:*)",
       "Bash(python test_before_build.py:*)",
       "Bash(python -m pip:*)",

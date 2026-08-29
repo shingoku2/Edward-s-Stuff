@@ -48,8 +48,6 @@ DEFAULT_MACROS_ENABLED = False
 DEFAULT_MACRO_SAFETY_UNDERSTOOD = False
 DEFAULT_MAX_MACRO_REPEAT = 10
 DEFAULT_MACRO_EXECUTION_TIMEOUT = 30
-DEFAULT_HRM_ENABLED = False
-DEFAULT_HRM_MAX_INFERENCE_TIME = 5.0  # seconds
 
 
 class Config:
@@ -165,14 +163,6 @@ class Config:
         )
         self.macro_execution_timeout = int(
             os.getenv("MACRO_EXECUTION_TIMEOUT", DEFAULT_MACRO_EXECUTION_TIMEOUT)
-        )
-
-        # HRM Settings
-        self.hrm_enabled = (
-            os.getenv("HRM_ENABLED", str(DEFAULT_HRM_ENABLED)).lower() == "true"
-        )
-        self.hrm_max_inference_time = float(
-            os.getenv("HRM_MAX_INFERENCE_TIME", str(DEFAULT_HRM_MAX_INFERENCE_TIME))
         )
 
         # Extended Settings (stored in separate JSON files)
@@ -462,8 +452,6 @@ class Config:
         overlay_opacity: Optional[float] = None,
         ollama_host: Optional[str] = None,
         ollama_model: Optional[str] = None,
-        hrm_enabled: Optional[bool] = None,
-        hrm_max_inference_time: Optional[float] = None,
     ):
         """
         Save configuration to .env file.
@@ -481,8 +469,6 @@ class Config:
             overlay_opacity: Overlay opacity 0.0-1.0
             ollama_host: Ollama host URL
             ollama_model: Default Ollama model
-            hrm_enabled: Whether HRM features are enabled
-            hrm_max_inference_time: Maximum time for HRM analysis (seconds)
         """
         # Determine .env file location
         if getattr(sys, "frozen", False):
@@ -522,11 +508,6 @@ class Config:
             existing_content["OVERLAY_MINIMIZED"] = str(overlay_minimized).lower()
         if overlay_opacity is not None:
             existing_content["OVERLAY_OPACITY"] = str(overlay_opacity)
-
-        if hrm_enabled is not None:
-            existing_content["HRM_ENABLED"] = str(hrm_enabled).lower()
-        if hrm_max_inference_time is not None:
-            existing_content["HRM_MAX_INFERENCE_TIME"] = str(hrm_max_inference_time)
 
         # Write to .env file
         with open(env_path, "w", encoding="utf-8") as f:
@@ -591,11 +572,6 @@ class Config:
                 f.write(
                     f"OVERLAY_OPACITY={existing_content.get('OVERLAY_OPACITY', '0.95')}\n"
                 )
-
-            # Write HRM settings if they exist
-            if "HRM_ENABLED" in existing_content:
-                f.write("\n# HRM (Hierarchical Reasoning Model) Settings\n")
-                f.write(f"HRM_ENABLED={existing_content.get('HRM_ENABLED', 'false')}\n")
 
         ensure_private_file(env_path)
 

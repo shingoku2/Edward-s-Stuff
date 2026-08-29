@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Removed
+
+- HRM (Hierarchical Reasoning Model) integration: `src/hrm_integration.py`, the HRM Settings tab, `HRM_ENABLED`/`HRM_MAX_INFERENCE_TIME` config, the vendored `HRM-main/` model source, and the Tauri `hrm.rs` reasoning-prefix module. No longer used by the app.
+
+## [2.0.2] - 2026-08-28
+
+### Added
+
+- Live Ollama model dropdowns on the dashboard's Quick Settings "AI Model" field and the Game Profile editor's Model field, using the same `FetchModelsThread` as the Providers settings tab instead of a static default-only input. (#221)
+
+### Fixed
+
+- **FetchModelsThread response parsing**: the installed `ollama` package returns a `ListResponse`/`Model` pydantic object (`Model.model`), not the `{"models": [{"name": ...}]}` dict shape the parser assumed, so every model fetch silently failed and fell back to the `llama3` placeholder everywhere. (#221)
+- `main.py` / `license_dialog.py` called `credential_store.get_credential`/`set_credential` with the old single-arg signature; updated to the current `(service, key)` signature. (#221)
+- `gui.py`'s `OverlayWindow` called the renamed `design_system.get_overlay_stylesheet` instead of `generate_overlay_stylesheet`. (#221)
+- **credential_store.py**: missing `sys` import crashed the interactive password-prompt fallback; wired up the previously-unused `FileLock` for real cross-process locking; scoped the password-fallback key file per-instance instead of sharing one global temp-dir path across every `CredentialStore`. (#220)
+- **gui.py**: escaped sender/text before interpolating into the chat `QTextEdit` HTML — was vulnerable to HTML injection via chat content. (#220)
+- **knowledge_ingestion.py**: blocked SSRF in URL-based knowledge pack ingestion by validating scheme and resolved IP (rejects loopback/private/link-local/reserved) on the initial URL and every redirect hop. (#220)
+- **keybind_manager.py**: `KeybindManager` is now a `QObject` that dispatches global hotkey callbacks through a queued signal, so they run on the Qt GUI thread instead of the pynput listener thread touching widgets directly. (#220)
+- **base_store.py, session_logger.py**: JSON writes are now atomic (temp file + `os.replace`); `session_logger` flushes every event instead of every 10th and fixes session-ID parsing for `game_profile_id` values containing underscores. (#220)
+- **config.py**: a plaintext `AI_API_KEY` found in `.env` is migrated into the encrypted `CredentialStore` instead of being written back to disk in plaintext on every settings save. (#220)
+- **ai_assistant.py**: `clear_history()` no longer locks the AI into a persona for a game literally named "Unknown Game" when no game is detected. (#220)
+- **settings_tabs.py**: added the missing `Config` import — `save_config()` called `Config.save_to_env()` without it, raising `NameError` at runtime. (#220)
+- Fixed the Omnix Tauri CI workflow, broken on every run since introduction: wrong action reference, a `WindowConfig.label` type mismatch, unused-variable build failures, missing Linux system deps (`libwebkit2gtk-4.1-dev`, `libxdo-dev`), and a Rust `tauri` crate version mismatch against the npm `@tauri-apps/api` version. (#220)
+
+### Changed
+
+- Bumped React, Vite, ESLint, and other devDependencies in `frontend/` and `omnix-tauri/` to latest compatible versions; ran `npm audit fix` in `omnix-tauri/`. (#220)
+
+### Tests
+
+- Fixed pre-existing bugs in `test_core.py`, `test_gui.py`, `test_imports.py`, `test_overlay_geometry.py`, and `test_session_coaching.py`. Full suite went from 346 passed / 12 failing to 358 passed / 8 skipped (torch not installed) / 0 failing. (#220)
+
 ## [2.0.1] - 2026-05-08
 
 ### Fixed

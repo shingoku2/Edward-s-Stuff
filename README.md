@@ -601,7 +601,6 @@ For issues, questions, or suggestions:
   - Per-token customization with real-time UI updates via observer pattern
   - Automatic theme.json v1 → v2 migration with backward compatibility
   - Zero breaking changes via compatibility layer
-  - See [THEME_MIGRATION_PLAN.md](THEME_MIGRATION_PLAN.md) for technical details
 - ✅ **Dependency Cleanup** - Removed unnecessary dependencies
   - Removed PyQt6-WebEngine (was only used for deprecated login_dialog feature)
   - Removed scikit-learn (using custom TF-IDF implementation)

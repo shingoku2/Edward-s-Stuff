@@ -167,8 +167,6 @@ After running tests, find reports at:
 ├── htmlcov/
 │   └── index.html              # Interactive coverage report
 ├── bandit_report.json          # Security scan results
-├── COMPREHENSIVE_TEST_REPORT.md # Detailed test analysis
-├── TEST_EXECUTION_SUMMARY.md   # High-level summary
 └── TEST_QUICK_REFERENCE.md     # This file
 ```
 
@@ -285,9 +283,8 @@ pytest tests/ --tb=short -v
 
 ### Test Failures:
 1. Check this guide for known issues
-2. Read `COMPREHENSIVE_TEST_REPORT.md` for detailed analysis
-3. Run test with `-vv` for verbose output
-4. Check test logs in console output
+2. Run test with `-vv` for verbose output
+3. Check test logs in console output
 
 ### Coverage Questions:
 1. Open `htmlcov/index.html` in browser
@@ -297,7 +294,6 @@ pytest tests/ --tb=short -v
 ### Security Scan:
 1. Check `bandit_report.json`
 2. Review severity levels (High/Medium/Low)
-3. See `COMPREHENSIVE_TEST_REPORT.md` section on security
 
 ---
 

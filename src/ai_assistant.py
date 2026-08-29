@@ -23,12 +23,6 @@ from src.knowledge_integration import (
     get_knowledge_integration,
     KnowledgeIntegration,
 )
-from src.hrm_integration import (
-    get_hrm_interface,
-    requires_complex_reasoning,
-    get_hrm_analysis,
-)
-
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -91,9 +85,6 @@ class AIAssistant:
 
         # Initialize knowledge integration
         self.knowledge_integration = get_knowledge_integration()
-
-        # Get HRM interface (may be used for complex reasoning)
-        self.hrm_interface = get_hrm_interface()
 
         logger.info(f"AIAssistant initialized with provider: {self.provider}")
 
@@ -284,17 +275,6 @@ Please start a game or tell me which game you'd like help with, and I'll provide
             return "🎮 No game detected!\n\nPlease start a game to get assistance. I'm here to help you with gaming questions once you're playing."
 
         try:
-            # Check if HRM is enabled in config and available
-            hrm_enabled = self.config.hrm_enabled and self.hrm_interface.is_available()
-
-            # Check if this question requires complex reasoning (HRM analysis)
-            game_name = (
-                self.current_game.get("name", "Unknown Game")
-                if self.current_game
-                else "Unknown Game"
-            )
-            use_hrm = hrm_enabled and requires_complex_reasoning(question, game_name)
-
             # Build the user message
             user_message = question.strip()
 
@@ -319,18 +299,6 @@ Please start a game or tell me which game you'd like help with, and I'll provide
             # Add knowledge context if available
             if knowledge_context:
                 user_message = f"{knowledge_context}\n{user_message}"
-
-            # Add HRM analysis if required
-            hrm_analysis = None
-            if use_hrm:
-                try:
-                    hrm_analysis = get_hrm_analysis(question, game_context)
-                    if hrm_analysis:
-                        user_message = f"{hrm_analysis}\n\n{user_message}"
-                except Exception as e:
-                    logger.warning(
-                        f"HRM analysis failed: {e}, proceeding with standard response"
-                    )
 
             # Add web scraping context if available
             if game_context:

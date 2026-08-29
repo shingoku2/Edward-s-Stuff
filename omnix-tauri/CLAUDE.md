@@ -1,6 +1,6 @@
 # CLAUDE.md – AI Assistant Guide for Omnix (Tauri)
 
-**Last Updated:** 2026-02
+**Last Updated:** 2026-08-28
 **Stack:** Tauri 2, Rust backend, Vite + React + TypeScript frontend
 **User Data:** `~/.gaming_ai_assistant` (Unix) / `%USERPROFILE%\.gaming_ai_assistant` (Windows)
 
@@ -26,7 +26,7 @@
 Omnix is a desktop AI gaming companion rebuilt with **Rust** and **Tauri 2**. It replicates the behavior of the Python/PyQt6 Omnix app with:
 
 - **Game detection** via sysinfo (process list, match exe names to game profiles)
-- **Ollama chat** with optional knowledge context and HRM-style reasoning prefix
+- **Ollama chat** with optional knowledge context
 - **Game profiles** (CRUD) and **macros** (store, run: key press, delay, mouse click, etc.)
 - **Knowledge system** – per-game TF-IDF index, add chunks, search, inject into prompts
 - **Session logging** to `logs/session.jsonl`
@@ -52,8 +52,7 @@ omnix-tauri/
 │   │   ├── macros.rs       # Macro store (macros/<id>.json), execute (enigo), validate_macro_id
 │   │   ├── keybind.rs      # KeybindConfig (keybinds.json); overlay hotkey saved, not yet active
 │   │   ├── knowledge.rs    # Per-game TF-IDF index (knowledge_index/<game_id>/), search, add_chunks
-│   │   ├── session.rs      # log_event() → logs/session.jsonl
-│   │   └── hrm.rs          # reasoning_prefix_for_question() (template-based)
+│   │   └── session.rs      # log_event() → logs/session.jsonl
 │   ├── capabilities/       # Tauri 2 permissions
 │   ├── tauri.conf.json
 │   └── Cargo.toml
@@ -84,7 +83,6 @@ omnix-tauri/
 | **keybind**| `KeybindConfig` load/save `keybinds.json`; overlay hotkey stored but not yet registered globally. |
 | **knowledge** | Per-game index under `knowledge_index/<safe_game_id>/`; `add_chunks` (recompute IDF/vectors); `search()` across games. |
 | **session** | `log_event(typ, payload)` appends to `logs/session.jsonl`. |
-| **hrm**    | `reasoning_prefix_for_question(&str)` → optional template string for system prompt. |
 
 **Security:** Macro IDs sanitized (no path traversal). Ollama URL validated before use (SSRF mitigation).
 
@@ -120,10 +118,10 @@ omnix-tauri/
 
 ## Development & Build
 
-- **Prerequisites:** Node.js 18+, Rust (rustup), C++ build tools (Windows: VS Build Tools), Ollama.
+- **Prerequisites:** Node.js 20.19+ (or 22.12+), Rust (rustup), C++ build tools (Windows: VS Build Tools), Ollama.
 - **Dev:** `npm install` then `npm run tauri:dev` (Vite dev server + Tauri app).
 - **Build:** `npm run tauri:build`; output in `src-tauri/target/release/bundle/`.
-- **CI:** `.github/workflows/omnix-tauri-ci.yml` – rust-check (cargo check --locked), frontend-build (setup-node with npm cache, npm ci \|\| npm install, npm run build).
+- **CI:** `.github/workflows/omnix-tauri-ci.yml` – rust-check (cargo check --locked), tauri-build (full `npx tauri build`), frontend-build (setup-node with npm cache, npm ci \|\| npm install, npm run build). Both Rust jobs install the Tauri Linux system deps (`libwebkit2gtk-4.1-dev`, `libxdo-dev`, etc.) needed to link.
 
 ---
 
@@ -134,6 +132,16 @@ omnix-tauri/
 - **Game detection:** Polling in frontend (e.g. every 5s) via `get_detected_game`; backend uses sysinfo and profile exe_names.
 - **Overlay:** Currently opens same `index.html`; for a minimal overlay, add a separate route or HTML entry and point overlay window to it in lib.rs.
 - **Keybinds:** Overlay hotkey is saved only; global hotkey registration (e.g. rdev or platform API) can be added later.
+
+---
+
+## Recent Changes
+
+### CI + Dependency Fixes (2026-08-28, PR #220)
+
+The `omnix-tauri-ci.yml` workflow had been broken on every run since it was introduced: wrong action reference (`dtolnay/rust-toolchain@stable`, not the nonexistent `rust-action`), a `WindowConfig.label` type mismatch after a Tauri version bump (compare directly, it's `String` not `Option<String>` in the installed version), unused-variable TS6133 build failures in `App.tsx`, missing Linux system deps on `rust-check` (`libwebkit2gtk-4.1-dev`, `libxdo-dev` for enigo), and the Rust `tauri` crate pinned behind the npm `@tauri-apps/api` version (Tauri CLI refuses to build on a major.minor mismatch). All fixed and verified locally (`cargo check --locked`, `npx tauri build --no-bundle`, `npm run build`).
+
+Also bumped devDependencies (React, Vite, ESLint, etc.) and ran `npm audit fix`; Tailwind stayed on 3.x (4.x needs a config migration this project hasn't done).
 
 ---
 

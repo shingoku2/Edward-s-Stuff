@@ -69,7 +69,7 @@ if os.path.exists(dist_dir):
         print("  ✓ Copied .env.example")
 
     # Copy documentation
-    for doc in ["README.md", "SETUP.md", "TEST_REPORT.md", "API_TEST_RESULTS.md"]:
+    for doc in ["README.md", "SETUP.md"]:
         if os.path.exists(doc):
             shutil.copy(doc, os.path.join(dist_dir, doc))
             print(f"  ✓ Copied {doc}")

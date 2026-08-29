@@ -1,6 +1,6 @@
 # CLAUDE.md - AI Assistant Guide for Omnix Gaming Companion
 
-**Last Updated:** 2025-12-09
+**Last Updated:** 2026-08-28
 **Codebase Version:** 2.0+ (Ollama-only)
 **Total LOC:** ~14,700 (src) + 3,196 (tests)
 
@@ -426,49 +426,37 @@ worker.start()
 
 ## Recent Changes
 
-### HRM Integration - Structured Reasoning (2025-12-10) ⭐
+### HRM Removal (2026-08-28)
 
-**Implementation**: Structured reasoning templates (no neural inference)
+The HRM (Hierarchical Reasoning Model) structured-reasoning integration has been removed entirely — `src/hrm_integration.py`, the `HRMSettingsTab` settings UI, `HRM_ENABLED`/`HRM_MAX_INFERENCE_TIME` config, the vendored `HRM-main/` model source, and the Tauri `hrm.rs` reasoning-prefix module are all gone. It is no longer used by the app.
 
-**Why This Approach**:
-- HRM model trained on puzzles (Sudoku, ARC, Maze), not gaming Q&A
-- Structured templates provide immediate value without domain mismatch
-- No PyTorch model loading required (faster, lighter)
-- Foundation for future fine-tuning on gaming data
+### Ollama Model Dropdowns + Fetch Parsing Fix (2026-08-28, PR #221)
 
-**Features**:
-- Intelligent question type detection (puzzle, strategy, optimization, sequence)
-- Multi-word phrase recognition for complex reasoning queries
-- Game genre-aware routing (automatically triggers for reasoning-heavy games)
-- Structured reasoning frameworks guide LLM responses
-- Timeout protection (5s default, configurable)
-- Graceful fallback if analysis fails
+The dashboard's Quick Settings "AI Model" field and the Game Profile editor's Model field were static/plain inputs showing only the configured default. Both now use the same `FetchModelsThread` as the Providers settings tab to populate a live dropdown of installed Ollama models.
 
-**How It Works**:
-1. User asks complex reasoning question
-2. HRM detects question type and game context
-3. Generates structured reasoning outline (puzzle solving, strategic planning, optimization analysis, etc.)
-4. Outline prepended to message sent to Ollama
-5. LLM follows reasoning structure in response
+**Root cause fixed:** `FetchModelsThread` parsed Ollama's response as `{"models": [{"name": ...}]}`, but the installed `ollama` package actually returns a `ListResponse`/`Model` pydantic object (`Model.model`), so every fetch silently failed and fell back to the `llama3` placeholder everywhere.
 
-**Configuration**:
-```bash
-# .env
-HRM_ENABLED=true
-HRM_MAX_INFERENCE_TIME=5.0  # Timeout in seconds
-```
+Also fixed two unrelated pre-existing crashes hit while testing:
+- `main.py` / `license_dialog.py` called `credential_store.get_credential`/`set_credential` with the old single-arg signature; the store now requires `(service, key)`.
+- `gui.py`'s `OverlayWindow` called the now-renamed `design_system.get_overlay_stylesheet` instead of `generate_overlay_stylesheet`.
 
-**Example Reasoning Types**:
-- **Puzzle**: "How do I solve this maze?" → Constraint identification, state transitions, systematic search
-- **Strategy**: "Best late-game approach?" → Resource analysis, objective definition, action sequencing
-- **Optimization**: "Fastest leveling route?" → Criteria definition, trade-off analysis, solution comparison
-- **Sequential**: "What order should I do these in?" → Dependency identification, task ordering
+### Codebase Audit Fixes + Dependency Updates (2026-08-28, PR #220)
 
-**Setup**: Optional PyTorch installation for future enhancements (current implementation doesn't require it)
+**Security/reliability fixes:**
+- `credential_store.py`: added missing `sys` import (crashed the interactive password-prompt fallback), wired up the previously-unused `FileLock` for real cross-process locking, scoped the password-fallback key file per-instance instead of one shared global temp-dir path, and routed save/delete through the existing atomic-write helper.
+- `gui.py`: escaped sender/text before interpolating into the chat `QTextEdit` HTML (was vulnerable to HTML injection via chat content).
+- `knowledge_ingestion.py`: blocked SSRF in URL-based knowledge pack ingestion — validates scheme and resolved IP (rejects loopback/private/link-local/reserved) on the initial URL and every redirect hop.
+- `keybind_manager.py`: `KeybindManager` is now a `QObject` that dispatches global hotkey callbacks through a queued signal, so they run on the Qt GUI thread instead of the pynput listener thread touching widgets directly.
+- `base_store.py`, `session_logger.py`: JSON writes are now atomic (temp file + `os.replace`); `session_logger` also flushes every event instead of every 10th and fixes session-ID parsing for `game_profile_id` values containing underscores.
+- `config.py`: a plaintext `AI_API_KEY` found in `.env` is migrated into the encrypted `CredentialStore` instead of being written back to disk in plaintext on every settings save (only once the vault migration actually succeeds — otherwise it's still written in plaintext so the key isn't lost).
+- `ai_assistant.py`: `clear_history()` no longer locks the AI into a persona for a game literally named "Unknown Game" when no game is detected.
+- `settings_tabs.py`: added the missing `Config` import — `save_config()` called `Config.save_to_env()` without it, raising `NameError` at runtime.
 
-**Future Phases** (not in scope):
-- Phase 2: Load PyTorch model architecture (no weights)
-- Phase 3: Fine-tune on gaming Q&A dataset (requires data collection)
+**Test suite:** fixed pre-existing bugs in `test_core.py`, `test_gui.py`, `test_imports.py`, `test_overlay_geometry.py`, `test_session_coaching.py` (and the now-removed `test_hrm_integration.py`). Full suite went from 346 passed/12 failing to 358 passed/8 skipped (torch not installed)/0 failing.
+
+**Dependencies:** bumped React, Vite, ESLint, and other devDependencies in `frontend/` and `omnix-tauri/` to latest compatible versions (TypeScript held at 5.9.x; Tailwind held at 3.x — 4.x needs a config migration neither project has done); `npm audit fix` in `omnix-tauri/`.
+
+**CI:** fixed the Omnix Tauri GitHub Actions workflow, which had been broken on every run since it was introduced — wrong action reference (`dtolnay/rust-toolchain@stable`, not `rust-action`), a `WindowConfig.label` type mismatch after a Tauri version bump, unused-variable TS6133 build failures, missing Linux system deps (`libwebkit2gtk-4.1-dev`, `libxdo-dev` for enigo) on `rust-check`, and a Rust `tauri` crate version pinned behind the npm `@tauri-apps/api` version.
 
 ### Ollama-Only Migration (2025-12-06) ⭐
 
@@ -560,7 +548,7 @@ python -m pytest                  # All tests
 
 ---
 
-**Last Updated:** 2025-12-09
+**Last Updated:** 2026-08-28
 **Maintained by:** AI assistants working on Omnix
 
 *For user documentation, see README.md*

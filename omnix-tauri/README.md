@@ -51,7 +51,7 @@ npm run tauri icon path/to/your/icon.png
 |------|-------------|
 | **Config** | Load/save from `~/.gaming_ai_assistant`; Ollama base URL and model, theme, overlay opacity. URL validated (http/https, no metadata hosts). |
 | **Game detection** | Polls running processes (sysinfo) and matches exe names to game profiles. |
-| **Ollama chat** | Send message; response via `message-received` event. Uses knowledge context and optional HRM-style reasoning prefix. |
+| **Ollama chat** | Send message; response via `message-received` event. Uses knowledge context to inform the answer. |
 | **Settings** | Tabbed modal: General (AI), Game Profiles, Knowledge Packs, Keybindings, Macros, App Appearance, Overlay Appearance. |
 | **Game profiles** | CRUD for `game_profiles.json` (compatible with Python app). |
 | **Macros** | Store and run macros (delay, key press, key down/up, mouse click, move, scroll) via enigo. List, create, edit, run, delete from Settings or Macros modal. Events: `macro-finished`, `macro-error`. |
@@ -85,7 +85,6 @@ npm run tauri icon path/to/your/icon.png
 | `src-tauri/src/keybind.rs` | Keybind config |
 | `src-tauri/src/knowledge.rs` | TF-IDF index and search |
 | `src-tauri/src/session.rs` | Session event log |
-| `src-tauri/src/hrm.rs` | Reasoning template for complex questions |
 
 ---
 

@@ -73,8 +73,7 @@ class TestAIAssistantThreadSafety:
 
         with patch.object(ai_mod, 'get_router', return_value=MagicMock()), \
              patch.object(ai_mod, 'get_provider', return_value=mock_provider), \
-             patch.object(ai_mod, 'get_knowledge_integration', return_value=MagicMock()), \
-             patch.object(ai_mod, 'get_hrm_interface', return_value=MagicMock()):
+             patch.object(ai_mod, 'get_knowledge_integration', return_value=MagicMock()):
 
             assistant = AIAssistant()
             assistant.set_current_game({"name": "Test Game"})
