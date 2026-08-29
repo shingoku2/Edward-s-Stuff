@@ -117,16 +117,14 @@ class TestSessionRecapGeneration:
 
         # Mock the AI router
         with patch.object(coach, 'router') as mock_router:
-            mock_provider = MagicMock()
-            mock_router.get_default_provider.return_value = mock_provider
 
             # Mock AI response
-            async def mock_chat(messages, **kwargs):
+            def mock_chat(messages, **kwargs):
                 return {
                     "content": "You asked about Margit and received strategies. Great progress!"
                 }
 
-            mock_provider.chat = mock_chat
+            mock_router.chat = mock_chat
 
             recap = await coach.generate_recap("elden_ring", sample_session_events)
 
@@ -153,14 +151,12 @@ class TestSessionRecapGeneration:
         coach = SessionCoach(config=config)
 
         with patch.object(coach, 'router') as mock_router:
-            mock_provider = MagicMock()
-            mock_router.get_default_provider.return_value = mock_provider
 
             # Mock AI error
-            async def mock_chat_error(messages, **kwargs):
+            def mock_chat_error(messages, **kwargs):
                 raise Exception("AI service unavailable")
 
-            mock_provider.chat = mock_chat_error
+            mock_router.chat = mock_chat_error
 
             # Should handle error gracefully
             try:
@@ -197,15 +193,13 @@ class TestInsightsGeneration:
         coach = SessionCoach(session_logger=logger, config=config)
 
         with patch.object(coach, 'router') as mock_router:
-            mock_provider = MagicMock()
-            mock_router.get_default_provider.return_value = mock_provider
 
-            async def mock_chat(messages, **kwargs):
+            def mock_chat(messages, **kwargs):
                 return {
                     "content": "Focus on learning boss patterns. Practice dodging."
                 }
 
-            mock_provider.chat = mock_chat
+            mock_router.chat = mock_chat
 
             insights = await coach.generate_insights("elden_ring")
 
@@ -228,13 +222,11 @@ class TestInsightsGeneration:
         coach = SessionCoach(session_logger=logger, config=config)
 
         with patch.object(coach, 'router') as mock_router:
-            mock_provider = MagicMock()
-            mock_router.get_default_provider.return_value = mock_provider
 
-            async def mock_chat(messages, **kwargs):
+            def mock_chat(messages, **kwargs):
                 return {"content": "Tip 1: Practice timing\nTip 2: Learn patterns"}
 
-            mock_provider.chat = mock_chat
+            mock_router.chat = mock_chat
 
             tips = await coach.get_coaching_tips("test_game")
 
@@ -313,14 +305,12 @@ class TestRecapPromptConstruction:
         captured_messages = []
 
         with patch.object(coach, 'router') as mock_router:
-            mock_provider = MagicMock()
-            mock_router.get_default_provider.return_value = mock_provider
 
-            async def mock_chat(messages, **kwargs):
+            def mock_chat(messages, **kwargs):
                 captured_messages.append(messages)
                 return {"content": "Recap text"}
 
-            mock_provider.chat = mock_chat
+            mock_router.chat = mock_chat
 
             await coach.generate_recap("elden_ring", sample_session_events)
 
@@ -342,14 +332,12 @@ class TestRecapPromptConstruction:
         captured_messages = []
 
         with patch.object(coach, 'router') as mock_router:
-            mock_provider = MagicMock()
-            mock_router.get_default_provider.return_value = mock_provider
 
-            async def mock_chat(messages, **kwargs):
+            def mock_chat(messages, **kwargs):
                 captured_messages.append(messages)
                 return {"content": "Insights"}
 
-            mock_provider.chat = mock_chat
+            mock_router.chat = mock_chat
 
             await coach.generate_insights("test")
 
@@ -412,15 +400,13 @@ class TestEndToEndCoaching:
         coach = SessionCoach(session_logger=logger, config=config)
 
         with patch.object(coach, 'router') as mock_router:
-            mock_provider = MagicMock()
-            mock_router.get_default_provider.return_value = mock_provider
 
-            async def mock_chat(messages, **kwargs):
+            def mock_chat(messages, **kwargs):
                 return {
                     "content": "Great session! You learned about Margit strategies and mage builds."
                 }
 
-            mock_provider.chat = mock_chat
+            mock_router.chat = mock_chat
 
             # Get events
             events = logger.get_current_session_events("elden_ring")

@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import tempfile
 from pathlib import Path
 from typing import Any, Dict, Generic, Iterator, Optional, TypeVar
 
@@ -52,15 +53,34 @@ class BaseStore(Generic[T]):
             return None
 
     def _json_save(self, file_path: Path, data: Dict[str, Any]) -> bool:
-        """Persist JSON data to disk."""
+        """Persist JSON data to disk atomically (write to a temp file in the
+        same directory, then rename over the target). A crash or forced kill
+        mid-write leaves the original file intact instead of truncated."""
+        temp_path: Optional[Path] = None
         try:
             file_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(file_path, "w", encoding="utf-8") as handle:
+            with tempfile.NamedTemporaryFile(
+                "w",
+                delete=False,
+                dir=file_path.parent,
+                encoding="utf-8",
+                suffix=".tmp",
+            ) as handle:
+                temp_path = Path(handle.name)
                 json.dump(data, handle, indent=2)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temp_path, file_path)
             return True
         except Exception as exc:  # pragma: no cover - defensive logging
             self.logger.error("Failed to write %s: %s", file_path, exc)
             return False
+        finally:
+            if temp_path is not None and temp_path.exists():
+                try:
+                    temp_path.unlink()
+                except OSError:
+                    pass
 
     def _delete_file(self, file_path: Path) -> bool:
         """Delete a file if it exists."""

@@ -10,6 +10,9 @@ import sys
 from pathlib import Path
 from unittest.mock import Mock, MagicMock, patch
 
+from PyQt6.QtCore import QPoint, QSize
+from PyQt6.QtGui import QMoveEvent, QResizeEvent
+
 # Add src to path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
@@ -32,7 +35,7 @@ class TestOverlayWindowGeometry:
         assert callable(getattr(OverlayWindow, 'resizeEvent'))
         assert callable(getattr(OverlayWindow, '_save_geometry'))
 
-    def test_move_event_triggers_save_timer(self):
+    def test_move_event_triggers_save_timer(self, qapp):
         """Test that moveEvent starts the debounced save timer."""
         with patch('src.gui.QTimer') as mock_timer_class, \
              patch('src.gui.OmnixDesignSystem') as mock_ds:
@@ -60,16 +63,18 @@ class TestOverlayWindowGeometry:
             # Get the moveEvent method
             move_event_method = overlay.moveEvent
 
-            # Create a mock event
-            mock_event = MagicMock()
+            # PyQt6 enforces the real C++ argument type on overridden
+            # virtual methods, so a MagicMock can't stand in here - build
+            # an actual QMoveEvent.
+            move_event = QMoveEvent(QPoint(150, 200), QPoint(100, 100))
 
             # Call moveEvent
-            move_event_method(mock_event)
+            move_event_method(move_event)
 
             # Verify timer was started with 400ms delay
             mock_timer.start.assert_called_once_with(400)
 
-    def test_resize_event_triggers_save_timer(self):
+    def test_resize_event_triggers_save_timer(self, qapp):
         """Test that resizeEvent starts the debounced save timer."""
         with patch('src.gui.QTimer') as mock_timer_class, \
              patch('src.gui.OmnixDesignSystem') as mock_ds:
@@ -97,16 +102,18 @@ class TestOverlayWindowGeometry:
             # Get the resizeEvent method
             resize_event_method = overlay.resizeEvent
 
-            # Create a mock event
-            mock_event = MagicMock()
+            # PyQt6 enforces the real C++ argument type on overridden
+            # virtual methods, so a MagicMock can't stand in here - build
+            # an actual QResizeEvent.
+            resize_event = QResizeEvent(QSize(500, 400), QSize(420, 360))
 
             # Call resizeEvent
-            resize_event_method(mock_event)
+            resize_event_method(resize_event)
 
             # Verify timer was started with 400ms delay
             mock_timer.start.assert_called_once_with(400)
 
-    def test_save_geometry_updates_config_and_saves(self):
+    def test_save_geometry_updates_config_and_saves(self, qapp):
         """Test that _save_geometry updates config with current position/size."""
         with patch('src.gui.QTimer') as mock_timer_class, \
              patch('src.gui.OmnixDesignSystem') as mock_ds:
@@ -150,7 +157,7 @@ class TestOverlayWindowGeometry:
             # Verify save was called
             mock_config.save.assert_called_once()
 
-    def test_minimize_state_is_tracked(self):
+    def test_minimize_state_is_tracked(self, qapp):
         """Test that minimized state is properly tracked."""
         with patch('src.gui.QTimer') as mock_timer_class, \
              patch('src.gui.OmnixDesignSystem') as mock_ds:
@@ -183,7 +190,7 @@ class TestOverlayWindowGeometry:
 class TestOverlayWindowDragging:
     """Test OverlayWindow drag-to-move functionality."""
 
-    def test_mouse_press_sets_drag_position(self):
+    def test_mouse_press_sets_drag_position(self, qapp):
         """Test that left mouse press sets up drag position."""
         with patch('src.gui.QTimer') as mock_timer_class, \
              patch('src.gui.OmnixDesignSystem') as mock_ds:
@@ -212,9 +219,9 @@ class TestOverlayWindowDragging:
             # Create mock mouse event
             mock_event = MagicMock()
             mock_event.button.return_value = Qt.MouseButton.LeftButton
-            mock_event.globalPosition.return_value.toPoint.return_value = (150, 200)
+            mock_event.globalPosition.return_value.toPoint.return_value = QPoint(150, 200)
             overlay.frameGeometry = MagicMock()
-            overlay.frameGeometry.return_value.topLeft.return_value = (100, 100)
+            overlay.frameGeometry.return_value.topLeft.return_value = QPoint(100, 100)
 
             # Call mousePressEvent
             overlay.mousePressEvent(mock_event)
@@ -222,7 +229,7 @@ class TestOverlayWindowDragging:
             # Verify _drag_pos was set
             assert overlay._drag_pos is not None
 
-    def test_mouse_move_drags_window(self):
+    def test_mouse_move_drags_window(self, qapp):
         """Test that mouse move with drag position moves the window."""
         with patch('src.gui.QTimer') as mock_timer_class, \
              patch('src.gui.OmnixDesignSystem') as mock_ds:
@@ -249,12 +256,12 @@ class TestOverlayWindowDragging:
             overlay = OverlayWindow(None, mock_config, mock_ds_instance)
 
             # Set up drag position
-            overlay._drag_pos = (50, 60)
+            overlay._drag_pos = QPoint(50, 60)
 
             # Create mock mouse event
             mock_event = MagicMock()
             mock_event.buttons.return_value = Qt.MouseButton.LeftButton
-            mock_event.globalPosition.return_value.toPoint.return_value = (200, 250)
+            mock_event.globalPosition.return_value.toPoint.return_value = QPoint(200, 250)
             overlay.move = MagicMock()
 
             # Call mouseMoveEvent
@@ -263,7 +270,7 @@ class TestOverlayWindowDragging:
             # Verify move was called
             overlay.move.assert_called_once()
 
-    def test_mouse_release_clears_drag_position(self):
+    def test_mouse_release_clears_drag_position(self, qapp):
         """Test that mouse release clears drag position."""
         with patch('src.gui.QTimer') as mock_timer_class, \
              patch('src.gui.OmnixDesignSystem') as mock_ds:

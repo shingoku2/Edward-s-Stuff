@@ -91,7 +91,8 @@ def test_main_window_send_message(monkeypatch, qtbot):
         pass
 
     class DummyDesignSystem:
-        pass
+        def get_overlay_stylesheet(self, opacity):
+            return ""
 
     class DummyConfig:
         overlay_x = 100

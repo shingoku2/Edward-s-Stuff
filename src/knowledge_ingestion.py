@@ -3,8 +3,10 @@ Knowledge Ingestion Pipeline
 Handles extraction of text from various sources (files, URLs, notes)
 """
 
+import ipaddress
 import logging
 import os
+import socket
 from pathlib import Path
 from typing import Optional, List
 from urllib.parse import urlparse
@@ -238,6 +240,41 @@ class URLIngestor:
     """Handles text extraction from web URLs"""
 
     DEFAULT_TIMEOUT = 15
+    MAX_REDIRECTS = 5
+
+    @staticmethod
+    def _assert_public_url(url: str) -> None:
+        """Reject URLs that target loopback/private/link-local/reserved
+        addresses to prevent SSRF against internal services (e.g. cloud
+        metadata endpoints, LAN admin panels) via knowledge pack imports.
+        """
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https"):
+            raise IngestionError(f"Unsupported URL scheme: {parsed.scheme!r}")
+
+        hostname = parsed.hostname
+        if not hostname:
+            raise IngestionError("URL has no hostname")
+
+        try:
+            addrinfo = socket.getaddrinfo(hostname, None)
+        except socket.gaierror as exc:
+            raise IngestionError(f"Could not resolve host {hostname!r}: {exc}")
+
+        for family, _, _, _, sockaddr in addrinfo:
+            ip = ipaddress.ip_address(sockaddr[0])
+            if (
+                ip.is_loopback
+                or ip.is_private
+                or ip.is_link_local
+                or ip.is_reserved
+                or ip.is_multicast
+                or ip.is_unspecified
+            ):
+                raise IngestionError(
+                    f"Refusing to fetch URL resolving to a non-public address: "
+                    f"{hostname} -> {ip}"
+                )
 
     @staticmethod
     def ingest_url(url: str, timeout: int = DEFAULT_TIMEOUT) -> str:
@@ -261,16 +298,33 @@ class URLIngestor:
             )
 
         try:
-            # Fetch URL
+            # Fetch URL, validating both the initial target and every
+            # redirect hop so requests can't be bounced through a public
+            # host into an internal one (SSRF).
             headers = {
                 'User-Agent': 'Mozilla/5.0 (Gaming AI Assistant Knowledge Pack Ingestion)'
             }
             effective_timeout = timeout or URLIngestor.DEFAULT_TIMEOUT
-            response = requests.get(
-                url,
-                timeout=(effective_timeout, effective_timeout),
-                headers=headers,
-            )
+
+            current_url = url
+            for _ in range(URLIngestor.MAX_REDIRECTS + 1):
+                URLIngestor._assert_public_url(current_url)
+                response = requests.get(
+                    current_url,
+                    timeout=(effective_timeout, effective_timeout),
+                    headers=headers,
+                    allow_redirects=False,
+                )
+                if response.is_redirect or response.is_permanent_redirect:
+                    next_url = response.headers.get("Location")
+                    if not next_url:
+                        break
+                    current_url = requests.compat.urljoin(current_url, next_url)
+                    continue
+                break
+            else:
+                raise IngestionError("Too many redirects")
+
             response.raise_for_status()
 
             # Parse HTML

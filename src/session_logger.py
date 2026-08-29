@@ -6,6 +6,7 @@ Tracks user interactions and AI responses per game profile for coaching and reca
 import logging
 import json
 import os
+import tempfile
 import threading
 from pathlib import Path
 from typing import List, Dict, Optional
@@ -160,9 +161,9 @@ class SessionLogger:
             # Get current session
             session_id = self._get_current_session_id(game_profile_id)
 
-            # Persist to disk periodically (every 10 events)
-            if len(self.events[game_profile_id]) % 10 == 0:
-                self._save_session(game_profile_id, session_id)
+            # Persist to disk on every event so a crash/forced kill loses at
+            # most the event currently being logged rather than up to 9.
+            self._save_session(game_profile_id, session_id)
 
             logger.debug(f"Logged {event_type} event for {game_profile_id}")
 
@@ -184,14 +185,31 @@ class SessionLogger:
             if len(events_data) > self.MAX_EVENTS_ON_DISK:
                 events_data = events_data[-self.MAX_EVENTS_ON_DISK:]
 
-            # Save to file with lock protection to prevent concurrent write corruption
+            # Save to file with lock protection to prevent concurrent write
+            # corruption, and atomically (temp file + rename) so a crash
+            # mid-write can't leave a truncated session file.
             with self._save_lock:
-                with open(session_file, 'w') as f:
-                    json.dump({
-                        'game_profile_id': game_profile_id,
-                        'session_id': session_id,
-                        'events': events_data
-                    }, f, indent=2)
+                temp_path = None
+                try:
+                    with tempfile.NamedTemporaryFile(
+                        'w', delete=False, dir=session_file.parent,
+                        encoding='utf-8', suffix='.tmp'
+                    ) as f:
+                        temp_path = Path(f.name)
+                        json.dump({
+                            'game_profile_id': game_profile_id,
+                            'session_id': session_id,
+                            'events': events_data
+                        }, f, indent=2)
+                        f.flush()
+                        os.fsync(f.fileno())
+                    os.replace(temp_path, session_file)
+                finally:
+                    if temp_path is not None and temp_path.exists():
+                        try:
+                            temp_path.unlink()
+                        except OSError:
+                            pass
 
             logger.debug(f"Saved session {session_id} for {game_profile_id}")
 
@@ -254,7 +272,10 @@ class SessionLogger:
             )
 
             for session_file in session_files[:5]:  # Check last 5 sessions
-                session_id = session_file.stem.split('_', 1)[1]  # Extract session_id
+                # Strip the known "{game_profile_id}_" prefix rather than
+                # splitting on the first underscore, which mis-parses when
+                # game_profile_id itself contains an underscore.
+                session_id = session_file.stem[len(game_profile_id) + 1:]
                 if session_id not in self.current_sessions.values():
                     # Load historical session
                     historical_events = self._load_session(game_profile_id, session_id)
@@ -344,7 +365,7 @@ class SessionLogger:
 
         session_ids = []
         for session_file in session_files:
-            session_id = session_file.stem.split('_', 1)[1]
+            session_id = session_file.stem[len(game_profile_id) + 1:]
             session_ids.append(session_id)
 
         return session_ids

@@ -9,6 +9,8 @@ from dataclasses import dataclass, asdict
 from enum import Enum
 import json
 
+from PyQt6.QtCore import QObject, pyqtSignal
+
 try:
     from pynput import keyboard
     from pynput.keyboard import Key, KeyCode, HotKey
@@ -79,7 +81,7 @@ class MacroKeybind:
         return MacroKeybind(**data)
 
 
-class KeybindManager:
+class KeybindManager(QObject):
     """
     Manages keyboard shortcuts and global hotkeys
 
@@ -90,14 +92,23 @@ class KeybindManager:
     - Platform-friendly key parsing
     """
 
+    # Emitted from the pynput listener thread when a global hotkey fires.
+    # Qt automatically queues this connection onto the thread that owns this
+    # QObject (the Qt main/GUI thread this instance is constructed on), so
+    # registered callbacks always run on the correct thread instead of the
+    # pynput listener thread touching widgets directly.
+    _hotkey_triggered = pyqtSignal(str)
+
     def __init__(self):
         """Initialize the keybind manager"""
+        super().__init__()
         self.keybinds: Dict[str, Keybind] = {}
         self.macro_keybinds: Dict[str, MacroKeybind] = {}  # Track macro keybinds separately for scope checking
         self.callbacks: Dict[str, Callable] = {}
         self.listener: Optional[keyboard.Listener] = None
         self.active_hotkeys: Dict[str, HotKey] = {}
         self.currently_pressed: Set = set()
+        self._hotkey_triggered.connect(self._dispatch_action)
 
         if not PYNPUT_AVAILABLE:
             logger.warning("pynput not available - global hotkeys will not work")
@@ -288,15 +299,29 @@ class KeybindManager:
             hotkey.release(key)
 
     def _trigger_action(self, action: str):
-        """Trigger a keybind action"""
+        """Trigger a keybind action.
+
+        Called from the pynput listener thread; emits a signal so the
+        callback itself runs on this object's owning thread (the Qt GUI
+        thread) instead of touching widgets directly from a background
+        thread.
+        """
         if action in self.callbacks and action in self.keybinds:
             keybind = self.keybinds[action]
             if keybind.enabled:
-                logger.info(f"Triggering keybind action: {action}")
-                try:
-                    self.callbacks[action]()
-                except Exception as e:
-                    logger.error(f"Error executing keybind callback {action}: {e}")
+                self._hotkey_triggered.emit(action)
+
+    def _dispatch_action(self, action: str):
+        """Run the registered callback for `action` (executes on this
+        QObject's thread via the queued `_hotkey_triggered` connection)."""
+        callback = self.callbacks.get(action)
+        if callback is None:
+            return
+        logger.info(f"Triggering keybind action: {action}")
+        try:
+            callback()
+        except Exception as e:
+            logger.error(f"Error executing keybind callback {action}: {e}")
 
     def _parse_keys(self, keys: str) -> Set:
         """

@@ -114,6 +114,24 @@ class Config:
         self.ai_base_url = os.getenv("AI_BASE_URL")
         self.ai_model = os.getenv("AI_MODEL")
 
+        if self.ai_api_key:
+            # A plaintext key found in .env (legacy) is migrated into the
+            # encrypted credential store; save_to_env() no longer writes it
+            # back to disk in plaintext once this has run.
+            try:
+                self.credential_store.save_credentials(
+                    {"AI_API_KEY": self.ai_api_key}
+                )
+            except CredentialStoreError as exc:
+                logger.warning(
+                    "Could not migrate AI_API_KEY into credential store: %s", exc
+                )
+        else:
+            try:
+                self.ai_api_key = self.credential_store.get("AI_API_KEY")
+            except CredentialStoreError as exc:
+                logger.warning("Could not read AI_API_KEY from credential store: %s", exc)
+
         # Application Settings
         self.overlay_hotkey = os.getenv("OVERLAY_HOTKEY", DEFAULT_OVERLAY_HOTKEY)
         self.check_interval = int(os.getenv("CHECK_INTERVAL", DEFAULT_CHECK_INTERVAL))
@@ -525,14 +543,21 @@ class Config:
             f.write(f"OVERLAY_HOTKEY={existing_content.setdefault('OVERLAY_HOTKEY', overlay_hotkey)}\n")
             f.write(f"CHECK_INTERVAL={existing_content.setdefault('CHECK_INTERVAL', str(check_interval))}\n\n")
 
-            # Write AI API settings (preserve values from file if not being updated)
+            # AI API key: migrate any plaintext value found in the existing
+            # .env into the encrypted credential store instead of writing it
+            # back to disk in plaintext on every settings save.
             ai_api_key = existing_content.get("AI_API_KEY", "")
             ai_base_url = existing_content.get("AI_BASE_URL", "")
             ai_model = existing_content.get("AI_MODEL", "")
-            if ai_api_key or ai_base_url or ai_model:
+            if ai_api_key:
+                try:
+                    CredentialStore().save_credentials({"AI_API_KEY": ai_api_key})
+                except CredentialStoreError as exc:
+                    logger.warning(
+                        "Could not migrate AI_API_KEY to credential store: %s", exc
+                    )
+            if ai_base_url or ai_model:
                 f.write("# AI API Settings\n")
-                if ai_api_key:
-                    f.write(f"AI_API_KEY={ai_api_key}\n")
                 if ai_base_url:
                     f.write(f"AI_BASE_URL={ai_base_url}\n")
                 if ai_model:
