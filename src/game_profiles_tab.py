@@ -14,6 +14,7 @@ from PyQt6.QtCore import pyqtSignal, Qt, QSize
 from PyQt6.QtGui import QFont
 
 from src.game_profile import GameProfile, get_profile_store
+from src.providers_tab import FetchModelsThread
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,13 @@ logger = logging.getLogger(__name__)
 class GameProfileDialog(QDialog):
     """Dialog for creating/editing game profiles"""
 
-    def __init__(self, parent=None, profile: Optional[GameProfile] = None, available_providers: Optional[list] = None):
+    def __init__(
+        self,
+        parent=None,
+        profile: Optional[GameProfile] = None,
+        available_providers: Optional[list] = None,
+        ollama_host: Optional[str] = None,
+    ):
         """
         Initialize profile dialog.
 
@@ -29,13 +36,17 @@ class GameProfileDialog(QDialog):
             parent: Parent widget
             profile: Existing profile to edit, or None for new profile
             available_providers: List of available AI providers
+            ollama_host: Ollama base URL, used to fetch installed models
         """
         super().__init__(parent)
         self.profile = profile
         self.available_providers = available_providers or ["ollama"]
+        self.ollama_host = ollama_host or "http://localhost:11434"
+        self.fetch_thread: Optional[FetchModelsThread] = None
         self.setWindowTitle(f"{'Edit' if profile else 'Create'} Game Profile")
         self.setMinimumWidth(600)
         self.setup_ui()
+        self.refresh_models()
 
     def setup_ui(self) -> None:
         """Setup the dialog UI"""
@@ -91,11 +102,20 @@ class GameProfileDialog(QDialog):
 
         # Model (optional)
         layout.addWidget(QLabel("Model (optional, provider-specific):"))
-        self.model_input = QLineEdit()
-        self.model_input.setPlaceholderText("e.g., gpt-4, claude-3-opus")
+        model_row = QHBoxLayout()
+        self.model_input = QComboBox()
+        self.model_input.setEditable(True)
+        self.model_input.lineEdit().setPlaceholderText("e.g., llama3, gpt-4, claude-3-opus")
         if self.profile and self.profile.default_model:
-            self.model_input.setText(self.profile.default_model)
-        layout.addWidget(self.model_input)
+            self.model_input.addItem(self.profile.default_model)
+            self.model_input.setCurrentText(self.profile.default_model)
+        model_row.addWidget(self.model_input, stretch=1)
+
+        self.refresh_models_btn = QPushButton("🔄 Refresh")
+        self.refresh_models_btn.clicked.connect(self.refresh_models)
+        model_row.addWidget(self.refresh_models_btn)
+
+        layout.addLayout(model_row)
 
         # Overlay mode
         layout.addWidget(QLabel("Default Overlay Mode:"))
@@ -151,9 +171,40 @@ class GameProfileDialog(QDialog):
             exe_names=exe_names,
             system_prompt=self.prompt_input.toPlainText().strip(),
             default_provider=self.provider_combo.currentText(),
-            default_model=self.model_input.text().strip() or None,
+            default_model=self.model_input.currentText().strip() or None,
             overlay_mode_default=self.overlay_mode_combo.currentText(),
         )
+
+    def refresh_models(self) -> None:
+        """Fetch installed Ollama models to populate the model dropdown"""
+        if self.fetch_thread and self.fetch_thread.isRunning():
+            return
+
+        self.refresh_models_btn.setEnabled(False)
+        self.fetch_thread = FetchModelsThread(self.ollama_host)
+        self.fetch_thread.models_fetched.connect(self.on_models_fetched)
+        self.fetch_thread.fetch_failed.connect(self.on_models_fetch_failed)
+        self.fetch_thread.finished.connect(lambda: self.refresh_models_btn.setEnabled(True))
+        self.fetch_thread.start()
+
+    def on_models_fetched(self, models: list) -> None:
+        """Handle successful model fetch"""
+        current = self.model_input.currentText()
+        self.model_input.clear()
+        if models:
+            self.model_input.addItems(models)
+        if current:
+            self.model_input.setCurrentText(current)
+
+    def on_models_fetch_failed(self, error: str) -> None:
+        """Handle model fetch failure"""
+        logger.warning(f"Failed to fetch models for game profile dialog: {error}")
+
+    def closeEvent(self, event) -> None:
+        if self.fetch_thread and self.fetch_thread.isRunning():
+            self.fetch_thread.terminate()
+            self.fetch_thread.wait(1000)
+        super().closeEvent(event)
 
 
 class GameProfilesTab(QWidget):
@@ -161,17 +212,24 @@ class GameProfilesTab(QWidget):
 
     profile_changed = pyqtSignal()  # Emitted when profiles change
 
-    def __init__(self, parent=None, available_providers: Optional[list] = None):
+    def __init__(
+        self,
+        parent=None,
+        available_providers: Optional[list] = None,
+        ollama_host: Optional[str] = None,
+    ):
         """
         Initialize game profiles tab.
 
         Args:
             parent: Parent widget
             available_providers: List of available AI providers
+            ollama_host: Ollama base URL, used to fetch installed models
         """
         super().__init__(parent)
         self.store = get_profile_store()
         self.available_providers = available_providers or ["ollama"]
+        self.ollama_host = ollama_host or "http://localhost:11434"
         self.setup_ui()
         self.refresh_profile_list()
 
@@ -261,7 +319,11 @@ class GameProfilesTab(QWidget):
 
     def create_profile(self) -> None:
         """Create a new profile"""
-        dialog = GameProfileDialog(self, available_providers=self.available_providers)
+        dialog = GameProfileDialog(
+            self,
+            available_providers=self.available_providers,
+            ollama_host=self.ollama_host,
+        )
         if dialog.exec() == QDialog.DialogCode.Accepted:
             profile = dialog.get_profile()
             if profile:
@@ -296,7 +358,8 @@ class GameProfilesTab(QWidget):
         dialog = GameProfileDialog(
             self,
             profile=profile,
-            available_providers=self.available_providers
+            available_providers=self.available_providers,
+            ollama_host=self.ollama_host,
         )
         if dialog.exec() == QDialog.DialogCode.Accepted:
             updated = dialog.get_profile()
@@ -322,7 +385,8 @@ class GameProfilesTab(QWidget):
         dialog = GameProfileDialog(
             self,
             profile=None,  # New profile
-            available_providers=self.available_providers
+            available_providers=self.available_providers,
+            ollama_host=self.ollama_host,
         )
 
         # Pre-fill with data from original
@@ -331,7 +395,7 @@ class GameProfilesTab(QWidget):
         dialog.prompt_input.setText(profile.system_prompt)
         dialog.provider_combo.setCurrentText(profile.default_provider)
         if profile.default_model:
-            dialog.model_input.setText(profile.default_model)
+            dialog.model_input.setCurrentText(profile.default_model)
         dialog.overlay_mode_combo.setCurrentText(profile.overlay_mode_default)
 
         if dialog.exec() == QDialog.DialogCode.Accepted:

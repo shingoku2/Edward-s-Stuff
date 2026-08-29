@@ -155,7 +155,9 @@ class TabbedSettingsDialog(QDialog):
         self.tab_widget.addTab(self.hrm_tab, "🧠 HRM Settings")
 
         # Game Profiles tab
-        self.game_profiles_tab = GameProfilesTab()
+        self.game_profiles_tab = GameProfilesTab(
+            ollama_host=getattr(self.config, "ollama_host", None)
+        )
         self.game_profiles_tab.profile_changed.connect(self.on_game_profiles_changed)
         self.tab_widget.addTab(self.game_profiles_tab, "🎮 Game Profiles")
 
