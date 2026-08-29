@@ -8,7 +8,6 @@ mod macros;
 mod ollama;
 mod profile;
 mod session;
-mod hrm;
 
 use config::AppConfig;
 use game::GameDetector;
@@ -82,10 +81,7 @@ async fn send_message(
         let ctx = context_chunks.join("\n\n");
         format!("Relevant context from knowledge base:\n{ctx}\n\nUser question: {message}")
     };
-    let system_prompt = match hrm::reasoning_prefix_for_question(&message) {
-        Some(prefix) => format!("You are a helpful gaming assistant. {game_context} Use any provided context to inform your answer. {prefix}"),
-        None => format!("You are a helpful gaming assistant. {game_context} Use any provided context to inform your answer."),
-    };
+    let system_prompt = format!("You are a helpful gaming assistant. {game_context} Use any provided context to inform your answer.");
     session::log_event("user_message", &message);
     tauri::async_runtime::spawn(async move {
         let client = reqwest::Client::new();

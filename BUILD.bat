@@ -118,7 +118,6 @@ copy "README.md" "%DIST_DIR%\README.md" >nul 2>&1
 copy "SETUP.md" "%DIST_DIR%\SETUP.md" >nul 2>&1
 
 if /i "%MODE%"=="release" (
-    if exist "TEST_REPORT.md" copy "TEST_REPORT.md" "%DIST_DIR%\TEST_REPORT.md" >nul 2>&1
     if exist "WINDOWS_RELEASE_README.md" copy "WINDOWS_RELEASE_README.md" "%DIST_DIR%\WINDOWS_README.md" >nul 2>&1
     
     REM Create START_HERE.txt

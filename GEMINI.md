@@ -11,7 +11,6 @@
 *   **Macro Automation:** Records and replays keyboard/mouse actions.
 *   **Overlay UI:** Movable, resizable in-game overlay.
 *   **Session Coaching:** AI analysis of gameplay patterns.
-*   **HRM Integration:** Hierarchical Reasoning Model for enhanced strategic analysis.
 
 ### Technology Stack
 *   **Language:** Python 3.8+
@@ -105,9 +104,15 @@ G:\GitHub\Edward-s-Stuff\
 *   **Configuration Update:** Extended `Config` to handle API keys and base URLs for generic OpenAI-compatible providers.
 *   **Testing:** Added comprehensive unit tests for provider factory, config, and modular AI assistant.
 
-### HRM Integration (2025-12-10)
-*   Added Hierarchical Reasoning Model (HRM) integration for enhanced reasoning capabilities
-*   Intelligent routing to HRM for complex reasoning questions in gaming contexts
-*   New settings tab for HRM configuration and dependency management
-*   Conditional loading with graceful degradation when HRM is unavailable
-*   Added PyTorch and HRM dependencies as optional requirements with clear installation instructions
+### Codebase Audit Fixes + Dependency Updates (2026-08-28, PR #220)
+*   Fixed several security/reliability bugs: HTML-injectable chat rendering, SSRF in URL-based knowledge pack ingestion, a missing `sys` import that crashed the credential-store password fallback, non-atomic JSON writes, global hotkey callbacks touching Qt widgets off the GUI thread, and a plaintext `AI_API_KEY` being rewritten to `.env` instead of the encrypted vault.
+*   Fixed a runtime `NameError` in `settings_tabs.py` (missing `Config` import) and an `ai_assistant.py` bug that locked the AI into an "Unknown Game" persona.
+*   Fixed the Omnix Tauri CI workflow, broken since it was introduced (wrong action reference, type mismatch, missing Linux deps, Rust/npm Tauri version mismatch).
+*   Bumped frontend/Tauri devDependencies; test suite went from 346 passed/12 failing to 358 passed/0 failing.
+
+### Ollama Model Dropdowns + Fetch Parsing Fix (2026-08-28, PR #221)
+*   Dashboard and Game Profile editor Model fields now show a live dropdown of installed Ollama models instead of a static default.
+*   Fixed `FetchModelsThread` parsing the wrong response shape (pydantic `Model.model`, not `{"models": [{"name": ...}]}`), which had been silently failing every fetch.
+
+### HRM Removal (2026-08-28)
+*   Removed the Hierarchical Reasoning Model (HRM) integration entirely — it is no longer used by the app.

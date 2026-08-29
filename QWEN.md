@@ -287,19 +287,26 @@ User Data:   ~/.gaming_ai_assistant/
 
 ## Recent Updates
 
+### HRM Removal (2026-08-28)
+- Removed the Hierarchical Reasoning Model (HRM) integration entirely — it is no longer used by the app.
+
+### Ollama Model Dropdowns + Fetch Parsing Fix (2026-08-28, PR #221)
+- Dashboard and Game Profile editor Model fields now show a live dropdown of installed Ollama models instead of a static default, via the same `FetchModelsThread` as the Providers tab.
+- Fixed `FetchModelsThread` parsing the wrong response shape (pydantic `Model.model`, not `{"models": [{"name": ...}]}`), which had been silently failing every fetch and falling back to the `llama3` placeholder.
+- Fixed stale `credential_store.get_credential`/`set_credential` single-arg calls and a renamed `design_system` stylesheet method that crashed the overlay.
+
+### Codebase Audit Fixes + Dependency Updates (2026-08-28, PR #220)
+- Fixed security/reliability bugs: HTML-injectable chat rendering, SSRF in URL-based knowledge pack ingestion, missing `sys` import crashing the credential-store password fallback, non-atomic JSON writes, global hotkey callbacks touching Qt widgets off the GUI thread, and plaintext `AI_API_KEY` being rewritten to `.env` instead of the encrypted vault.
+- Fixed a runtime `NameError` in `settings_tabs.py` (missing `Config` import) and an `ai_assistant.py` bug that locked the AI into an "Unknown Game" persona.
+- Fixed the Omnix Tauri CI workflow, broken since it was introduced.
+- Bumped frontend/Tauri devDependencies; test suite went from 346 passed/12 failing to 358 passed/0 failing.
+
 ### Major Version 2.0 - Ollama-Only Migration (2025-12-06)
 - Simplified to Ollama exclusively - no API keys required by default
 - Privacy-first, local-first architecture
 - Model freedom - supports any Ollama model (llama3, mistral, codellama, etc.)
 - Automatic model discovery showing available models from Ollama daemon
 - Connection testing with validation of Ollama availability
-
-### HRM Integration (2025-12-10)
-- Added Hierarchical Reasoning Model (HRM) integration for enhanced reasoning capabilities
-- Intelligent routing to HRM for complex reasoning questions in gaming contexts
-- New settings tab for HRM configuration and dependency management
-- Conditional loading with graceful degradation when HRM is unavailable
-- Added PyTorch and HRM dependencies as optional requirements with clear installation instructions
 
 ### CI/CD Enhancement (2025-11-20)
 - Self-hosted runner on Proxmox LXC

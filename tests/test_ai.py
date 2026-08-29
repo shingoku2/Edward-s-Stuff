@@ -13,7 +13,6 @@ class StubConfig:
         self.ai_provider = ai_provider
         self.ollama_host = "http://localhost:11434"
         self.ollama_model = "llama3"
-        self.hrm_enabled = False
         self.ai_api_key = None
         self.ai_base_url = None
         self.ai_model = None

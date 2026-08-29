@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import pyqtSignal, Qt
 
-from src.settings_tabs import KeybindingsTab, MacrosTab, HRMSettingsTab
+from src.settings_tabs import KeybindingsTab, MacrosTab
 from src.appearance_tabs import AppAppearanceTab, OverlayAppearanceTab
 from src.providers_tab import ProvidersTab
 from src.game_profiles_tab import GameProfilesTab
@@ -149,11 +149,6 @@ class TabbedSettingsDialog(QDialog):
         self.providers_tab.provider_config_changed.connect(self.on_provider_config_changed)
         self.tab_widget.addTab(self.providers_tab, "🔑 AI Providers")
 
-        # HRM Settings tab
-        self.hrm_tab = HRMSettingsTab(self.config)
-        self.hrm_tab.config_changed.connect(self.on_config_changed)
-        self.tab_widget.addTab(self.hrm_tab, "🧠 HRM Settings")
-
         # Game Profiles tab
         self.game_profiles_tab = GameProfilesTab(
             ollama_host=getattr(self.config, "ollama_host", None)
@@ -245,12 +240,6 @@ class TabbedSettingsDialog(QDialog):
             theme = {}  # Empty dict for backward compatibility
 
             overlay_appearance = self.overlay_appearance_tab.get_overlay_settings()
-
-            # Save HRM configuration
-            hrm_saved = self.hrm_tab.save_config()
-            if not hrm_saved:
-                # If HRM config save failed, don't proceed
-                return
 
             # Save provider configuration
             provider_saved = self.providers_tab.save_provider_config()

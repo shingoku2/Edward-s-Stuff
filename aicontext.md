@@ -1,7 +1,7 @@
 # AI Context - Omnix Gaming Companion
 
 **Quick Reference for AI Assistants**
-**Last Updated:** 2025-12-10
+**Last Updated:** 2026-08-28
 
 ---
 
@@ -53,7 +53,6 @@ get_provider(config) -> LLMProvider  # Factory
 5. **Session Management** - `session_logger.py` - Event tracking with AI coaching
 6. **UI Design System** - `ui/design_system.py` - Token-based theming with component library
 7. **Security** - `credential_store.py`, `security.py` - Enhanced encryption with OWASP compliance
-8. **HRM Integration** - `hrm_integration.py` - Structured reasoning for complex queries
 
 ### Directory Structure
 ```
@@ -61,11 +60,10 @@ src/                     # 14,700 LOC main source (Python/PyQt6)
 ├── config.py            # Configuration management with constants
 ├── credential_store.py  # Secure storage (AES-256, system keyring)
 ├── game_*.py            # Game detection and profiles
-├── ai_*.py              # AI integration with HRM support
+├── ai_*.py              # AI integration
 ├── knowledge_*.py       # Knowledge system with TF-IDF
 ├── macro_*.py           # Macro system with safety
 ├── session_*.py         # Session management
-├── hrm_*.py             # Hierarchical Reasoning Model
 ├── security.py          # File system hardening
 ├── utils.py             # Logging and utilities
 ├── gui.py               # Main PyQt6 interface
@@ -134,6 +132,23 @@ scripts/                 # Automation scripts
 ---
 
 ## Recent Changes
+
+### 2026-08-28: HRM Removal
+- ✅ REMOVED the HRM (Hierarchical Reasoning Model) integration entirely — `src/hrm_integration.py`, the `HRMSettingsTab` settings UI, `HRM_ENABLED`/`HRM_MAX_INFERENCE_TIME` config, the vendored `HRM-main/` model source, and the Tauri `hrm.rs` reasoning-prefix module. No longer used by the app.
+
+### 2026-08-28: Ollama Model Dropdowns + Fetch Parsing Fix (PR #221)
+- ✅ Dashboard "AI Model" field and Game Profile editor Model field now populate a live dropdown of installed Ollama models via `FetchModelsThread`, same as the Providers tab (previously static/default-only inputs).
+- ✅ **Root cause fixed:** the installed `ollama` package returns a `ListResponse`/`Model` pydantic object (`Model.model`), not the `{"models": [{"name": ...}]}` dict shape the parser assumed — every fetch was silently failing and falling back to the `llama3` placeholder.
+- ✅ Fixed `credential_store.get_credential`/`set_credential` calls in `main.py`/`license_dialog.py` still using the old single-arg signature (now requires `(service, key)`).
+- ✅ Fixed `OverlayWindow` calling the renamed `design_system.get_overlay_stylesheet` instead of `generate_overlay_stylesheet`.
+
+### 2026-08-28: Codebase Audit Fixes + Dependency Updates (PR #220)
+- ✅ **Security** - `knowledge_ingestion.py` blocks SSRF on URL-based knowledge pack ingestion (validates scheme + resolved IP, including redirect hops); `gui.py` escapes chat sender/text before HTML interpolation (was HTML-injectable).
+- ✅ **Reliability** - `credential_store.py` fixed missing `sys` import, wired up `FileLock` for real cross-process locking, scoped the fallback key file per-instance; `base_store.py`/`session_logger.py` JSON writes are now atomic (temp file + `os.replace`); `keybind_manager.py` dispatches global hotkey callbacks through a queued Qt signal instead of touching widgets from the pynput thread.
+- ✅ **Correctness** - `config.py` migrates plaintext `AI_API_KEY` from `.env` into the encrypted vault; `ai_assistant.py` `clear_history()` no longer locks in an "Unknown Game" persona; `settings_tabs.py` had a missing `Config` import causing a runtime `NameError` in `save_config()`.
+- ✅ **Test suite** - fixed pre-existing bugs across 5 test files; full suite went from 346 passed/12 failing to 358 passed/8 skipped (torch not installed)/0 failing.
+- ✅ **Dependencies** - bumped React, Vite, ESLint, etc. in `frontend/` and `omnix-tauri/`; `npm audit fix` in `omnix-tauri/`.
+- ✅ **CI** - fixed the Omnix Tauri GitHub Actions workflow (wrong action reference, `WindowConfig.label` type mismatch, TS6133 unused-variable failures, missing Linux system deps, Rust `tauri` crate/npm `@tauri-apps/api` version mismatch) — broken on every run since it was introduced.
 
 ### 2026-05-10: Pure PyQt6 Migration (MAJOR — Option A)
 - ✅ REMOVED QWebEngineView from MainWindow and OverlayWindow
@@ -445,7 +460,6 @@ worker.start()
 - ✅ **Theme System** (2025-11-17) - Unified design system
 
 ### Active Considerations
-- HRM features require PyTorch installation for full functionality
 - Self-hosted runner requires manual maintenance
 - Headless testing requires `QT_QPA_PLATFORM=offscreen`
 - Remote-only API keys (for secured Ollama endpoints) live in the system keyring (encrypted)
