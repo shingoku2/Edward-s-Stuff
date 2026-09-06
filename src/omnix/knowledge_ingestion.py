@@ -162,24 +162,24 @@ class FileIngestor:
         validated_path = FileIngestor._validate_file_path(file_path)
 
         try:
-            # Try using PyPDF2 if available
+            # Use the maintained pypdf package for text extraction.
             try:
-                import PyPDF2
+                import pypdf
 
                 text_parts = []
                 with open(validated_path, "rb") as f:
-                    pdf_reader = PyPDF2.PdfReader(f)
+                    pdf_reader = pypdf.PdfReader(f)
                     for page in pdf_reader.pages:
                         text = page.extract_text()
                         if text:
                             text_parts.append(text)
 
                 content = "\n\n".join(text_parts)
-                logger.info(f"Extracted text from PDF (PyPDF2): {validated_path}")
+                logger.info(f"Extracted text from PDF (pypdf): {validated_path}")
                 return content
 
             except ImportError:
-                logger.warning("PyPDF2 not available. Install with: pip install PyPDF2")
+                logger.warning("pypdf not available; trying pdfplumber")
 
                 # Try pdfplumber as fallback
                 try:
@@ -187,8 +187,8 @@ class FileIngestor:
 
                     text_parts = []
                     with pdfplumber.open(validated_path) as pdf:
-                        for page in pdf.pages:
-                            text = page.extract_text()
+                        for pdf_page in pdf.pages:
+                            text = pdf_page.extract_text()
                             if text:
                                 text_parts.append(text)
 
@@ -197,9 +197,9 @@ class FileIngestor:
                     return content
 
                 except ImportError:
-                    logger.error("No PDF library available. Install PyPDF2 or pdfplumber")
+                    logger.error("No PDF library available. Install pypdf or pdfplumber")
                     raise IngestionError(
-                        "PDF support not available. Install with: pip install PyPDF2"
+                        "PDF support not available. Install with: pip install pypdf"
                     )
 
         except IngestionError:

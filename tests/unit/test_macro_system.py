@@ -127,6 +127,23 @@ class TestMacro:
         assert restored.name == macro.name
         assert len(restored.steps) == 1
 
+    def test_macro_serialization_preserves_safety_overrides(self):
+        """Per-macro safety limits survive persistence round trips."""
+        from omnix.macro_manager import Macro
+
+        macro = Macro(
+            id="safe_macro",
+            name="Safe",
+            description="Safety settings",
+            max_repeat=3,
+            execution_timeout=12,
+        )
+
+        restored = Macro.from_dict(macro.to_dict())
+
+        assert restored.max_repeat == 3
+        assert restored.execution_timeout == 12
+
     def test_macro_duplication(self):
         """Test duplicating macros"""
         from omnix.macro_manager import MacroManager, MacroStep, MacroStepType

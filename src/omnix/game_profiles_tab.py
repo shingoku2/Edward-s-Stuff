@@ -119,7 +119,9 @@ class GameProfileDialog(QDialog):
         model_row = QHBoxLayout()
         self.model_input = QComboBox()
         self.model_input.setEditable(True)
-        self.model_input.lineEdit().setPlaceholderText("e.g., llama3, gpt-4, claude-3-opus")
+        model_line_edit = self.model_input.lineEdit()
+        if model_line_edit is not None:
+            model_line_edit.setPlaceholderText("e.g., llama3")
         if self.profile and self.profile.default_model:
             self.model_input.addItem(self.profile.default_model)
             self.model_input.setCurrentText(self.profile.default_model)
@@ -270,8 +272,10 @@ class GameProfilesTab(QWidget):
         self.table.setHorizontalHeaderLabels(
             ["Game Name", "Executables", "Provider", "Mode", "Type"]
         )
-        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        header = self.table.horizontalHeader()
+        if header is not None:
+            header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+            header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         layout.addWidget(self.table)

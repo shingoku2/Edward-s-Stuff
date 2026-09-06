@@ -16,24 +16,26 @@ class TestUtilsModule:
 
     def test_utils_import(self):
         """Test importing utils module"""
-        try:
-            from src import utils
+        from omnix import utils
 
-            assert utils is not None
-        except ImportError:
-            # Utils module may not exist yet
-            pytest.skip("Utils module not found")
+        assert utils is not None
 
     def test_utils_functions(self):
         """Test utils functions"""
-        try:
-            from src import utils
+        from omnix import utils
 
-            # Test any utility functions that exist
-            # This is a placeholder for actual utility testing
-            assert hasattr(utils, "__name__")
-        except ImportError:
-            pytest.skip("Utils module not found")
+        assert hasattr(utils, "setup_logging")
+
+    def test_setup_logging_uses_config_directory(self, temp_dir, monkeypatch):
+        """Logs belong to application data, not the process working directory."""
+        from omnix.utils import cleanup_logging, setup_logging
+
+        monkeypatch.setenv("OMNIX_CONFIG_DIR", str(temp_dir))
+        log_path = setup_logging()
+        cleanup_logging(log_path)
+
+        assert log_path.parent == Path(temp_dir) / "logs"
+        assert log_path.exists()
 
 
 @pytest.mark.unit

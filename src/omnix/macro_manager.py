@@ -10,7 +10,10 @@ import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, TypedDict
+
+if TYPE_CHECKING:
+    from omnix.macro_runner import MacroRunner
 
 logger = logging.getLogger(__name__)
 
@@ -160,6 +163,8 @@ class Macro:
             "repeat": self.repeat,
             "randomize_delay": self.randomize_delay,
             "delay_jitter_ms": self.delay_jitter_ms,
+            "max_repeat": self.max_repeat,
+            "execution_timeout": self.execution_timeout,
             "enabled": self.enabled,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
@@ -188,6 +193,8 @@ class Macro:
             repeat=data.get("repeat", 1),
             randomize_delay=data.get("randomize_delay", False),
             delay_jitter_ms=data.get("delay_jitter_ms", 0),
+            max_repeat=data.get("max_repeat"),
+            execution_timeout=data.get("execution_timeout"),
             enabled=data.get("enabled", True),
             created_at=data.get("created_at", time.time()),
             updated_at=data.get("updated_at", time.time()),
@@ -276,6 +283,7 @@ class MacroManager:
         self.action_handlers: Dict[str, Callable] = {}
         self.recording_macro: Optional[Macro] = None
         self.is_recording: bool = False
+        self._runner: Optional["MacroRunner"] = None
 
     def create_macro(self, name: str, description: str = "") -> Macro:
         """
@@ -430,7 +438,7 @@ class MacroManager:
             from omnix.macro_runner import MacroRunner
 
             # Initialize runner (singleton-like or new instance)
-            if not hasattr(self, "_runner") or self._runner is None:
+            if self._runner is None:
                 self._runner = MacroRunner(enabled=True, macro_manager=self)
 
             # Execute in background thread
@@ -657,7 +665,15 @@ class MacroManager:
 
 
 # Default macros (examples)
-DEFAULT_MACROS = [
+class DefaultMacroDefinition(TypedDict):
+    """Shape of a built-in example macro."""
+
+    name: str
+    description: str
+    steps: List[MacroStep]
+
+
+DEFAULT_MACROS: List[DefaultMacroDefinition] = [
     {
         "name": "Quick Tips",
         "description": "Request tips and pause",

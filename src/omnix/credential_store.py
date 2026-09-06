@@ -55,8 +55,6 @@ class CredentialStore:
     The fallback is secure but requires user to enter a master password.
     """
 
-    _lock = threading.Lock()
-
     def __init__(
         self,
         config_dir: Optional[Union[Path, str]] = None,

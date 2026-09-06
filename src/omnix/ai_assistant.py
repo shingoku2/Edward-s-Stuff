@@ -53,6 +53,7 @@ class AIAssistant:
         """
         self.config = config or Config()
         self.router = get_router(self.config)
+        self.provider_instance: Optional[LLMProvider]
 
         # Handle dependency injection of provider instance
         if isinstance(provider, LLMProvider):
@@ -69,10 +70,10 @@ class AIAssistant:
                 self.provider_instance = None
 
         self.session_tokens = session_tokens or {}
-        self.conversation_history = []
-        self.current_game = None
-        self.current_profile = None
-        self.current_model = None
+        self.conversation_history: List[Dict[str, str]] = []
+        self.current_game: Optional[Dict[str, str]] = None
+        self.current_profile: Optional["GameProfile"] = None
+        self.current_model: Optional[str] = None
         self._session_refresh_handler: Optional[Callable[[str, str, Dict[str, str]], None]] = None
 
         # Thread safety for conversation history (RLock allows re-entry from same thread)

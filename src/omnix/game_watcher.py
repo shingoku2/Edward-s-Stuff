@@ -6,7 +6,7 @@ Monitors active game and emits Qt signals when game changes
 import logging
 import threading
 import time
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict, Optional, Protocol
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
@@ -14,6 +14,12 @@ from omnix.game_detector import GameDetector
 from omnix.game_profile import GameProfile, get_profile_store
 
 logger = logging.getLogger(__name__)
+
+
+class GameProfileLookup(Protocol):
+    """Minimal profile-store contract required by the watcher."""
+
+    def get_profile_by_executable(self, exe_name: str) -> Optional[GameProfile]: ...
 
 
 class GameWatcher(QObject):
@@ -34,7 +40,7 @@ class GameWatcher(QObject):
     def __init__(
         self,
         detector: Optional[GameDetector] = None,
-        profile_store: Optional[object] = None,
+        profile_store: Optional[GameProfileLookup] = None,
         check_interval: int = 5,
     ):
         """
@@ -120,7 +126,7 @@ class GameWatcher(QObject):
         try:
             import platform
 
-            import psutil
+            import psutil  # type: ignore[import-untyped]
 
             system = platform.system()
 
@@ -162,8 +168,9 @@ class GameWatcher(QObject):
                 import ctypes
                 from ctypes import wintypes
 
-                GetForegroundWindow = ctypes.windll.user32.GetForegroundWindow
-                GetWindowThreadProcessId = ctypes.windll.user32.GetWindowThreadProcessId
+                user32 = getattr(ctypes, "windll").user32
+                GetForegroundWindow = user32.GetForegroundWindow
+                GetWindowThreadProcessId = user32.GetWindowThreadProcessId
 
                 hwnd = GetForegroundWindow()
                 if not hwnd:

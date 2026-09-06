@@ -144,10 +144,10 @@ class OmnixSidebar(QWidget):
         """)
 
         # Layout
-        layout = QVBoxLayout(self)
-        layout.setSpacing(SPACING.sm)
-        layout.setContentsMargins(SPACING.sm, SPACING.md, SPACING.sm, SPACING.md)
-        self.setLayout(layout)
+        self.sidebar_layout = QVBoxLayout(self)
+        self.sidebar_layout.setSpacing(SPACING.sm)
+        self.sidebar_layout.setContentsMargins(SPACING.sm, SPACING.md, SPACING.sm, SPACING.md)
+        self.setLayout(self.sidebar_layout)
 
         # Button group for exclusive selection
         self.button_group = QButtonGroup(self)
@@ -185,7 +185,7 @@ class OmnixSidebar(QWidget):
             button.clicked.connect(callback)
 
         # Add to layout
-        self.layout().addWidget(button)
+        self.sidebar_layout.addWidget(button)
 
         # Select first button by default
         if button_id == 0:
@@ -195,7 +195,7 @@ class OmnixSidebar(QWidget):
 
     def add_stretch(self):
         """Add stretch to push subsequent buttons to bottom."""
-        self.layout().addStretch()
+        self.sidebar_layout.addStretch()
 
     def set_active_tab(self, index: int):
         """

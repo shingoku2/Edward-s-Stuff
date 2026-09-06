@@ -14,8 +14,8 @@ from PyQt6.QtCore import QObject, pyqtSignal
 from omnix.capabilities import DesktopCapabilities, detect_desktop_capabilities
 
 try:
-    from pynput import keyboard
-    from pynput.keyboard import HotKey, Key, KeyCode
+    from pynput import keyboard  # type: ignore[import-untyped]
+    from pynput.keyboard import HotKey, Key, KeyCode  # type: ignore[import-untyped]
 
     PYNPUT_AVAILABLE = True
 except ImportError:

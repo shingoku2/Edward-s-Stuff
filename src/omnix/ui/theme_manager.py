@@ -61,7 +61,7 @@ class OmnixThemeManager:
         self._update_callbacks: List[Callable] = []
 
         # User customizations tracking
-        self._customized_tokens = set()
+        self._customized_tokens: set[str] = set()
 
         # Load saved theme if exists
         self._load_theme()
@@ -401,7 +401,7 @@ class OmnixThemeManager:
         Returns:
             Dictionary of customized tokens
         """
-        customizations = {}
+        customizations: Dict[str, Dict[str, Any]] = {}
 
         for token_path in self._customized_tokens:
             category, key = token_path.split(".")

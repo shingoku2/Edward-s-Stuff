@@ -110,6 +110,33 @@ class TestEventFormatting:
 class TestSessionRecapGeneration:
     """Test session recap generation"""
 
+    def test_generate_session_recap_uses_router_chat(self, temp_config_dir):
+        """The synchronous recap path uses the router's supported chat API."""
+        config = Config(config_dir=str(temp_config_dir))
+        session_logger = MagicMock()
+        session_logger.get_current_session_events.return_value = [
+            SessionEvent(
+                timestamp=datetime.now(),
+                event_type="question",
+                game_profile_id="elden_ring",
+                content="How do I beat Margit?",
+                meta={},
+            )
+        ]
+        session_logger.get_session_summary.return_value = {
+            "duration_minutes": 10,
+            "total_events": 1,
+        }
+        coach = SessionCoach(session_logger=session_logger, config=config)
+        coach.router = MagicMock()
+        coach.router.chat.return_value = {"content": "Use summons and learn the timing."}
+
+        recap = coach.generate_session_recap("elden_ring", "Elden Ring")
+
+        assert recap == "Use summons and learn the timing."
+        messages = coach.router.chat.call_args.kwargs["messages"]
+        assert [message["role"] for message in messages] == ["system", "user"]
+
     @pytest.mark.asyncio
     async def test_generate_recap_with_events(self, temp_config_dir, sample_session_events):
         """Test generating recap with events"""

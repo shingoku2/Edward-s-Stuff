@@ -245,7 +245,7 @@ class TabbedSettingsDialog(QDialog):
 
             # Theme is now managed by OmnixThemeManager and saves itself
             self.omnix_theme_manager.save_theme()
-            theme = {}  # Empty dict for backward compatibility
+            theme: Dict[str, object] = {}  # Empty dict for backward compatibility
 
             overlay_appearance = self.overlay_appearance_tab.get_overlay_settings()
 

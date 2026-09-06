@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 class AwaitableDict(dict):
     """Dictionary that can be awaited for async test compatibility."""
 
-    def __await__(self):  # type: ignore[override]
+    def __await__(self):
         async def _wrapper():
             return self
 
@@ -150,7 +150,7 @@ class OllamaProvider(LLMProvider):
         self.api_key = api_key  # Included for API-compatibility; typically not required.
         self.base_url = base_url or "http://localhost:11434"
         self.default_model = default_model or "llama3"
-        self.client = None
+        self.client: Any = None
         self._initialize_client()
 
     def _initialize_client(self) -> None:
@@ -282,7 +282,7 @@ class OllamaProvider(LLMProvider):
             if (value := kwargs.pop(opt_key, None)) is not None:
                 options.setdefault(opt_key, value)
 
-        client_kwargs = {
+        client_kwargs: Dict[str, Any] = {
             "model": model_name,
             "messages": messages,
         }

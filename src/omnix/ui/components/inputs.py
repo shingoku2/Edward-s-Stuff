@@ -8,7 +8,7 @@ Input field components following the Omnix design system.
 from typing import List, Optional
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QComboBox, QCompleter, QLineEdit, QTextEdit
+from PyQt6.QtWidgets import QComboBox, QCompleter, QLineEdit, QTextEdit, QWidget
 
 
 class OmnixLineEdit(QLineEdit):
@@ -32,7 +32,7 @@ class OmnixLineEdit(QLineEdit):
         placeholder: str = "",
         echo_mode: str = "normal",
         clearable: bool = False,
-        parent: Optional[object] = None,
+        parent: Optional[QWidget] = None,
     ):
         """
         Initialize Omnix line edit.
@@ -81,7 +81,7 @@ class OmnixTextEdit(QTextEdit):
         text: str = "",
         placeholder: str = "",
         read_only: bool = False,
-        parent: Optional[object] = None,
+        parent: Optional[QWidget] = None,
     ):
         """
         Initialize Omnix text edit.
@@ -122,7 +122,7 @@ class OmnixComboBox(QComboBox):
         items: Optional[List[str]] = None,
         editable: bool = False,
         placeholder: str = "",
-        parent: Optional[object] = None,
+        parent: Optional[QWidget] = None,
     ):
         """
         Initialize Omnix combo box.

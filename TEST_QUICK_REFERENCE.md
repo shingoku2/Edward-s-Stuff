@@ -1,7 +1,7 @@
 # Test Quick Reference Guide — Omnix 3.0
 
 Canonical setup: `python -m pip install -e ".[dev,build]"`.
-**Last Updated:** 2026-09-05
+**Last Updated:** 2026-09-06
 **Quick access guide for testing the Omnix Gaming Companion**
 
 ---
@@ -30,13 +30,13 @@ pytest tests/integration/ -v
 
 ---
 
-## 📊 Current Test Status (2026-09-05)
+## 📊 Current Test Status (2026-09-06)
 
 | Category | Tests | Status |
 |----------|-------|--------|
-| Automated suite | 337 passed, 10 skipped | ✅ Passing |
+| Automated suite | 342 passed, 8 skipped | ✅ Passing |
 | UI/manual checks | Headless and manual | ⚠️ Environment-dependent |
-| **TOTAL** | **347 collected** | **✅ Stable** |
+| **TOTAL** | **350 collected** | **✅ Stable** |
 
 ---
 
@@ -122,7 +122,7 @@ bandit -r src/omnix/ -f json -o bandit_report.json
 bandit -r src/omnix/ -f txt
 
 # Check for vulnerabilities in dependencies
-safety check
+pip-audit
 
 # Run with security tests only
 pytest -m security -v

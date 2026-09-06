@@ -111,6 +111,7 @@ class SessionLogger:
 
         # Check if we should start a new session
         last_time = self.last_event_time.get(game_profile_id)
+        session_id: str
         if last_time is None or (now - last_time) > self.SESSION_TIMEOUT:
             # New session
             session_id = now.strftime("%Y%m%d_%H%M%S")
@@ -118,8 +119,10 @@ class SessionLogger:
             logger.info(f"Started new session for {game_profile_id}: {session_id}")
         else:
             # Continue existing session
-            session_id = self.current_sessions.get(game_profile_id)
-            if not session_id:
+            existing_session_id = self.current_sessions.get(game_profile_id)
+            if existing_session_id:
+                session_id = existing_session_id
+            else:
                 # Shouldn't happen, but create one just in case
                 session_id = now.strftime("%Y%m%d_%H%M%S")
                 self.current_sessions[game_profile_id] = session_id
@@ -308,7 +311,7 @@ class SessionLogger:
             }
 
         # Count event types
-        event_types = {}
+        event_types: Dict[str, int] = {}
         for event in events:
             event_types[event.event_type] = event_types.get(event.event_type, 0) + 1
 

@@ -383,10 +383,10 @@ class KnowledgePacksTab(QWidget):
         self.table.setHorizontalHeaderLabels(
             ["Pack Name", "Game", "Sources", "Status", "Last Updated", ""]
         )
-        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        self.table.horizontalHeader().setSectionResizeMode(
-            1, QHeaderView.ResizeMode.ResizeToContents
-        )
+        header = self.table.horizontalHeader()
+        if header is not None:
+            header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+            header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         layout.addWidget(self.table)
@@ -482,7 +482,11 @@ class KnowledgePacksTab(QWidget):
             QMessageBox.warning(self, "No Selection", "Please select a pack to edit")
             return
 
-        pack_id = self.table.item(current_row, 5).text()
+        id_item = self.table.item(current_row, 5)
+        if id_item is None:
+            QMessageBox.warning(self, "Error", "Selected pack has no identifier")
+            return
+        pack_id = id_item.text()
         pack = self.store.load_pack(pack_id)
 
         if not pack:
@@ -512,7 +516,11 @@ class KnowledgePacksTab(QWidget):
             QMessageBox.warning(self, "No Selection", "Please select a pack to re-index")
             return
 
-        pack_id = self.table.item(current_row, 5).text()
+        id_item = self.table.item(current_row, 5)
+        if id_item is None:
+            QMessageBox.warning(self, "Error", "Selected pack has no identifier")
+            return
+        pack_id = id_item.text()
         pack = self.store.load_pack(pack_id)
 
         if not pack:
@@ -532,8 +540,13 @@ class KnowledgePacksTab(QWidget):
             QMessageBox.warning(self, "No Selection", "Please select a pack to delete")
             return
 
-        pack_id = self.table.item(current_row, 5).text()
-        pack_name = self.table.item(current_row, 0).text()
+        id_item = self.table.item(current_row, 5)
+        name_item = self.table.item(current_row, 0)
+        if id_item is None or name_item is None:
+            QMessageBox.warning(self, "Error", "Selected pack data is incomplete")
+            return
+        pack_id = id_item.text()
+        pack_name = name_item.text()
 
         reply = QMessageBox.question(
             self,
@@ -564,7 +577,11 @@ class KnowledgePacksTab(QWidget):
         worker = IngestionWorker(pack, self.index)
 
         # Connect signals
-        worker.progress.connect(lambda p, msg: (progress.setValue(p), progress.setLabelText(msg)))
+        def update_progress(value: int, message: str) -> None:
+            progress.setValue(value)
+            progress.setLabelText(message)
+
+        worker.progress.connect(update_progress)
         worker.finished.connect(
             lambda success, msg: self.on_ingestion_finished(success, msg, progress)
         )

@@ -17,7 +17,7 @@
 ## AI & Intelligence
 - **Inference Engine:** Ollama-first local LLM orchestration behind the provider factory.
 - **Data Ingestion:** `beautifulsoup4`, `lxml`, and `requests` for web scraping and wiki processing.
-- **Document Analysis:** `PyPDF2` and `pdfplumber` for ingestion of PDFs and game manuals.
+- **Document Analysis:** `pypdf` and `pdfplumber` for ingestion of PDFs and game manuals.
 - **Search System:** SQLite FTS5 candidate retrieval with TF-IDF semantic reranking.
 
 ## Deployment & Build

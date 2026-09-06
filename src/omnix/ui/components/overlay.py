@@ -202,7 +202,8 @@ class OmnixOverlayChatWidget(QWidget):
 
         # Scroll to bottom
         scrollbar = self.chat_display.verticalScrollBar()
-        scrollbar.setValue(scrollbar.maximum())
+        if scrollbar is not None:
+            scrollbar.setValue(scrollbar.maximum())
 
 
 class OmnixOverlayTip(QWidget):

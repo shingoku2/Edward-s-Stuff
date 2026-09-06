@@ -10,6 +10,7 @@
 
 # Dependencies
 .venv/
+*.egg-info/
 venv/
 node_modules/
 

@@ -72,10 +72,10 @@ class OmnixDialog(QDialog):
         """)
 
         # Main layout
-        main_layout = QVBoxLayout(self)
-        main_layout.setSpacing(0)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        self.setLayout(main_layout)
+        self.main_layout = QVBoxLayout(self)
+        self.main_layout.setSpacing(0)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.setLayout(self.main_layout)
 
         # Header
         if title:
@@ -89,14 +89,14 @@ class OmnixDialog(QDialog):
                     max-height: 1px;
                 }}
             """)
-            main_layout.addWidget(separator)
+            self.main_layout.addWidget(separator)
 
         # Content area
         self.content_widget = QWidget()
         self.content_layout = QVBoxLayout(self.content_widget)
         self.content_layout.setContentsMargins(SPACING.lg, SPACING.lg, SPACING.lg, SPACING.lg)
         self.content_layout.setSpacing(SPACING.base)
-        main_layout.addWidget(self.content_widget, 1)
+        self.main_layout.addWidget(self.content_widget, 1)
 
         # Footer (buttons area)
         self.footer_widget = QWidget()
@@ -104,7 +104,7 @@ class OmnixDialog(QDialog):
         self.footer_layout.setContentsMargins(SPACING.lg, SPACING.md, SPACING.lg, SPACING.lg)
         self.footer_layout.setSpacing(SPACING.md)
         self.footer_layout.addStretch()
-        main_layout.addWidget(self.footer_widget)
+        self.main_layout.addWidget(self.footer_widget)
 
     def _create_header(self, title: str):
         """Create dialog header."""
@@ -123,7 +123,7 @@ class OmnixDialog(QDialog):
         """)
         header_layout.addWidget(title_label)
 
-        self.layout().addWidget(header)
+        self.main_layout.addWidget(header)
 
     def add_content(self, widget: QWidget):
         """

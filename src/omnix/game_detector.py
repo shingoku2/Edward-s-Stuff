@@ -9,7 +9,7 @@ import threading
 import time
 from typing import Dict, List, Optional, Set, Tuple
 
-import psutil
+import psutil  # type: ignore[import-untyped]
 
 from omnix.type_definitions import GameInfo
 
@@ -78,7 +78,7 @@ class GameDetector:
 
         try:
             # Try using pywin32
-            import win32api
+            import win32api  # type: ignore[import-untyped]
 
             info = win32api.GetFileVersionInfo(path, "\\")
             ms = info["FileVersionMS"]
@@ -89,7 +89,7 @@ class GameDetector:
 
     def _rebuild_process_index(self) -> None:
         """Build a fast lookup of tracked processes to prevent duplicates."""
-        process_index = {}
+        process_index: Dict[str, str] = {}
         for game_name, process_names in self.common_games.items():
             if not process_names:
                 continue

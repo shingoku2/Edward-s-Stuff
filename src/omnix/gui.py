@@ -13,7 +13,7 @@ import logging
 import sys
 from typing import Dict, Optional
 
-import psutil
+import psutil  # type: ignore[import-untyped]
 from PyQt6.QtCore import QEvent, Qt, QThread, QTimer, pyqtSignal
 from PyQt6.QtWidgets import (
     QApplication,
@@ -225,7 +225,8 @@ class OverlayWindow(QWidget):
         )
         self.chat_display.append(chat_html)
         sb = self.chat_display.verticalScrollBar()
-        sb.setValue(sb.maximum())
+        if sb is not None:
+            sb.setValue(sb.maximum())
 
     # Drag-to-move
     def mousePressEvent(self, event) -> None:
@@ -297,7 +298,7 @@ class MainWindow(QMainWindow):
         self.keybind_manager = KeybindManager(self.capabilities)
         self.macro_manager = MacroManager()
         self.theme_manager = OmnixThemeManager()
-        self.settings_dialog = None
+        self.settings_dialog: Optional[TabbedSettingsDialog] = None
 
         # Build overlay (native PyQt6 — no WebEngine)
         self.overlay_window = OverlayWindow(ai_assistant, config, self.design_system)
@@ -581,7 +582,8 @@ class MainWindow(QMainWindow):
         )
         self.chat_display.append(chat_html)
         sb = self.chat_display.verticalScrollBar()
-        sb.setValue(sb.maximum())
+        if sb is not None:
+            sb.setValue(sb.maximum())
 
     def _update_system_stats(self) -> None:
         try:
@@ -700,7 +702,13 @@ def run_gui(
     game_detector=None,
 ) -> None:
     """Launch the Omnix GUI."""
-    app = QApplication.instance() or QApplication(sys.argv)
+    app_instance = QApplication.instance()
+    if app_instance is None:
+        app = QApplication(sys.argv)
+    elif isinstance(app_instance, QApplication):
+        app = app_instance
+    else:
+        raise RuntimeError("A non-GUI QCoreApplication is already running")
 
     # Set dark palette as fallback
     app.setStyle("Fusion")

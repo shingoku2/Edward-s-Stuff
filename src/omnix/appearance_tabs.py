@@ -49,7 +49,12 @@ class AppAppearanceTab(QWidget):
 
     def init_ui(self):
         """Initialize app appearance tab UI"""
-        layout = QVBoxLayout()
+        existing_layout = self.layout()
+        if isinstance(existing_layout, QVBoxLayout):
+            layout = existing_layout
+        else:
+            layout = QVBoxLayout()
+        self.main_layout = layout
 
         # Header
         header = QLabel("Main Application Appearance")
@@ -202,7 +207,8 @@ class AppAppearanceTab(QWidget):
         layout.addLayout(info_layout)
 
         layout.addStretch()
-        self.setLayout(layout)
+        if existing_layout is None:
+            self.setLayout(layout)
 
     def _add_color_picker(self, layout: QVBoxLayout, label: str, token_key: str, description: str):
         """
@@ -327,10 +333,12 @@ class AppAppearanceTab(QWidget):
         if reply == QMessageBox.StandardButton.Yes:
             self.theme_manager.reset_to_defaults()
             # Rebuild UI with defaults - need to clear and recreate
-            while self.layout().count():
-                child = self.layout().takeAt(0)
-                if child.widget():
-                    child.widget().deleteLater()
+            while self.main_layout.count():
+                child = self.main_layout.takeAt(0)
+                if child is not None:
+                    widget = child.widget()
+                    if widget is not None:
+                        widget.deleteLater()
 
             self.init_ui()  # Rebuild UI with defaults
             self.theme_changed.emit()

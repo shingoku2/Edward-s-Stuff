@@ -79,26 +79,14 @@ class KnowledgePack:
     game_profile_id: str
     sources: List[KnowledgeSource]
     enabled: bool = True
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    created_at: datetime = field(default_factory=datetime.now)
+    updated_at: datetime = field(default_factory=datetime.now)
     extra_settings: Dict = field(default_factory=dict)
 
     def __post_init__(self):
         """Initialize timestamps if not provided"""
-        if self.created_at is None:
-            self.created_at = datetime.now()
-        if self.updated_at is None:
-            self.updated_at = datetime.now()
-
-        # Convert string timestamps back to datetime if needed
-        if isinstance(self.created_at, str):
-            self.created_at = datetime.fromisoformat(self.created_at)
-        if isinstance(self.updated_at, str):
-            self.updated_at = datetime.fromisoformat(self.updated_at)
-
-        # Convert source dicts to KnowledgeSource objects if needed
-        if self.sources and isinstance(self.sources[0], dict):
-            self.sources = [KnowledgeSource.from_dict(s) for s in self.sources]
+        if not all(isinstance(source, KnowledgeSource) for source in self.sources):
+            raise TypeError("KnowledgePack sources must be KnowledgeSource instances")
 
     def to_dict(self) -> Dict:
         """Convert to dictionary for JSON serialization"""
@@ -111,7 +99,18 @@ class KnowledgePack:
     @classmethod
     def from_dict(cls, data: Dict) -> "KnowledgePack":
         """Create from dictionary"""
-        return cls(**data)
+        values = dict(data)
+        values["sources"] = [
+            source if isinstance(source, KnowledgeSource) else KnowledgeSource.from_dict(source)
+            for source in values.get("sources", [])
+        ]
+        for field_name in ("created_at", "updated_at"):
+            value = values.get(field_name)
+            if isinstance(value, str):
+                values[field_name] = datetime.fromisoformat(value)
+            elif value is None:
+                values[field_name] = datetime.now()
+        return cls(**values)
 
     def add_source(self, source: KnowledgeSource) -> None:
         """Add a knowledge source to this pack"""

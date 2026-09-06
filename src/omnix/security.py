@@ -53,10 +53,12 @@ def enforce_private_paths(paths: Iterable[Path], *, is_dir: bool = False) -> Non
             ensure_private_file(path)
 
 
-def redact_sensitive_values(data: Mapping[str, object], sensitive_keys: Iterable[str]) -> dict:
+def redact_sensitive_values(
+    data: Mapping[str, object], sensitive_keys: Iterable[str]
+) -> dict[str, object]:
     """Return a copy of ``data`` with sensitive keys redacted."""
     targets = {key.lower() for key in sensitive_keys}
-    redacted = {}
+    redacted: dict[str, object] = {}
     for key, value in data.items():
         if key.lower() in targets and value:
             redacted[key] = "***redacted***"

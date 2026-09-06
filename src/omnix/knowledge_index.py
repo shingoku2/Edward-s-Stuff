@@ -74,7 +74,7 @@ class SimpleTFIDFEmbedding(EmbeddingProvider):
 
     def _compute_tf(self, tokens: List[str]) -> Dict[str, float]:
         """Compute term frequency"""
-        tf = {}
+        tf: Dict[str, float] = {}
         total = len(tokens)
         if total == 0:
             return tf
@@ -94,7 +94,7 @@ class SimpleTFIDFEmbedding(EmbeddingProvider):
         doc_count = len(documents)
 
         # Build vocabulary and document frequency
-        doc_freq = {}
+        doc_freq: Dict[str, int] = {}
         for doc in documents:
             tokens = set(self._tokenize(doc))
             for token in tokens:
@@ -337,12 +337,12 @@ class KnowledgeIndex:
             return []
 
         words = text.split()
-        chunks = []
-        current_chunk_words = []
+        chunks: List[str] = []
+        current_chunk_words: List[str] = []
         current_length = 0
 
         # Helper to reconstruct string from words
-        def join_words(word_list):
+        def join_words(word_list: List[str]) -> str:
             return " ".join(word_list)
 
         for word in words:
@@ -353,7 +353,7 @@ class KnowledgeIndex:
                 chunks.append(join_words(current_chunk_words))
 
                 # Calculate overlap (keep last N words that fit in overlap size)
-                overlap_words = []
+                overlap_words: List[str] = []
                 overlap_len = 0
                 for w in reversed(current_chunk_words):
                     if overlap_len + len(w) + 1 <= overlap:

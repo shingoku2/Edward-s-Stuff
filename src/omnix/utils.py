@@ -6,10 +6,13 @@ import functools
 import logging
 import os
 import sys
+import tempfile
 import traceback
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Optional
+
+from omnix.security import ensure_private_dir, ensure_private_file
 
 
 def setup_logging(log_level: str = "INFO") -> Path:
@@ -24,24 +27,19 @@ def setup_logging(log_level: str = "INFO") -> Path:
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     log_filename = f"gaming_ai_assistant_{timestamp}.log"
 
-    # Try to write to current directory first (for debug builds)
-    log_file = Path.cwd() / log_filename
+    config_dir = Path(os.getenv("OMNIX_CONFIG_DIR", str(Path.home() / ".gaming_ai_assistant")))
+    log_dir = config_dir / "logs"
 
     try:
-        # Test if we can write to current directory
-        log_file.parent.mkdir(parents=True, exist_ok=True)
-        test_write = log_file.parent / ".test_write"
-        test_write.touch()
-        test_write.unlink()
-        print(f"✓ Log file will be created at: {log_file}")
+        ensure_private_dir(log_dir)
     except (PermissionError, OSError) as e:
-        # Fall back to user's home directory if current directory isn't writable
-        print(f"⚠️  Cannot write to current directory ({e}), using home directory instead")
-        config_dir = Path(os.getenv("OMNIX_CONFIG_DIR", str(Path.home() / ".gaming_ai_assistant")))
-        log_dir = config_dir / "logs"
-        log_dir.mkdir(parents=True, exist_ok=True)
-        log_file = log_dir / log_filename
-        print(f"✓ Log file will be created at: {log_file}")
+        fallback_dir = Path(tempfile.gettempdir()) / "omnix-logs"
+        print(f"⚠️  Cannot write to application log directory ({e}); using {fallback_dir}")
+        ensure_private_dir(fallback_dir)
+        log_dir = fallback_dir
+
+    log_file = log_dir / log_filename
+    print(f"✓ Log file will be created at: {log_file}")
 
     try:
         logging.basicConfig(
@@ -65,6 +63,8 @@ def setup_logging(log_level: str = "INFO") -> Path:
         # Flush to ensure file is created immediately
         for handler in logging.getLogger().handlers:
             handler.flush()
+
+        ensure_private_file(log_file)
 
         # Verify the file was actually created
         if log_file.exists():

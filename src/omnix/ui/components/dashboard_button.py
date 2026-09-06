@@ -9,7 +9,7 @@ from typing import Optional
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QCursor
-from PyQt6.QtWidgets import QLabel, QPushButton, QVBoxLayout
+from PyQt6.QtWidgets import QLabel, QPushButton, QVBoxLayout, QWidget
 
 from ..icons import icons
 from ..tokens import COLORS, RADIUS, SPACING, TYPOGRAPHY
@@ -31,7 +31,7 @@ class OmnixDashboardButton(QPushButton):
         self,
         icon_name: str,
         text: str,
-        parent: Optional[object] = None,
+        parent: Optional[QWidget] = None,
     ):
         """
         Initialize dashboard button.

@@ -5,7 +5,7 @@ Cross-platform support with anti-cheat awareness
 """
 
 import logging
-import random
+import secrets
 import threading
 import time
 from enum import Enum
@@ -19,8 +19,8 @@ logger = logging.getLogger(__name__)
 
 # Try to import input simulation library
 try:
-    from pynput import keyboard, mouse
-    from pynput.keyboard import Controller as KeyboardController
+    from pynput import keyboard, mouse  # type: ignore[import-untyped]
+    from pynput.keyboard import Controller as KeyboardController  # type: ignore[import-untyped]
     from pynput.keyboard import Key, KeyCode
 
     PYNPUT_AVAILABLE = True
@@ -128,7 +128,7 @@ class MacroRunner:
         max_repeat = DEFAULT_MAX_MACRO_REPEAT  # Default safety limit
         if self.config and hasattr(self.config, "max_macro_repeat"):
             max_repeat = self.config.max_macro_repeat
-        if getattr(macro, "max_repeat", None) is not None:
+        if macro.max_repeat is not None:
             max_repeat = macro.max_repeat
 
         if macro.repeat > max_repeat:
@@ -201,7 +201,7 @@ class MacroRunner:
             timeout_seconds = 30
             if self.config and hasattr(self.config, "macro_execution_timeout"):
                 timeout_seconds = self.config.macro_execution_timeout
-            if getattr(macro, "execution_timeout", None) is not None:
+            if macro.execution_timeout is not None:
                 timeout_seconds = macro.execution_timeout
 
             # Track start time for timeout enforcement
@@ -295,40 +295,54 @@ class MacroRunner:
         # Add optional jitter to delays
         delay = step.duration_ms if step.duration_ms > 0 else 0
         if step.delay_jitter_ms > 0 and step.type == MacroStepType.DELAY.value:
-            jitter = random.randint(0, step.delay_jitter_ms)
+            jitter = secrets.randbelow(step.delay_jitter_ms + 1)
             delay = step.duration_ms + jitter
 
         try:
             if step.type == MacroStepType.KEY_PRESS.value:
+                if step.key is None:
+                    raise ValueError("Key press step requires a key")
                 self._press_key(step.key)
                 if delay > 0:
                     self._interruptible_sleep(delay / 1000.0)
 
             elif step.type == MacroStepType.KEY_DOWN.value:
+                if step.key is None:
+                    raise ValueError("Key down step requires a key")
                 self._key_down(step.key)
                 if step.duration_ms > 0:
                     self._interruptible_sleep(step.duration_ms / 1000.0)
                     self._key_up(step.key)
 
             elif step.type == MacroStepType.KEY_UP.value:
+                if step.key is None:
+                    raise ValueError("Key up step requires a key")
                 self._key_up(step.key)
 
             elif step.type == MacroStepType.KEY_SEQUENCE.value:
+                if step.key is None:
+                    raise ValueError("Key sequence step requires text")
                 self._type_sequence(step.key)
                 if delay > 0:
                     self._interruptible_sleep(delay / 1000.0)
 
             elif step.type == MacroStepType.MOUSE_MOVE.value:
+                if step.x is None or step.y is None:
+                    raise ValueError("Mouse move step requires x and y coordinates")
                 self._move_mouse(step.x, step.y)
                 if delay > 0:
                     self._interruptible_sleep(delay / 1000.0)
 
             elif step.type == MacroStepType.MOUSE_CLICK.value:
+                if step.button is None:
+                    raise ValueError("Mouse click step requires a button")
                 self._click_mouse(step.button, step.x, step.y)
                 if delay > 0:
                     self._interruptible_sleep(delay / 1000.0)
 
             elif step.type == MacroStepType.MOUSE_SCROLL.value:
+                if step.x is None or step.y is None:
+                    raise ValueError("Mouse scroll step requires x and y coordinates")
                 self._scroll_mouse(step.x, step.y, step.scroll_amount)
                 if delay > 0:
                     self._interruptible_sleep(delay / 1000.0)

@@ -9,7 +9,7 @@ from typing import Optional
 
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtGui import QCursor
-from PyQt6.QtWidgets import QPushButton
+from PyQt6.QtWidgets import QPushButton, QWidget
 
 
 class OmnixButton(QPushButton):
@@ -33,7 +33,7 @@ class OmnixButton(QPushButton):
         self,
         text: str = "",
         style: str = "primary",
-        parent: Optional[object] = None,
+        parent: Optional[QWidget] = None,
     ):
         """
         Initialize Omnix button.
@@ -66,8 +66,10 @@ class OmnixButton(QPushButton):
         """
         self.setProperty("buttonStyle", style if style != "primary" else None)
         # Force style refresh
-        self.style().unpolish(self)
-        self.style().polish(self)
+        widget_style = self.style()
+        if widget_style is not None:
+            widget_style.unpolish(self)
+            widget_style.polish(self)
         self.update()
 
 
@@ -87,7 +89,7 @@ class OmnixIconButton(QPushButton):
         text: str = "",
         icon=None,
         size: int = 32,
-        parent: Optional[object] = None,
+        parent: Optional[QWidget] = None,
     ):
         """
         Initialize Omnix icon button.

@@ -35,6 +35,20 @@ class SessionCoach:
 
         logger.info("SessionCoach initialized")
 
+    def _request_coaching_response(self, system_prompt: str, prompt: str) -> str:
+        """Send a coaching prompt through the router's supported chat contract."""
+        response = self.router.chat(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt},
+            ],
+            provider=self.config.ai_provider,
+        )
+        content = response.get("content")
+        if not isinstance(content, str):
+            raise ValueError("AI response did not contain text content")
+        return content
+
     def _format_events_for_recap(self, events: List[SessionEvent]) -> str:
         """
         Format session events into a readable summary for the AI
@@ -134,11 +148,9 @@ Please provide a concise session recap that includes:
 Keep the tone friendly and encouraging. Format the response with clear sections."""
 
             # Call AI
-            response = self.router.generate_response(
-                prompt=prompt,
-                provider=self.config.ai_provider,
-                system_prompt="You are a helpful gaming coach providing session recaps and next-step suggestions.",
-                conversation_history=[],
+            response = self._request_coaching_response(
+                "You are a helpful gaming coach providing session recaps and next-step suggestions.",
+                prompt,
             )
 
             logger.info(f"Generated session recap for {game_profile_id}")
@@ -194,11 +206,9 @@ Focus on:
 Keep the response concise and actionable."""
 
             # Call AI
-            response = self.router.generate_response(
-                prompt=prompt,
-                provider=self.config.ai_provider,
-                system_prompt="You are a helpful gaming coach focused on progress tracking and improvement.",
-                conversation_history=[],
+            response = self._request_coaching_response(
+                "You are a helpful gaming coach focused on progress tracking and improvement.",
+                prompt,
             )
 
             logger.info(f"Answered coach question for {game_profile_id}")
@@ -266,11 +276,9 @@ Please provide a progress summary that includes:
 Keep it encouraging and constructive."""
 
             # Call AI
-            response = self.router.generate_response(
-                prompt=prompt,
-                provider=self.config.ai_provider,
-                system_prompt="You are a supportive gaming coach analyzing player progress.",
-                conversation_history=[],
+            response = self._request_coaching_response(
+                "You are a supportive gaming coach analyzing player progress.",
+                prompt,
             )
 
             logger.info(f"Generated progress summary for {game_profile_id}")

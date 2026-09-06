@@ -54,7 +54,10 @@ class KeybindingsTab(QWidget):
     keybinds_changed = pyqtSignal(dict)  # Emits keybinds dict
 
     def __init__(
-        self, keybind_manager: KeybindManager, macro_manager: MacroManager = None, parent=None
+        self,
+        keybind_manager: KeybindManager,
+        macro_manager: Optional[MacroManager] = None,
+        parent=None,
     ):
         super().__init__(parent)
         self.keybind_manager = keybind_manager
@@ -85,22 +88,14 @@ class KeybindingsTab(QWidget):
         self.keybinds_table.setHorizontalHeaderLabels(
             ["Action", "Description", "Keys", "System-Wide", "Enabled"]
         )
-        self.keybinds_table.horizontalHeader().setStretchLastSection(False)
-        self.keybinds_table.horizontalHeader().setSectionResizeMode(
-            0, QHeaderView.ResizeMode.ResizeToContents
-        )
-        self.keybinds_table.horizontalHeader().setSectionResizeMode(
-            1, QHeaderView.ResizeMode.Stretch
-        )
-        self.keybinds_table.horizontalHeader().setSectionResizeMode(
-            2, QHeaderView.ResizeMode.ResizeToContents
-        )
-        self.keybinds_table.horizontalHeader().setSectionResizeMode(
-            3, QHeaderView.ResizeMode.ResizeToContents
-        )
-        self.keybinds_table.horizontalHeader().setSectionResizeMode(
-            4, QHeaderView.ResizeMode.ResizeToContents
-        )
+        table_header = self.keybinds_table.horizontalHeader()
+        if table_header is not None:
+            table_header.setStretchLastSection(False)
+            table_header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+            table_header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+            table_header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+            table_header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+            table_header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
         self.keybinds_table.setAlternatingRowColors(True)
         layout.addWidget(self.keybinds_table)
 
@@ -371,7 +366,7 @@ class KeybindEditDialog(QDialog):
         self,
         keybind: Optional[Keybind],
         keybind_manager: KeybindManager,
-        macro_manager: MacroManager = None,
+        macro_manager: Optional[MacroManager] = None,
         parent=None,
     ):
         super().__init__(parent)
@@ -394,28 +389,34 @@ class KeybindEditDialog(QDialog):
         action_label = QLabel("Action:")
         layout.addWidget(action_label)
 
+        self.action_combo: Optional[QComboBox] = None
+        self.action_line_edit: Optional[QLineEdit] = None
         if self.is_new:
-            self.action_input = QComboBox()
+            self.action_combo = QComboBox()
             # Add available actions
-            self.action_input.addItem("--- Built-in Actions ---")
+            self.action_combo.addItem("--- Built-in Actions ---")
             for action in KeybindAction:
-                self.action_input.addItem(f"  {action.value}")
+                self.action_combo.addItem(f"  {action.value}")
 
             # Add macros if macro_manager is available
             if self.macro_manager:
                 macros = self.macro_manager.get_all_macros()
                 if macros:
-                    self.action_input.addItem("--- Macros ---")
+                    self.action_combo.addItem("--- Macros ---")
                     for macro in macros:
-                        self.action_input.addItem(f"  macro:{macro.id}")
+                        self.action_combo.addItem(f"  macro:{macro.id}")
 
             # Set to first actual action (skip the separator)
-            self.action_input.setCurrentIndex(1)
+            self.action_combo.setCurrentIndex(1)
+            action_widget: QWidget = self.action_combo
         else:
-            self.action_input = QLineEdit(self.keybind.action)
-            self.action_input.setReadOnly(True)
+            if self.keybind is None:
+                raise ValueError("An existing keybind is required when editing")
+            self.action_line_edit = QLineEdit(self.keybind.action)
+            self.action_line_edit.setReadOnly(True)
+            action_widget = self.action_line_edit
 
-        layout.addWidget(self.action_input)
+        layout.addWidget(action_widget)
 
         # Description
         desc_label = QLabel("Description:")
@@ -465,9 +466,13 @@ class KeybindEditDialog(QDialog):
     def save_keybind(self):
         """Save the keybind"""
         if self.is_new:
-            action = self.action_input.currentText().strip()
+            if self.action_combo is None:
+                raise RuntimeError("Action selector is not initialized")
+            action = self.action_combo.currentText().strip()
         else:
-            action = self.action_input.text().strip()
+            if self.action_line_edit is None:
+                raise RuntimeError("Action field is not initialized")
+            action = self.action_line_edit.text().strip()
 
         description = self.desc_input.text().strip()
         keys = self.keys_input.text().strip()
@@ -886,11 +891,13 @@ class MacroEditDialog(QDialog):
             return
 
         # Get steps
-        steps = []
+        steps: List[MacroStep] = []
         for i in range(self.steps_list.count()):
             item = self.steps_list.item(i)
+            if item is None:
+                continue
             step = item.data(Qt.ItemDataRole.UserRole)
-            if step:
+            if isinstance(step, MacroStep):
                 steps.append(step)
 
         if not steps:
@@ -898,15 +905,20 @@ class MacroEditDialog(QDialog):
             return
 
         # Create or update macro
+        macro = self.macro
         if self.is_new:
-            self.macro = self.macro_manager.create_macro(name, description)
+            macro = self.macro_manager.create_macro(name, description)
         else:
+            if macro is None:
+                QMessageBox.warning(self, "Error", "The macro being edited no longer exists.")
+                return
             self.macro_manager.update_macro(
-                self.macro.id, name=name, description=description, enabled=enabled
+                macro.id, name=name, description=description, enabled=enabled
             )
 
-        self.macro.steps = steps
-        self.macro.enabled = enabled
+        macro.steps = steps
+        macro.enabled = enabled
+        self.macro = macro
 
         self.accept()
 
@@ -985,8 +997,10 @@ class MacroStepDialog(QDialog):
         # Clear parameters layout
         while self.params_layout.count():
             item = self.params_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+            if item is not None:
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
 
         # Add parameter inputs based on type
         if step_type == MacroStepType.KEY_PRESS.value:
