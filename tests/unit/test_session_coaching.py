@@ -6,15 +6,16 @@ Tests session recap generation, event formatting, and coaching insights
 import os
 import sys
 from datetime import datetime, timedelta
-from unittest.mock import Mock, MagicMock, patch, AsyncMock
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
+
 import pytest
 
 # Add src to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
-from src.session_logger import SessionLogger, SessionEvent
-from src.session_coaching import SessionCoach
-from src.config import Config
+from omnix.config import Config
+from omnix.session_coaching import SessionCoach
+from omnix.session_logger import SessionEvent, SessionLogger
 
 
 @pytest.mark.unit
@@ -65,7 +66,7 @@ class TestEventFormatting:
                 event_type="question",
                 game_profile_id="elden_ring",
                 content="How do I beat Margit?",
-                meta={}
+                meta={},
             )
         ]
 
@@ -95,7 +96,7 @@ class TestEventFormatting:
                 event_type="question",
                 game_profile_id="test",
                 content="Test question",
-                meta={}
+                meta={},
             )
         ]
 
@@ -116,7 +117,7 @@ class TestSessionRecapGeneration:
         coach = SessionCoach(config=config)
 
         # Mock the AI router
-        with patch.object(coach, 'router') as mock_router:
+        with patch.object(coach, "router") as mock_router:
 
             # Mock AI response
             def mock_chat(messages, **kwargs):
@@ -150,7 +151,7 @@ class TestSessionRecapGeneration:
         config = Config(config_dir=str(temp_config_dir))
         coach = SessionCoach(config=config)
 
-        with patch.object(coach, 'router') as mock_router:
+        with patch.object(coach, "router") as mock_router:
 
             # Mock AI error
             def mock_chat_error(messages, **kwargs):
@@ -180,24 +181,20 @@ class TestInsightsGeneration:
 
         # Add some events
         logger.log_event(
-            game_profile_id="elden_ring",
-            event_type="question",
-            content="How do I beat Margit?"
+            game_profile_id="elden_ring", event_type="question", content="How do I beat Margit?"
         )
         logger.log_event(
             game_profile_id="elden_ring",
             event_type="answer",
-            content="Use ranged attacks and summons"
+            content="Use ranged attacks and summons",
         )
 
         coach = SessionCoach(session_logger=logger, config=config)
 
-        with patch.object(coach, 'router') as mock_router:
+        with patch.object(coach, "router") as mock_router:
 
             def mock_chat(messages, **kwargs):
-                return {
-                    "content": "Focus on learning boss patterns. Practice dodging."
-                }
+                return {"content": "Focus on learning boss patterns. Practice dodging."}
 
             mock_router.chat = mock_chat
 
@@ -214,14 +211,12 @@ class TestInsightsGeneration:
 
         # Add events
         logger.log_event(
-            game_profile_id="test_game",
-            event_type="question",
-            content="Help with strategy"
+            game_profile_id="test_game", event_type="question", content="Help with strategy"
         )
 
         coach = SessionCoach(session_logger=logger, config=config)
 
-        with patch.object(coach, 'router') as mock_router:
+        with patch.object(coach, "router") as mock_router:
 
             def mock_chat(messages, **kwargs):
                 return {"content": "Tip 1: Practice timing\nTip 2: Learn patterns"}
@@ -244,16 +239,8 @@ class TestSessionSummaryIntegration:
         logger = SessionLogger(config_dir=str(temp_config_dir))
 
         # Log some events
-        logger.log_event(
-            game_profile_id="test_game",
-            event_type="question",
-            content="Question 1"
-        )
-        logger.log_event(
-            game_profile_id="test_game",
-            event_type="answer",
-            content="Answer 1"
-        )
+        logger.log_event(game_profile_id="test_game", event_type="question", content="Question 1")
+        logger.log_event(game_profile_id="test_game", event_type="answer", content="Answer 1")
 
         coach = SessionCoach(session_logger=logger, config=config)
 
@@ -272,24 +259,20 @@ class TestSessionSummaryIntegration:
         # Log various event types
         for i in range(5):
             logger.log_event(
-                game_profile_id="test_game",
-                event_type="question",
-                content=f"Question {i}"
+                game_profile_id="test_game", event_type="question", content=f"Question {i}"
             )
 
         for i in range(5):
             logger.log_event(
-                game_profile_id="test_game",
-                event_type="answer",
-                content=f"Answer {i}"
+                game_profile_id="test_game", event_type="answer", content=f"Answer {i}"
             )
 
         # Get summary
         summary = logger.get_session_summary("test_game")
 
-        assert summary['total_events'] == 10
-        assert summary['event_types']['question'] == 5
-        assert summary['event_types']['answer'] == 5
+        assert summary["total_events"] == 10
+        assert summary["event_types"]["question"] == 5
+        assert summary["event_types"]["answer"] == 5
 
 
 @pytest.mark.unit
@@ -304,7 +287,7 @@ class TestRecapPromptConstruction:
 
         captured_messages = []
 
-        with patch.object(coach, 'router') as mock_router:
+        with patch.object(coach, "router") as mock_router:
 
             def mock_chat(messages, **kwargs):
                 captured_messages.append(messages)
@@ -331,7 +314,7 @@ class TestRecapPromptConstruction:
 
         captured_messages = []
 
-        with patch.object(coach, 'router') as mock_router:
+        with patch.object(coach, "router") as mock_router:
 
             def mock_chat(messages, **kwargs):
                 captured_messages.append(messages)
@@ -356,7 +339,7 @@ class TestErrorHandling:
         config = Config(config_dir=str(temp_config_dir))
         coach = SessionCoach(config=config)
 
-        with patch.object(coach, 'router') as mock_router:
+        with patch.object(coach, "router") as mock_router:
             mock_router.get_default_provider.return_value = None
 
             # Should handle missing provider gracefully
@@ -399,7 +382,7 @@ class TestEndToEndCoaching:
 
         coach = SessionCoach(session_logger=logger, config=config)
 
-        with patch.object(coach, 'router') as mock_router:
+        with patch.object(coach, "router") as mock_router:
 
             def mock_chat(messages, **kwargs):
                 return {

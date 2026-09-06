@@ -1,0 +1,568 @@
+"""Encrypted credential storage utilities for the Gaming AI Assistant."""
+
+from __future__ import annotations
+
+import base64
+import concurrent.futures
+import getpass
+import hashlib
+import json
+import logging
+import os
+import sys
+import tempfile
+import threading
+from pathlib import Path
+from typing import Dict, Optional, Union
+
+import keyring
+from cryptography.fernet import Fernet, InvalidToken
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from filelock import FileLock
+from keyring.errors import KeyringError
+
+logger = logging.getLogger(__name__)
+
+_DEFAULT_SERVICE_NAME = "gaming_ai_assistant"
+_DEFAULT_CREDENTIAL_FILE = "credentials.enc"
+_KEYRING_KEY = "encryption_key"
+_FALLBACK_KEY_FILE = "master.key.enc"  # Enhanced: encrypted key file with secure naming
+_PBKDF2_ITERATIONS = 600000  # Enhanced: increased iterations for better security (OWASP 2024)
+_SALT_LENGTH = 32  # 256 bits
+_SECURE_TEMP_DIR_MODE = 0o700  # Secure temporary directory permissions
+
+# Enhanced security: use system temp directory for fallback keys
+_SECURE_TEMP_DIR = Path(tempfile.gettempdir()) / ".gaming_ai_secure"
+
+
+class CredentialStoreError(Exception):
+    """Base exception for credential store errors."""
+
+
+class CredentialDecryptionError(CredentialStoreError):
+    """Raised when stored credentials cannot be decrypted."""
+
+
+class KeyringUnavailableError(CredentialStoreError):
+    """Raised when keyring is unavailable and no password is provided."""
+
+
+class CredentialStore:
+    """Encrypted credential storage backed by the system keyring.
+
+    Falls back to password-based encryption (PBKDF2) if keyring is unavailable.
+    The fallback is secure but requires user to enter a master password.
+    """
+
+    _lock = threading.Lock()
+
+    def __init__(
+        self,
+        config_dir: Optional[Union[Path, str]] = None,
+        base_dir: Optional[Union[Path, str]] = None,
+        service_name: str = _DEFAULT_SERVICE_NAME,
+        credential_filename: str = _DEFAULT_CREDENTIAL_FILE,
+        master_password: Optional[str] = None,
+        allow_password_prompt: bool = True,
+    ) -> None:
+        """Initialize the credential store with robust defaults."""
+
+        self.service_name = service_name
+        resolved_dir = base_dir if base_dir is not None else config_dir
+        self.config_dir = (
+            Path(resolved_dir)
+            if resolved_dir is not None
+            else Path(os.getenv("OMNIX_CONFIG_DIR", str(Path.home() / ".gaming_ai_assistant")))
+        )
+        self.credential_path = self.config_dir / credential_filename
+        self._cipher: Optional[Fernet] = None
+        self._master_password = master_password
+        self._allow_password_prompt = allow_password_prompt
+        self._lock = threading.RLock()
+        self._keyring_available = True
+
+        # Instance-scoped fallback key directory: hashed from service_name +
+        # config_dir so distinct CredentialStore instances (e.g. different
+        # config dirs, or tests running alongside a real install) never share
+        # or clobber each other's password-derived key.
+        instance_key = hashlib.sha256(
+            f"{self.service_name}:{self.config_dir}".encode("utf-8")
+        ).hexdigest()[:32]
+        self._fallback_dir = _SECURE_TEMP_DIR / instance_key
+        self._file_lock = FileLock(str(self.credential_path) + ".lock")
+
+        try:
+            keyring.get_keyring()
+        except Exception as exc:  # pragma: no cover - defensive guard
+            logger.warning(
+                "Keyring appears unavailable; falling back to file-based storage: %s",
+                exc,
+            )
+            self._keyring_available = False
+
+        self._ensure_directories()
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+    def save_credentials(self, values: Dict[str, Optional[str]]) -> None:
+        """Persist credentials securely."""
+        with self._lock, self._file_lock:
+            data = self._load_raw()
+            for key, value in values.items():
+                if value:
+                    data[key] = value
+                elif key in data:
+                    del data[key]
+
+            self._save_raw(data)
+            logger.debug("Stored %d credential(s) in encrypted vault", len(values))
+
+    def load_credentials(self) -> Dict[str, str]:
+        """Load credentials for the default service."""
+
+        with self._lock, self._file_lock:
+            return self._load_raw()
+
+    def get(self, key: str) -> Optional[str]:
+        """Fetch a single credential by key for the default service."""
+
+        with self._lock:
+            data = self.load_credentials()
+            if key in data:
+                return data.get(key)
+
+            # Fallback for namespaced keys stored as "service:key"
+            for stored_key, value in data.items():
+                if stored_key.endswith(f":{key}"):
+                    return value
+
+            return None
+
+    # ------------------------------------------------------------------
+    # Compatibility wrappers for legacy callers and tests
+    # ------------------------------------------------------------------
+    def set_credential(self, service: str, key: str, value: Optional[str]) -> None:
+        composite_key = self._compose_key(service, key)
+        self.save_credentials({composite_key: value})
+
+    def get_credential(self, service: str, key: str) -> Optional[str]:
+        composite_key = self._compose_key(service, key)
+        data = self._load_raw()
+        if composite_key in data:
+            return data.get(composite_key)
+        return data.get(key)
+
+    def delete(self, key: str) -> None:
+        """Remove a credential from the vault."""
+        with self._lock, self._file_lock:
+            data = self._load_raw()
+            if key in data:
+                del data[key]
+                self._save_raw(data)
+                logger.debug("Removed credential %s from vault", key)
+
+    def delete_credential(self, service: str, key: str) -> None:
+        composite_key = self._compose_key(service, key)
+        self.delete(composite_key)
+
+    @staticmethod
+    def _compose_key(service: str, key: str) -> str:
+        return f"{service}:{key}" if service else key
+
+    def _load_raw(self) -> Dict[str, str]:
+        if not self.credential_path.exists():
+            return {}
+
+        try:
+            raw_bytes = self.credential_path.read_bytes()
+        except FileNotFoundError:
+            return {}
+        except OSError as exc:  # pragma: no cover - defensive
+            logger.warning("Failed to read credential file: %s", exc)
+            return {}
+
+        if not raw_bytes:
+            return {}
+
+        raw_text: Optional[str] = None
+        envelope: Optional[dict] = None
+
+        try:
+            raw_text = raw_bytes.decode("utf-8")
+            envelope = json.loads(raw_text)
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            envelope = None
+
+        if envelope is not None:
+            if envelope.get("encrypted"):
+                payload_b64 = envelope.get("payload", "")
+                if not payload_b64:
+                    return {}
+
+                try:
+                    token = base64.b64decode(payload_b64.encode("utf-8"))
+                except (ValueError, TypeError):
+                    self._quarantine_file(".corrupted")
+                    return {}
+
+                try:
+                    plaintext = self._get_cipher().decrypt(token)
+                except (InvalidToken, CredentialStoreError) as exc:
+                    logger.warning("Failed to decrypt credentials: %s", exc)
+                    self._quarantine_file(".decryption_failed")
+                    return {}
+
+                try:
+                    decoded = json.loads(plaintext.decode("utf-8"))
+                except json.JSONDecodeError:
+                    logger.warning("Decrypted credential payload contained invalid JSON")
+                    return {}
+                return self._normalize_data(decoded)
+
+            if "ciphertext" in envelope:
+                ciphertext = envelope.get("ciphertext", "")
+                if not ciphertext:
+                    return {}
+                try:
+                    plaintext = self._get_cipher().decrypt(ciphertext.encode("utf-8"))
+                    decoded = json.loads(plaintext.decode("utf-8"))
+                    return self._normalize_data(decoded)
+                except (
+                    InvalidToken,
+                    json.JSONDecodeError,
+                    CredentialStoreError,
+                ) as exc:
+                    logger.warning("Failed to decrypt credential envelope: %s", exc)
+                    return {}
+
+            if "data" in envelope:
+                return self._normalize_data(envelope.get("data", {}))
+
+        # Legacy raw ciphertext stored directly in file
+        try:
+            plaintext = self._get_cipher().decrypt(raw_bytes)
+            decoded = json.loads(plaintext.decode("utf-8"))
+            return self._normalize_data(decoded)
+        except (InvalidToken, json.JSONDecodeError, CredentialStoreError) as exc:
+            logger.warning("Failed to decrypt legacy credential file: %s", exc)
+            return {}
+
+    def _save_raw(self, raw_data: Dict[str, str]) -> None:
+        normalized = self._normalize_data(raw_data)
+
+        cipher = self._get_cipher()
+        plaintext = json.dumps(normalized, separators=(",", ":"), ensure_ascii=False).encode(
+            "utf-8"
+        )
+        token = cipher.encrypt(plaintext)
+        payload = base64.b64encode(token).decode("utf-8")
+
+        envelope = {"version": 1, "encrypted": True, "payload": payload}
+        self._atomic_write_json(self.credential_path, envelope)
+        self._set_permissions(self.credential_path, 0o600)
+
+    def _atomic_write_json(self, path: Path, data: dict) -> None:
+        dirpath = path.parent
+        dirpath.mkdir(parents=True, exist_ok=True)
+        temp_file = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                "w", delete=False, dir=dirpath, encoding="utf-8"
+            ) as temp:
+                temp_file = Path(temp.name)
+                self._set_permissions(temp_file, 0o600)
+                json.dump(data, temp, ensure_ascii=False, indent=2)
+                temp.flush()
+                os.fsync(temp.fileno())
+            os.replace(temp_file, path)
+            self._set_permissions(path, 0o600)
+        finally:
+            if temp_file and temp_file.exists():
+                try:
+                    temp_file.unlink()
+                except OSError:
+                    pass
+
+    def _quarantine_file(self, suffix: str) -> None:
+        try:
+            backup_path = self.credential_path.with_suffix(self.credential_path.suffix + suffix)
+            os.replace(self.credential_path, backup_path)
+            logger.info("Moved corrupted credential file to %s", backup_path)
+        except Exception:  # pragma: no cover - defensive
+            logger.exception("Failed to quarantine corrupted credential file")
+
+    def _normalize_data(self, data: Dict) -> Dict[str, str]:
+        if not isinstance(data, dict):
+            return {}
+
+        return {k: v for k, v in data.items() if v is not None}
+
+    def _ensure_directories(self) -> None:
+        # Create main config directory
+        self.config_dir.mkdir(parents=True, exist_ok=True)
+        self._set_permissions(self.config_dir, 0o700)
+
+        # Create secure temp directory for fallback keys, scoped to this instance
+        try:
+            self._fallback_dir.mkdir(parents=True, exist_ok=True)
+            self._set_permissions(_SECURE_TEMP_DIR, _SECURE_TEMP_DIR_MODE)
+            self._set_permissions(self._fallback_dir, _SECURE_TEMP_DIR_MODE)
+        except Exception as exc:
+            logger.warning("Failed to create secure temp directory: %s", exc)
+
+    def _get_cipher(self) -> Fernet:
+        if self._cipher is None:
+            key = self._load_or_create_key()
+            self._cipher = Fernet(key)
+        return self._cipher
+
+    def _load_or_create_key(self) -> bytes:
+        """Load or create the Fernet encryption key.
+
+        First tries the system keyring. If unavailable, falls back to
+        password-based encryption with PBKDF2.
+
+        Returns:
+            Fernet encryption key (32 bytes, base64-encoded)
+
+        Raises:
+            KeyringUnavailableError: If keyring fails and no password available
+        """
+        key = self._read_keyring_key()
+        if key:
+            return key
+
+        key_bytes = Fernet.generate_key()
+        key_string = key_bytes.decode("utf-8")
+
+        if self._keyring_available:
+            try:
+                keyring.set_password(self.service_name, _KEYRING_KEY, key_string)
+                logger.debug("Generated new encryption key and stored it in keyring")
+                return key_bytes
+            except Exception as exc:
+                logger.warning("Keyring unavailable (%s); using password-based fallback", exc)
+                self._keyring_available = False
+
+        return self._fallback_store_key(key_bytes)
+
+    def _read_keyring_key(self) -> Optional[bytes]:
+        """Read encryption key from system keyring or password-based fallback."""
+        if not self._keyring_available:
+            return self._load_fallback_key()
+
+        try:
+            value = keyring.get_password(self.service_name, _KEYRING_KEY)
+        except Exception as exc:
+            logger.warning("Unable to access keyring: %s", exc)
+            self._keyring_available = False
+            return self._load_fallback_key()
+
+        if value:
+            return value.encode("utf-8")
+
+        # key not in keyring; try fallback if present
+        fallback = self._load_fallback_key()
+        if fallback:
+            return fallback
+
+        return None
+
+    def _fallback_store_key(self, key_bytes: bytes) -> bytes:
+        """Store encryption key using password-based encryption (PBKDF2).
+
+        SECURITY: This method uses PBKDF2 with 600,000 iterations (OWASP 2024)
+        to derive an encryption key from a master password. The Fernet key is
+        encrypted with this derived key and stored in a secure temporary location.
+
+        This is MUCH more secure than storing the key in plaintext or user directory.
+
+        Args:
+            key_bytes: The Fernet key to encrypt and store
+
+        Returns:
+            The same key_bytes (for convenience)
+
+        Raises:
+            KeyringUnavailableError: If no password is available
+        """
+        password = self._get_master_password()
+        if not password:
+            raise KeyringUnavailableError(
+                "System keyring is unavailable and no master password was provided. "
+                "Cannot securely store credentials. Please fix your system keyring "
+                "or provide a master password via environment variable OMNIX_MASTER_PASSWORD."
+            )
+
+        # Generate a random salt
+        salt = os.urandom(_SALT_LENGTH)
+
+        # Derive a key from the password using PBKDF2
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=salt,
+            iterations=_PBKDF2_ITERATIONS,
+        )
+        password_key = base64.urlsafe_b64encode(kdf.derive(password.encode("utf-8")))
+
+        # Encrypt the Fernet key with the password-derived key
+        cipher = Fernet(password_key)
+        encrypted_key = cipher.encrypt(key_bytes)
+
+        # Store in an instance-scoped secure temp directory instead of a
+        # user-writable location shared by every CredentialStore instance
+        fallback_path = self._fallback_dir / _FALLBACK_KEY_FILE
+        data = {
+            "salt": base64.b64encode(salt).decode("utf-8"),
+            "encrypted_key": base64.b64encode(encrypted_key).decode("utf-8"),
+            "iterations": _PBKDF2_ITERATIONS,
+        }
+        self._atomic_write_json(fallback_path, data)
+        self._set_permissions(fallback_path, 0o600)
+        logger.info("Stored encryption key using password-based encryption (PBKDF2)")
+        logger.warning(
+            "WARNING: Keyring is unavailable. Credentials are protected by your master password. "
+            "Do NOT lose this password or you will lose access to all stored credentials!"
+        )
+        return key_bytes
+
+    def _load_fallback_key(self) -> Optional[bytes]:
+        """Load encryption key from password-based fallback storage."""
+        # Check current instance-scoped location plus older locations for
+        # backward compatibility with keys written before per-instance scoping
+        fallback_paths = [
+            self._fallback_dir / _FALLBACK_KEY_FILE,  # Current instance-scoped location
+            _SECURE_TEMP_DIR / _FALLBACK_KEY_FILE,  # Legacy shared-global location
+            self.config_dir / _FALLBACK_KEY_FILE,  # Legacy per-config-dir location
+        ]
+
+        fallback_path = None
+        for path in fallback_paths:
+            if path.exists():
+                fallback_path = path
+                break
+
+        if not fallback_path:
+            return None
+
+        try:
+            with open(fallback_path, "r") as fh:
+                data = json.load(fh)
+        except (json.JSONDecodeError, IOError) as exc:
+            logger.error("Failed to read fallback key file: %s", exc)
+            return None
+
+        # Check if this is an old plaintext key file (SECURITY ISSUE!)
+        if not isinstance(data, dict) or "salt" not in data:
+            logger.critical(
+                "SECURITY WARNING: Found insecure key file! "
+                "This is a critical security vulnerability. The file will be removed and "
+                "you will need to re-enter your API keys with a master password."
+            )
+            # Delete the insecure file
+            fallback_path.unlink()
+            return None
+
+        password = self._get_master_password()
+        if not password:
+            raise KeyringUnavailableError(
+                "Master password required to decrypt credentials. "
+                "Please set OMNIX_MASTER_PASSWORD environment variable or enter it when prompted."
+            )
+
+        try:
+            salt = base64.b64decode(data["salt"])
+            encrypted_key = base64.b64decode(data["encrypted_key"])
+            iterations = data.get("iterations", _PBKDF2_ITERATIONS)
+
+            # Derive key from password
+            kdf = PBKDF2HMAC(
+                algorithm=hashes.SHA256(),
+                length=32,
+                salt=salt,
+                iterations=iterations,
+            )
+            password_key = base64.urlsafe_b64encode(kdf.derive(password.encode("utf-8")))
+
+            # Decrypt the Fernet key
+            cipher = Fernet(password_key)
+            key_bytes = cipher.decrypt(encrypted_key)
+
+            logger.debug("Successfully loaded encryption key from password-based storage")
+            return key_bytes
+
+        except (InvalidToken, KeyError) as exc:
+            logger.error("Failed to decrypt fallback key (wrong password?): %s", exc)
+            raise CredentialDecryptionError(
+                "Failed to decrypt master key. Your password may be incorrect."
+            ) from exc
+
+    def _get_master_password(self) -> Optional[str]:
+        """Get master password from various sources.
+
+        Priority order:
+        1. Instance variable (from constructor)
+        2. Environment variable OMNIX_MASTER_PASSWORD
+        3. Interactive prompt (if allowed)
+
+        Returns:
+            Master password or None if not available
+        """
+        # 1. Check instance variable
+        if self._master_password:
+            return self._master_password
+
+        # 2. Check environment variable
+        env_password = os.environ.get("OMNIX_MASTER_PASSWORD")
+        if env_password:
+            logger.debug("Using master password from OMNIX_MASTER_PASSWORD environment variable")
+            return env_password
+
+        # 3. Interactive prompt (only if allowed and stdin is a TTY)
+        if self._allow_password_prompt and sys.stdin.isatty():
+            try:
+                password = getpass.getpass("Enter master password for credential encryption: ")
+                if password:
+                    logger.debug("Using master password from interactive prompt")
+                    return password
+            except (EOFError, KeyboardInterrupt):
+                logger.debug("Password prompt cancelled")
+                return None
+
+        return None
+
+    @staticmethod
+    def _set_permissions(path: Path, mode: int) -> None:
+        # On Windows, os.chmod is limited by User Account Control and does not
+        # provide meaningful security guarantees. Skip silently.
+        if os.name == "nt":
+            return
+        try:
+            os.chmod(path, mode)
+        except PermissionError:
+            logger.warning(
+                "SECURITY WARNING: Insufficient permissions to set mode %o on %s. "
+                "This file may be accessible to unauthorized users! "
+                "Please ensure proper permissions are set manually.",
+                mode,
+                path,
+            )
+        except NotImplementedError:
+            logger.warning(
+                "SECURITY WARNING: chmod not implemented on platform for %s. "
+                "File permissions cannot be enforced. "
+                "Ensure this path is on a filesystem that supports Unix permissions.",
+                path,
+            )
+        except OSError as exc:
+            logger.warning(
+                "SECURITY WARNING: Failed to set permissions on %s (mode %o): %s. "
+                "This file may remain world-readable or world-writable! "
+                "Please investigate and correct the file permissions manually.",
+                path,
+                mode,
+                exc,
+            )

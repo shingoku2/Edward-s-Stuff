@@ -1,18 +1,18 @@
 # Agent Guidelines - Omnix Gaming Companion
 
 ## Build & Test Commands
-**Setup:** `python -m venv .venv; .\.venv\Scripts\activate; pip install -r requirements.txt` (dev: `requirements-dev.txt`)  
-**Run app:** `python main.py`  
+**Setup:** `python -m venv .venv; .\.venv\Scripts\activate; pip install -e ".[dev,build]"`
+**Run app:** `python -m omnix` (compatibility: `python main.py`)
 **Single test:** `pytest tests/unit/test_game_detector.py -v` or `pytest -k game_detector`  
-**All tests:** `pytest` | **Coverage:** `pytest --cov=src --cov-report=html`  
+**All tests:** `pytest` | **Coverage:** `pytest --cov=omnix --cov-report=html`
 **Lint/format:** `pre-commit run --all-files` (Black 100cols, isort, flake8, bandit)  
-**Frontend:** `cd frontend && npm run dev` | **Windows build:** `python build_windows_exe.py`
+**Package run:** `python -m omnix` | **Desktop build:** `pyinstaller GamingAIAssistant.spec --clean --noconfirm`
 
 ## Code Style & Architecture
-**Python 3.8+:** 4-space indent, type hints preferred, Black (100 chars), isort (profile=black), flake8 (127 chars, ignore E203)  
-**Imports:** `from src.module import X` (never circular imports)  
+**Python 3.11+:** 4-space indent, type hints preferred, Black (100 chars), isort (profile=black), flake8 (127 chars, ignore E203)
+**Imports:** `from omnix.module import X` (never circular imports)
 **Architecture:** Strict layered design - GUI (PyQt6) → Business Logic → Data/Integration → Persistence  
-**UI Components:** Use `src/ui/tokens.py` colors/spacing, reusable components in `src/ui/components/`  
+**UI Components:** Use `src/omnix/ui/tokens.py` colors/spacing, reusable components in `src/omnix/ui/components/`
 **Testing:** `test_*.py` / `*_test.py`, classes `Test*`, functions `test_*`, use markers `@pytest.mark.unit` etc.
 
 ## Security & Configuration

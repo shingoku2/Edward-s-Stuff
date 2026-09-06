@@ -5,10 +5,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-import src.config as config
-from src.config import Config
-from src.credential_store import CredentialStore
-from src.game_detector import GameDetector
+import omnix.config as config
+from omnix.config import Config
+from omnix.credential_store import CredentialStore
+from omnix.game_detector import GameDetector
 
 
 class DummyCredentialStore:
@@ -49,8 +49,8 @@ def test_config_loads_env_and_defaults(tmp_path, monkeypatch):
     monkeypatch.setenv("OMNIX_MASTER_PASSWORD", "test-pass")
     monkeypatch.setattr(config, "CredentialStore", lambda *args, **kwargs: DummyCredentialStore())
 
-    cfg = Config(env_file=str(env_file)) # Pass env_file explicitly
-    
+    cfg = Config(env_file=str(env_file))  # Pass env_file explicitly
+
     # Updated expectation: Config now respects AI_PROVIDER from env
     assert cfg.ai_provider == "openai"
     assert cfg.overlay_hotkey == "ctrl+alt+z"
@@ -81,7 +81,9 @@ def test_config_save_and_recovers_from_corrupted_json(tmp_path, monkeypatch):
 def test_credential_store_encrypts_and_decrypts(tmp_path, monkeypatch, mock_keyring):
     monkeypatch.setenv("OMNIX_MASTER_PASSWORD", "unit-pass")
 
-    store = CredentialStore(base_dir=tmp_path, master_password="unit-pass", allow_password_prompt=False)
+    store = CredentialStore(
+        base_dir=tmp_path, master_password="unit-pass", allow_password_prompt=False
+    )
     store.save_credentials({"TEST_KEY": "super-secret"})
 
     loaded = store.load_credentials()
@@ -94,11 +96,11 @@ def test_credential_store_keyring_fallback_uses_master_password(tmp_path, monkey
     monkeypatch.setenv("OMNIX_MASTER_PASSWORD", "fallback-pass")
 
     # Patch where CredentialStore imports keyring
-    with patch("src.credential_store.keyring.get_keyring", side_effect=Exception("no keyring")):
+    with patch("omnix.credential_store.keyring.get_keyring", side_effect=Exception("no keyring")):
         store = CredentialStore(base_dir=tmp_path, allow_password_prompt=False)
 
     store.save_credentials({"API": "value"})
-    from src.credential_store import _FALLBACK_KEY_FILE
+    from omnix.credential_store import _FALLBACK_KEY_FILE
 
     assert (store._fallback_dir / _FALLBACK_KEY_FILE).exists()
     assert store.load_credentials()["API"] == "value"
@@ -106,7 +108,7 @@ def test_credential_store_keyring_fallback_uses_master_password(tmp_path, monkey
 
 @pytest.mark.unit
 def test_game_detector_identifies_running_game(monkeypatch):
-    import src.game_detector as gd
+    import omnix.game_detector as gd
 
     fake_proc = MagicMock()
     fake_proc.info = {"name": "eldenring.exe", "pid": 42, "exe": "/games/eldenring.exe"}

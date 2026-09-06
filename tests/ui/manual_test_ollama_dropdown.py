@@ -3,16 +3,18 @@
 Test script for Ollama dropdown model selection
 """
 
-import sys
 import os
+import sys
 
 # Add src to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
+
 
 def test_import():
     """Test that providers_tab can be imported"""
     try:
-        from providers_tab import ProvidersTab, FetchOllamaModelsThread
+        from providers_tab import FetchOllamaModelsThread, ProvidersTab
+
         print("✅ Successfully imported ProvidersTab and FetchOllamaModelsThread")
         return True
     except Exception as e:
@@ -44,8 +46,9 @@ def test_providers_tab_init():
     """Test that ProvidersTab can be initialized"""
     try:
         from providers_tab import ProvidersTab
-        from config import Config
         from PyQt6.QtWidgets import QApplication
+
+        from omnix.config import Config
 
         # Create app instance (required for Qt)
         app = QApplication.instance()
@@ -60,7 +63,7 @@ def test_providers_tab_init():
         tab = ProvidersTab(config)
 
         # Check that fetch thread was created
-        if hasattr(tab, 'fetch_models_thread'):
+        if hasattr(tab, "fetch_models_thread"):
             print("✅ ProvidersTab initialized successfully")
             print(f"   Fetch thread created: {tab.fetch_models_thread is not None}")
             print(f"   Ollama model combo exists: {hasattr(tab, 'ollama_model_combo')}")
@@ -72,6 +75,7 @@ def test_providers_tab_init():
     except Exception as e:
         print(f"❌ Failed to initialize ProvidersTab: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 

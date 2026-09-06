@@ -41,7 +41,7 @@ Implemented debounced position/size saving with the following characteristics:
 
 #### Code Changes
 
-**File**: `src/gui.py`
+**File**: `src/omnix/gui.py`
 
 **Changes**:
 - Added `QTimer` import
@@ -108,8 +108,8 @@ Potential improvements:
 
 ## Related Files
 
-- `src/gui.py` - Main implementation
-- `src/config.py` - Configuration persistence
+- `src/omnix/gui.py` - Main implementation
+- `src/omnix/config.py` - Configuration persistence
 - `test_debounce_save.py` - Unit tests
 
 ## Author

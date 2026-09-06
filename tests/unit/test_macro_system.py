@@ -3,9 +3,11 @@ Unit tests for macro and keybind system
 
 Tests macro creation, storage, execution, and keybind management.
 """
-import pytest
+
 import json
 from pathlib import Path
+
+import pytest
 
 
 @pytest.mark.unit
@@ -14,27 +16,18 @@ class TestMacroStep:
 
     def test_key_press_step(self):
         """Test creating a key press step"""
-        from macro_manager import MacroStep, MacroStepType
+        from omnix.macro_manager import MacroStep, MacroStepType
 
-        step = MacroStep(
-            type=MacroStepType.KEY_PRESS.value,
-            key="a",
-            duration_ms=0
-        )
+        step = MacroStep(type=MacroStepType.KEY_PRESS.value, key="a", duration_ms=0)
 
         assert step.type == "key_press"
         assert step.key == "a"
 
     def test_mouse_click_step(self):
         """Test creating a mouse click step"""
-        from macro_manager import MacroStep, MacroStepType
+        from omnix.macro_manager import MacroStep, MacroStepType
 
-        step = MacroStep(
-            type=MacroStepType.MOUSE_CLICK.value,
-            button="left",
-            x=100,
-            y=200
-        )
+        step = MacroStep(type=MacroStepType.MOUSE_CLICK.value, button="left", x=100, y=200)
 
         assert step.button == "left"
         assert step.x == 100
@@ -42,25 +35,18 @@ class TestMacroStep:
 
     def test_delay_step(self):
         """Test creating a delay step"""
-        from macro_manager import MacroStep, MacroStepType
+        from omnix.macro_manager import MacroStep, MacroStepType
 
-        step = MacroStep(
-            type=MacroStepType.DELAY.value,
-            duration_ms=500,
-            delay_jitter_ms=100
-        )
+        step = MacroStep(type=MacroStepType.DELAY.value, duration_ms=500, delay_jitter_ms=100)
 
         assert step.duration_ms == 500
         assert step.delay_jitter_ms == 100
 
     def test_step_serialization(self):
         """Test MacroStep serialization"""
-        from macro_manager import MacroStep, MacroStepType
+        from omnix.macro_manager import MacroStep, MacroStepType
 
-        step = MacroStep(
-            type=MacroStepType.KEY_PRESS.value,
-            key="b"
-        )
+        step = MacroStep(type=MacroStepType.KEY_PRESS.value, key="b")
 
         # Serialize
         data = step.to_dict()
@@ -77,7 +63,7 @@ class TestMacro:
 
     def test_macro_creation(self):
         """Test creating a macro"""
-        from macro_manager import MacroManager
+        from omnix.macro_manager import MacroManager
 
         manager = MacroManager()
         macro = manager.create_macro("Quick Attack", "Press 1 then 2")
@@ -87,7 +73,7 @@ class TestMacro:
 
     def test_macro_add_steps(self):
         """Test adding steps to macro"""
-        from macro_manager import MacroManager, MacroStep, MacroStepType
+        from omnix.macro_manager import MacroManager, MacroStep, MacroStepType
 
         manager = MacroManager()
         macro = manager.create_macro("Test", "Test macro")
@@ -104,7 +90,7 @@ class TestMacro:
 
     def test_macro_validation(self):
         """Test macro validation"""
-        from macro_manager import MacroManager, MacroStep, MacroStepType
+        from omnix.macro_manager import MacroManager, MacroStep, MacroStepType
 
         manager = MacroManager()
         macro = manager.create_macro("Valid", "Valid macro")
@@ -122,21 +108,19 @@ class TestMacro:
 
     def test_macro_serialization(self):
         """Test macro serialization"""
-        from macro_manager import Macro, MacroStep, MacroStepType
+        from omnix.macro_manager import Macro, MacroStep, MacroStepType
 
         macro = Macro(
             id="test_macro",
             name="Test",
             description="Test macro",
-            steps=[
-                MacroStep(type=MacroStepType.KEY_PRESS.value, key="a")
-            ]
+            steps=[MacroStep(type=MacroStepType.KEY_PRESS.value, key="a")],
         )
 
         # Serialize
         macro_dict = macro.to_dict()
         assert isinstance(macro_dict, dict)
-        assert macro_dict['id'] == 'test_macro'
+        assert macro_dict["id"] == "test_macro"
 
         # Deserialize
         restored = Macro.from_dict(macro_dict)
@@ -145,7 +129,7 @@ class TestMacro:
 
     def test_macro_duplication(self):
         """Test duplicating macros"""
-        from macro_manager import MacroManager, MacroStep, MacroStepType
+        from omnix.macro_manager import MacroManager, MacroStep, MacroStepType
 
         manager = MacroManager()
         original = manager.create_macro("Original", "Test macro")
@@ -160,7 +144,7 @@ class TestMacro:
 
     def test_macro_duration_calculation(self):
         """Test calculating total macro duration"""
-        from macro_manager import Macro, MacroStep, MacroStepType
+        from omnix.macro_manager import Macro, MacroStep, MacroStepType
 
         macro = Macro(
             id="test",
@@ -170,9 +154,9 @@ class TestMacro:
                 MacroStep(type=MacroStepType.KEY_PRESS.value, key="a"),
                 MacroStep(type=MacroStepType.DELAY.value, duration_ms=100),
                 MacroStep(type=MacroStepType.KEY_PRESS.value, key="b"),
-                MacroStep(type=MacroStepType.DELAY.value, duration_ms=200)
+                MacroStep(type=MacroStepType.DELAY.value, duration_ms=200),
             ],
-            repeat=2
+            repeat=2,
         )
 
         duration = macro.get_total_duration()
@@ -186,8 +170,8 @@ class TestMacroStore:
 
     def test_save_and_load_macro(self, temp_dir):
         """Test saving and loading a macro"""
-        from macro_store import MacroStore
-        from macro_manager import Macro, MacroStep, MacroStepType
+        from omnix.macro_manager import Macro, MacroStep, MacroStepType
+        from omnix.macro_store import MacroStore
 
         store = MacroStore(temp_dir)
 
@@ -197,8 +181,8 @@ class TestMacroStore:
             description="For testing",
             steps=[
                 MacroStep(type=MacroStepType.KEY_PRESS.value, key="a"),
-                MacroStep(type=MacroStepType.DELAY.value, duration_ms=100)
-            ]
+                MacroStep(type=MacroStepType.DELAY.value, duration_ms=100),
+            ],
         )
 
         assert store.save_macro(macro) is True
@@ -210,16 +194,12 @@ class TestMacroStore:
 
     def test_delete_macro(self, temp_dir):
         """Test deleting a macro"""
-        from macro_store import MacroStore
-        from macro_manager import Macro
+        from omnix.macro_manager import Macro
+        from omnix.macro_store import MacroStore
 
         store = MacroStore(temp_dir)
 
-        macro = Macro(
-            id="delete_test",
-            name="Delete Test",
-            description="Test"
-        )
+        macro = Macro(id="delete_test", name="Delete Test", description="Test")
 
         store.save_macro(macro)
         assert store.delete_macro("delete_test") is True
@@ -229,15 +209,15 @@ class TestMacroStore:
 
     def test_search_macros(self, temp_dir):
         """Test searching macros"""
-        from macro_store import MacroStore
-        from macro_manager import Macro
+        from omnix.macro_manager import Macro
+        from omnix.macro_store import MacroStore
 
         store = MacroStore(temp_dir)
 
         macros = [
             Macro(id="m1", name="Quick Attack", description="Fast attack combo"),
             Macro(id="m2", name="Dodge Roll", description="Roll away"),
-            Macro(id="m3", name="Quick Heal", description="Use healing spell")
+            Macro(id="m3", name="Quick Heal", description="Use healing spell"),
         ]
 
         for m in macros:
@@ -258,14 +238,14 @@ class TestKeybinds:
 
     def test_keybind_creation(self):
         """Test creating keybinds"""
-        from keybind_manager import Keybind, KeybindAction
+        from omnix.keybind_manager import Keybind, KeybindAction
 
         keybind = Keybind(
             action=KeybindAction.TOGGLE_OVERLAY.value,
             keys="ctrl+shift+g",
             description="Toggle overlay",
             enabled=True,
-            system_wide=True
+            system_wide=True,
         )
 
         assert keybind.action == "toggle_overlay"
@@ -273,12 +253,10 @@ class TestKeybinds:
 
     def test_keybind_serialization(self):
         """Test keybind serialization"""
-        from keybind_manager import Keybind, KeybindAction
+        from omnix.keybind_manager import Keybind, KeybindAction
 
         keybind = Keybind(
-            action=KeybindAction.TOGGLE_OVERLAY.value,
-            keys="ctrl+shift+g",
-            description="Toggle"
+            action=KeybindAction.TOGGLE_OVERLAY.value, keys="ctrl+shift+g", description="Toggle"
         )
 
         data = keybind.to_dict()
@@ -288,12 +266,10 @@ class TestKeybinds:
 
     def test_macro_keybind_creation(self):
         """Test creating macro keybinds"""
-        from keybind_manager import MacroKeybind
+        from omnix.keybind_manager import MacroKeybind
 
         macro_keybind = MacroKeybind(
-            macro_id="attack_combo",
-            keys="alt+1",
-            description="Execute attack combo"
+            macro_id="attack_combo", keys="alt+1", description="Execute attack combo"
         )
 
         assert macro_keybind.macro_id == "attack_combo"
@@ -301,21 +277,13 @@ class TestKeybinds:
 
     def test_keybind_conflict_detection(self):
         """Test keybind conflict detection"""
-        from keybind_manager import KeybindManager, Keybind
+        from omnix.keybind_manager import Keybind, KeybindManager
 
         manager = KeybindManager()
 
-        keybind1 = Keybind(
-            action="action1",
-            keys="ctrl+shift+g",
-            description="First"
-        )
+        keybind1 = Keybind(action="action1", keys="ctrl+shift+g", description="First")
 
-        keybind2 = Keybind(
-            action="action2",
-            keys="ctrl+shift+g",
-            description="Second (same keys)"
-        )
+        keybind2 = Keybind(action="action2", keys="ctrl+shift+g", description="Second (same keys)")
 
         # Register first
         assert manager.register_keybind(keybind1, lambda: None) is True
@@ -333,7 +301,7 @@ class TestMacroRunner:
 
     def test_runner_initialization(self):
         """Test macro runner initialization"""
-        from macro_runner import MacroRunner, MacroExecutionState
+        from omnix.macro_runner import MacroExecutionState, MacroRunner
 
         runner = MacroRunner(enabled=True)
 

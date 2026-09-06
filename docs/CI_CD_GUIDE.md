@@ -1,6 +1,10 @@
-# CI/CD Pipeline Guide for Omnix
+# CI/CD Pipeline Guide for Omnix 3.0
 
-**Last Updated:** 2025-11-20
+CI targets the native PyQt6 Python 3.11+ package under `src/omnix`. React/Tauri
+builds and frontend deployment are retired. Active workflows are
+`.github/workflows/ci.yml` and `.github/workflows/release.yml`.
+
+**Last Updated:** 2026-09-05
 **Environment:** Proxmox Self-Hosted
 
 ---
@@ -257,7 +261,7 @@ pytest -m integration
 pytest tests/unit/test_config.py
 
 # With coverage
-pytest --cov=src --cov-report=html
+pytest --cov=omnix --cov-report=html
 ```
 
 **In CI:**
@@ -354,7 +358,7 @@ source venv/bin/activate
 pip list
 
 # Reinstall dependencies
-pip install -r requirements.txt -r requirements-dev.txt
+python -m pip install -e . -r requirements-dev.txt
 
 # Check Python path in workflow
 # Ensure pytest.ini has: pythonpath = src
@@ -534,4 +538,4 @@ python scripts/verify_ci.py
 ---
 
 **Maintained by:** DevOps Team
-**Last Review:** 2025-11-20
+**Last Review:** 2026-09-05

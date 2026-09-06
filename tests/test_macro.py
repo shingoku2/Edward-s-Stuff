@@ -2,9 +2,9 @@ import time
 
 import pytest
 
-import macro_runner
-from src.macro_runner import MacroRunner, MacroExecutionState
-from src.macro_manager import Macro, MacroStep, MacroStepType
+from omnix import macro_runner
+from omnix.macro_manager import Macro, MacroStep, MacroStepType
+from omnix.macro_runner import MacroExecutionState, MacroRunner
 
 
 @pytest.mark.unit

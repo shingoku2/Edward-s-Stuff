@@ -4,39 +4,29 @@ Regression tests for bugs identified in code audit.
 These tests FAIL if the bugs are reintroduced and PASS after fixes.
 Each test documents the specific bug it catches.
 
-Import strategy: use importlib to load modules directly by file path,
-bypassing src/__init__.py which imports game_detector (requires psutil).
+Imports use the installed ``omnix`` package so regressions exercise the same
+module graph as the application.
 """
+
+import inspect
 import os
 import sys
-import time
-import threading
 import tempfile
-import inspect
-import importlib.util
-from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+import threading
+import time
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-# ---------------------------------------------------------------------------
-# Helper: import a module directly by file path, bypassing package __init__
-# ---------------------------------------------------------------------------
+import omnix.ai_assistant as ai_mod
+import omnix.game_watcher as watcher_mod
+import omnix.knowledge_index as idx_mod
+import omnix.macro_manager as mm_mod
+import omnix.macro_runner as runner_mod
+from omnix.config import DEFAULT_MAX_MACRO_REPEAT, Config
+from omnix.game_profile import GameProfile
 
-def _load_mod(name: str, file_path: Path):
-    """Load a module directly from a file path."""
-    spec = importlib.util.spec_from_file_location(name, file_path)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
-
-
-_SRC = Path(__file__).parent.parent.parent / "src"
-
-# Pre-load modules we need (using file paths to avoid src/__init__.py)
-_config_mod = _load_mod("config", _SRC / "config.py")
-_CONFIG_CLASS = _config_mod.Config
-DEFAULT_MAX_MACRO_REPEAT = _config_mod.DEFAULT_MAX_MACRO_REPEAT
+_CONFIG_CLASS = Config
 
 
 # ---------------------------------------------------------------------------
@@ -44,6 +34,7 @@ DEFAULT_MAX_MACRO_REPEAT = _config_mod.DEFAULT_MAX_MACRO_REPEAT
 # `_add_system_context` and `clear_history` can be called concurrently
 # without race conditions.
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.unit
 class TestAIAssistantThreadSafety:
@@ -64,16 +55,17 @@ class TestAIAssistantThreadSafety:
         (always has at least one system message).
         """
         # Patch dependencies that require external services/libs
-        ai_mod = _load_mod("ai_assistant", _SRC / "ai_assistant.py")
         AIAssistant = ai_mod.AIAssistant
 
         # Mock the router and provider to avoid needing a real config
         mock_provider = MagicMock()
         mock_provider.generate_response.return_value = "test response"
 
-        with patch.object(ai_mod, 'get_router', return_value=MagicMock()), \
-             patch.object(ai_mod, 'get_provider', return_value=mock_provider), \
-             patch.object(ai_mod, 'get_knowledge_integration', return_value=MagicMock()):
+        with (
+            patch.object(ai_mod, "get_router", return_value=MagicMock()),
+            patch.object(ai_mod, "get_provider", return_value=mock_provider),
+            patch.object(ai_mod, "get_knowledge_integration", return_value=MagicMock()),
+        ):
 
             assistant = AIAssistant()
             assistant.set_current_game({"name": "Test Game"})
@@ -137,6 +129,7 @@ class TestAIAssistantThreadSafety:
 # AI_API_KEY, AI_BASE_URL etc. should NOT be wiped.
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.unit
 class TestConfigSaveToEnv:
     """
@@ -170,31 +163,33 @@ class TestConfigSaveToEnv:
 
         def patched_save(*args, **kwargs):
             # Directly write to our tmp env_file simulating what save_to_env does
-            with open(env_file, 'w', encoding='utf-8') as f:
+            with open(env_file, "w", encoding="utf-8") as f:
                 existing = {
-                    'OLLAMA_HOST': 'http://old:11434',
-                    'OLLAMA_MODEL': 'llama3',
-                    'AI_API_KEY': 'secret123',
-                    'AI_BASE_URL': 'https://api.example.com/v1',
-                    'AI_MODEL': 'gpt-4',
-                    'OVERLAY_HOTKEY': 'ctrl+shift+g',
-                    'CHECK_INTERVAL': '5'
+                    "OLLAMA_HOST": "http://old:11434",
+                    "OLLAMA_MODEL": "llama3",
+                    "AI_API_KEY": "secret123",
+                    "AI_BASE_URL": "https://api.example.com/v1",
+                    "AI_MODEL": "gpt-4",
+                    "OVERLAY_HOTKEY": "ctrl+shift+g",
+                    "CHECK_INTERVAL": "5",
                 }
-                if kwargs.get('ollama_host'):
-                    existing['OLLAMA_HOST'] = kwargs['ollama_host']
+                if kwargs.get("ollama_host"):
+                    existing["OLLAMA_HOST"] = kwargs["ollama_host"]
 
                 f.write("# Gaming AI Assistant Configuration (Ollama)\n")
                 f.write("# This file was generated by the Settings dialog\n\n")
                 f.write("# Ollama Configuration\n")
-                f.write(f"OLLAMA_HOST={existing.setdefault('OLLAMA_HOST', 'http://localhost:11434')}\n")
+                f.write(
+                    f"OLLAMA_HOST={existing.setdefault('OLLAMA_HOST', 'http://localhost:11434')}\n"
+                )
                 f.write(f"OLLAMA_MODEL={existing.setdefault('OLLAMA_MODEL', 'llama3')}\n\n")
                 f.write("# Application Settings\n")
                 f.write(f"OVERLAY_HOTKEY={existing.setdefault('OVERLAY_HOTKEY', 'ctrl+shift+g')}\n")
                 f.write(f"CHECK_INTERVAL={existing.setdefault('CHECK_INTERVAL', '5')}\n\n")
                 # Write AI API settings - the fix: preserve from existing_content
-                ai_key = existing.get('AI_API_KEY', '')
-                ai_url = existing.get('AI_BASE_URL', '')
-                ai_model = existing.get('AI_MODEL', '')
+                ai_key = existing.get("AI_API_KEY", "")
+                ai_url = existing.get("AI_BASE_URL", "")
+                ai_model = existing.get("AI_MODEL", "")
                 if ai_key or ai_url or ai_model:
                     f.write("# AI API Settings\n")
                     if ai_key:
@@ -206,7 +201,7 @@ class TestConfigSaveToEnv:
                     f.write("\n")
             return env_file
 
-        monkeypatch.setattr(_CONFIG_CLASS, 'save_to_env', patched_save)
+        monkeypatch.setattr(_CONFIG_CLASS, "save_to_env", patched_save)
 
         env_path = _CONFIG_CLASS.save_to_env(ollama_host="http://new:11434")
 
@@ -217,18 +212,12 @@ class TestConfigSaveToEnv:
         assert "OLLAMA_HOST=http://new:11434" in content
 
         # The other pre-existing values should STILL be present
-        assert "AI_API_KEY=secret123" in content, (
-            "save_to_env wiped AI_API_KEY - bug reintroduced"
-        )
-        assert "AI_BASE_URL=https://api.example.com/v1" in content, (
-            "save_to_env wiped AI_BASE_URL - bug reintroduced"
-        )
-        assert "AI_MODEL=gpt-4" in content, (
-            "save_to_env wiped AI_MODEL - bug reintroduced"
-        )
-        assert "OLLAMA_MODEL=llama3" in content, (
-            "save_to_env wiped OLLAMA_MODEL - bug reintroduced"
-        )
+        assert "AI_API_KEY=secret123" in content, "save_to_env wiped AI_API_KEY - bug reintroduced"
+        assert (
+            "AI_BASE_URL=https://api.example.com/v1" in content
+        ), "save_to_env wiped AI_BASE_URL - bug reintroduced"
+        assert "AI_MODEL=gpt-4" in content, "save_to_env wiped AI_MODEL - bug reintroduced"
+        assert "OLLAMA_MODEL=llama3" in content, "save_to_env wiped OLLAMA_MODEL - bug reintroduced"
 
 
 # ---------------------------------------------------------------------------
@@ -236,6 +225,7 @@ class TestConfigSaveToEnv:
 # When get_profile_by_executable returns None or a profile with None
 # display_name, the game watcher should handle it gracefully.
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.unit
 class TestGameWatcherNoneHandling:
@@ -254,25 +244,19 @@ class TestGameWatcherNoneHandling:
 
         If get_profile_by_executable returns None, we should not crash.
         """
-        watcher_mod = _load_mod("game_watcher", _SRC / "game_watcher.py")
         GameWatcher = watcher_mod.GameWatcher
 
         mock_profile_store = Mock()
         mock_profile_store.get_profile_by_executable.return_value = None
 
-        watcher = GameWatcher(
-            detector=Mock(),
-            profile_store=mock_profile_store,
-            check_interval=5
-        )
+        watcher = GameWatcher(detector=Mock(), profile_store=mock_profile_store, check_interval=5)
 
         # This should not raise an exception
         try:
             watcher._handle_game_active("somegame.exe")
         except (AttributeError, TypeError) as e:
             pytest.fail(
-                f"_handle_game_active crashed with {type(e).__name__} "
-                f"when profile is None: {e}"
+                f"_handle_game_active crashed with {type(e).__name__} " f"when profile is None: {e}"
             )
 
     def test_handle_game_active_with_none_display_name(self):
@@ -280,28 +264,20 @@ class TestGameWatcherNoneHandling:
         Test that _handle_game_active handles a profile with None
         display_name gracefully.
         """
-        watcher_mod = _load_mod("game_watcher", _SRC / "game_watcher.py")
         GameWatcher = watcher_mod.GameWatcher
-
-        gp_mod = _load_mod("game_profile", _SRC / "game_profile.py")
-        GameProfile = gp_mod.GameProfile
 
         # Create a profile with None display_name
         bad_profile = GameProfile(
             id="bad-game",
             display_name=None,  # type: ignore
             exe_names=["somegame.exe"],
-            system_prompt="Test"
+            system_prompt="Test",
         )
 
         mock_profile_store = Mock()
         mock_profile_store.get_profile_by_executable.return_value = bad_profile
 
-        watcher = GameWatcher(
-            detector=Mock(),
-            profile_store=mock_profile_store,
-            check_interval=5
-        )
+        watcher = GameWatcher(detector=Mock(), profile_store=mock_profile_store, check_interval=5)
 
         # This should not raise an exception
         try:
@@ -318,6 +294,7 @@ class TestGameWatcherNoneHandling:
 # When no config is available, the default max_repeat should use
 # the config constant (10) not an arbitrary hardcoded value (100).
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.unit
 class TestMacroRunnerMaxRepeatDefault:
@@ -337,13 +314,13 @@ class TestMacroRunnerMaxRepeatDefault:
         We detect this by inspecting the source code for the hardcoded
         default value (100) and comparing it to the config constant (10).
         """
-        runner_mod = _load_mod("macro_runner", _SRC / "macro_runner.py")
         MacroRunner = runner_mod.MacroRunner
 
         # Read the source of execute_macro to find the hardcoded default
         source = inspect.getsource(MacroRunner.execute_macro)
 
         import re
+
         # Look for the pattern: max_repeat = 100  # Default safety limit
         match = re.search(r"max_repeat\s*=\s*(\d+)\s*#.*Default", source)
         if match:
@@ -368,6 +345,7 @@ class TestMacroRunnerMaxRepeatDefault:
 # The hash computation on common_games doesn't raise TypeError
 # (lists are not hashable).
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.unit
 class TestKnowledgeIndexHashCache:
@@ -406,7 +384,6 @@ class TestKnowledgeIndexHashCache:
         the knowledge store returns an empty dict (simulating the cache
         invalidation scenario).
         """
-        idx_mod = _load_mod("knowledge_index", _SRC / "knowledge_index.py")
         KnowledgeIndex = idx_mod.KnowledgeIndex
         SimpleTFIDFEmbedding = idx_mod.SimpleTFIDFEmbedding
 
@@ -415,9 +392,7 @@ class TestKnowledgeIndexHashCache:
 
         embedding = SimpleTFIDFEmbedding()
         idx = KnowledgeIndex(
-            config_dir=str(tmp_path),
-            embedding_provider=embedding,
-            knowledge_store=mock_store
+            config_dir=str(tmp_path), embedding_provider=embedding, knowledge_store=mock_store
         )
 
         # This should not raise TypeError about unhashable types
@@ -426,8 +401,7 @@ class TestKnowledgeIndexHashCache:
         except TypeError as e:
             if "unhashable" in str(e).lower() or "hash" in str(e).lower():
                 pytest.fail(
-                    f"rebuild_index_for_game raised TypeError due to "
-                    f"unhashable cache key: {e}"
+                    f"rebuild_index_for_game raised TypeError due to " f"unhashable cache key: {e}"
                 )
 
 
@@ -436,6 +410,7 @@ class TestKnowledgeIndexHashCache:
 # update_macro writes to macro.modified_at but the field is named
 # updated_at, so the field never gets updated.
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.unit
 class TestMacroUpdateAtField:
@@ -451,7 +426,6 @@ class TestMacroUpdateAtField:
         Test that update_macro actually updates the updated_at field,
         not a non-existent modified_at field.
         """
-        mm_mod = _load_mod("macro_manager", _SRC / "macro_manager.py")
         MacroManager = mm_mod.MacroManager
         Macro = mm_mod.Macro
         MacroStep = mm_mod.MacroStep
@@ -463,7 +437,7 @@ class TestMacroUpdateAtField:
             id="test-update-field",
             name="Original Name",
             description="Original description",
-            steps=[MacroStep(type=MacroStepType.KEY_PRESS.value, key="a")]
+            steps=[MacroStep(type=MacroStepType.KEY_PRESS.value, key="a")],
         )
         manager.macros[macro.id] = macro
 
@@ -473,11 +447,7 @@ class TestMacroUpdateAtField:
         time.sleep(0.01)
 
         # Update the macro
-        result = manager.update_macro(
-            macro.id,
-            name="New Name",
-            description="New description"
-        )
+        result = manager.update_macro(macro.id, name="New Name", description="New description")
 
         assert result is True
         assert macro.name == "New Name"
@@ -485,7 +455,7 @@ class TestMacroUpdateAtField:
         current_updated_at = macro.updated_at
 
         # Check if there's a modified_at attribute (the bug symptom)
-        has_modified_at = hasattr(macro, 'modified_at')
+        has_modified_at = hasattr(macro, "modified_at")
 
         if has_modified_at and macro.updated_at == original_updated_at:
             # Bug: modified_at was set but updated_at wasn't

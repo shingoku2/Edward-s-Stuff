@@ -1,4 +1,7 @@
-# Testing Guide for Omnix Gaming Companion
+# Testing Guide for Omnix 3.0
+
+The active runtime is Python 3.11+ and the installable `omnix` package. Install
+with `python -m pip install -e ".[dev,build]"`; use `--cov=omnix` for coverage.
 
 This document provides comprehensive information about testing the Omnix Gaming Companion application.
 
@@ -20,7 +23,7 @@ This document provides comprehensive information about testing the Omnix Gaming 
 
 ```bash
 # Install development dependencies
-pip install -r requirements-dev.txt
+python -m pip install -e ".[dev,build]"
 ```
 
 ### Run All Tests
@@ -30,7 +33,7 @@ pip install -r requirements-dev.txt
 pytest
 
 # Run with coverage
-pytest --cov=src --cov-report=html
+pytest --cov=omnix --cov-report=html
 
 # Open coverage report
 open htmlcov/index.html  # macOS
@@ -105,16 +108,16 @@ pytest -s
 
 ```bash
 # Run with coverage
-pytest --cov=src
+pytest --cov=omnix
 
 # Coverage with HTML report
-pytest --cov=src --cov-report=html
+pytest --cov=omnix --cov-report=html
 
 # Coverage with terminal report
-pytest --cov=src --cov-report=term-missing
+pytest --cov=omnix --cov-report=term-missing
 
 # Coverage with XML (for CI/CD)
-pytest --cov=src --cov-report=xml
+pytest --cov=omnix --cov-report=xml
 ```
 
 ### Parallel Execution
@@ -178,13 +181,13 @@ The CI/CD pipeline automatically runs on:
 
 Tests run on:
 - **Operating Systems:** Ubuntu, Windows, macOS
-- **Python Versions:** 3.8, 3.9, 3.10, 3.11
+- **Python Versions:** 3.11+
 
 ```yaml
 Strategy:
-- Ubuntu: All Python versions (3.8-3.11)
-- Windows: Python 3.8, 3.10, 3.11
-- macOS: Python 3.8, 3.10, 3.11
+- Ubuntu: Python 3.11+
+- Windows: Python 3.11+
+- macOS: Python 3.11+
 ```
 
 #### 2. **Module Tests** (Ubuntu only)
@@ -234,15 +237,15 @@ Fixtures are defined in `conftest.py` and automatically available to all tests.
 ```python
 def test_config_save(temp_config_dir):
     """Test configuration saving."""
-    from src.config import Config
+    from omnix.config import Config
 
     config = Config(config_dir=str(temp_config_dir))
-    config.ai_provider = "anthropic"
+    config.ai_provider = "ollama"
     config.save()
 
     # Verify saved
     config2 = Config(config_dir=str(temp_config_dir))
-    assert config2.ai_provider == "anthropic"
+    assert config2.ai_provider == "ollama"
 ```
 
 #### Example: Testing with Mock AI Provider
@@ -387,17 +390,17 @@ View current coverage at: [![codecov](https://codecov.io/gh/shingoku2/Omnix-All-
 
 ```bash
 # HTML report (most detailed)
-pytest --cov=src --cov-report=html
+pytest --cov=omnix --cov-report=html
 open htmlcov/index.html
 
 # Terminal report
-pytest --cov=src --cov-report=term-missing
+pytest --cov=omnix --cov-report=term-missing
 
 # XML report (for CI/CD)
-pytest --cov=src --cov-report=xml
+pytest --cov=omnix --cov-report=xml
 
 # JSON report
-pytest --cov=src --cov-report=json
+pytest --cov=omnix --cov-report=json
 ```
 
 ### Coverage Configuration
@@ -618,5 +621,5 @@ def mock_api_call(monkeypatch):
 
 ---
 
-**Last Updated:** 2025-12-09
+**Last Updated:** 2026-09-05
 **Maintained by:** Omnix Development Team

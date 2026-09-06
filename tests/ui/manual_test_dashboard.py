@@ -8,12 +8,13 @@ from pathlib import Path
 
 # Ensure src directory is in path
 repo_root = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(repo_root / 'src'))
+sys.path.insert(0, str(repo_root / "src"))
 
-from PyQt6.QtWidgets import QApplication, QMainWindow
 from PyQt6.QtCore import Qt, QTimer
-from ui.components import OmnixDashboard
-from ui.design_system import OmnixDesignSystem
+from PyQt6.QtWidgets import QApplication, QMainWindow
+
+from omnix.ui.components import OmnixDashboard
+from omnix.ui.design_system import OmnixDesignSystem
 
 
 def test_dashboard(run_interactive: bool = False):

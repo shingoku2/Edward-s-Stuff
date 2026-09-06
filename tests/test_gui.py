@@ -1,12 +1,15 @@
-import pytest
-from unittest.mock import MagicMock
 import json
-from src.gui import OverlayWindow, MainWindow
+from unittest.mock import MagicMock
+
+import pytest
+
+from omnix.gui import MainWindow, OverlayWindow
 
 
 @pytest.mark.unit
 def test_design_system_neon_button_styles():
-    from src.ui.design_system import OmnixDesignSystem
+    from omnix.ui.design_system import OmnixDesignSystem
+
     styles = OmnixDesignSystem().generate_button_stylesheet()
     assert "NEON" in styles
     assert "QPushButton" in styles
@@ -16,7 +19,8 @@ def test_design_system_neon_button_styles():
 def test_sidebar_navigation_switches_pages(qtbot):
     from PyQt6.QtCore import Qt
     from PyQt6.QtWidgets import QStackedWidget, QWidget
-    from src.ui.components.navigation import OmnixSidebar
+
+    from omnix.ui.components.navigation import OmnixSidebar
 
     stack = QStackedWidget()
     stack.addWidget(QWidget())
@@ -44,7 +48,7 @@ def test_overlay_window_flags_and_toggle(qtbot):
             return "ok"
 
     class DummyDesignSystem:
-        def get_overlay_stylesheet(self, opacity):
+        def generate_overlay_stylesheet(self, opacity):
             return ""
 
     class DummyConfig:
@@ -74,7 +78,7 @@ def test_overlay_window_flags_and_toggle(qtbot):
 @pytest.mark.ui
 def test_main_window_send_message(monkeypatch, qtbot):
     """Test that MainWindow.send_message_to_ai properly triggers AI worker."""
-    from src.gui import MainWindow, AIWorkerThread
+    from omnix.gui import AIWorkerThread, MainWindow
 
     started = []
 
@@ -91,7 +95,7 @@ def test_main_window_send_message(monkeypatch, qtbot):
         pass
 
     class DummyDesignSystem:
-        def get_overlay_stylesheet(self, opacity):
+        def generate_overlay_stylesheet(self, opacity):
             return ""
 
     class DummyConfig:
@@ -120,3 +124,43 @@ def test_main_window_send_message(monkeypatch, qtbot):
     window.send_message_to_ai("Hello")
 
     assert started == ["Hello"]
+
+
+@pytest.mark.ui
+def test_main_window_uses_supported_game_detector_api(monkeypatch, qtbot):
+    """The dashboard polling loop uses GameDetector.detect_running_game."""
+
+    class DummyDetector:
+        def __init__(self):
+            self.called = False
+
+        def detect_running_game(self):
+            self.called = True
+            return {"name": "Test Game", "pid": 42}
+
+    class DummyDesignSystem:
+        def generate_overlay_stylesheet(self, opacity):
+            return ""
+
+        def generate_complete_stylesheet(self):
+            return ""
+
+    class DummyConfig:
+        overlay_x = 100
+        overlay_y = 100
+        overlay_width = 900
+        overlay_height = 700
+        overlay_minimized = False
+        overlay_opacity = 0.95
+        ollama_host = "http://localhost:11434"
+        ollama_model = "llama3"
+
+    monkeypatch.setattr(MainWindow, "_refresh_model_list", lambda self: None)
+    detector = DummyDetector()
+    window = MainWindow(None, DummyConfig(), object(), DummyDesignSystem(), detector)
+    qtbot.addWidget(window)
+
+    window._check_game()
+
+    assert detector.called
+    assert window.game_name_label.text() == "TEST GAME"

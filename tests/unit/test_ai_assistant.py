@@ -3,8 +3,10 @@ Unit tests for AIAssistant module
 
 Tests AI assistant initialization, conversation management, and integration with providers.
 """
-import pytest
+
 import os
+
+import pytest
 
 
 @pytest.mark.unit
@@ -15,14 +17,16 @@ class TestAIAssistant:
     @pytest.mark.requires_api_key
     def test_assistant_initialization(self, mock_api_key):
         """Test creating an AIAssistant instance"""
-        from ai_assistant import AIAssistant
+        from omnix.ai_assistant import AIAssistant
 
         # Skip if no API keys available
-        if not any([
-            os.getenv("ANTHROPIC_API_KEY"),
-            os.getenv("OPENAI_API_KEY"),
-            os.getenv("GEMINI_API_KEY")
-        ]):
+        if not any(
+            [
+                os.getenv("ANTHROPIC_API_KEY"),
+                os.getenv("OPENAI_API_KEY"),
+                os.getenv("GEMINI_API_KEY"),
+            ]
+        ):
             pytest.skip("No API keys configured")
 
         try:
@@ -34,7 +38,7 @@ class TestAIAssistant:
 
     def test_assistant_requires_api_key(self):
         """Test that AIAssistant requires valid API configuration"""
-        from ai_assistant import AIAssistant
+        from omnix.ai_assistant import AIAssistant
 
         # Should raise ValueError if no valid API key
         try:
@@ -48,13 +52,15 @@ class TestAIAssistant:
     @pytest.mark.requires_api_key
     def test_set_current_game(self):
         """Test setting current game context"""
-        from ai_assistant import AIAssistant
+        from omnix.ai_assistant import AIAssistant
 
-        if not any([
-            os.getenv("ANTHROPIC_API_KEY"),
-            os.getenv("OPENAI_API_KEY"),
-            os.getenv("GEMINI_API_KEY")
-        ]):
+        if not any(
+            [
+                os.getenv("ANTHROPIC_API_KEY"),
+                os.getenv("OPENAI_API_KEY"),
+                os.getenv("GEMINI_API_KEY"),
+            ]
+        ):
             pytest.skip("No API keys configured")
 
         try:
@@ -69,13 +75,15 @@ class TestAIAssistant:
     @pytest.mark.requires_api_key
     def test_conversation_history(self):
         """Test conversation history management"""
-        from ai_assistant import AIAssistant
+        from omnix.ai_assistant import AIAssistant
 
-        if not any([
-            os.getenv("ANTHROPIC_API_KEY"),
-            os.getenv("OPENAI_API_KEY"),
-            os.getenv("GEMINI_API_KEY")
-        ]):
+        if not any(
+            [
+                os.getenv("ANTHROPIC_API_KEY"),
+                os.getenv("OPENAI_API_KEY"),
+                os.getenv("GEMINI_API_KEY"),
+            ]
+        ):
             pytest.skip("No API keys configured")
 
         try:
@@ -89,13 +97,15 @@ class TestAIAssistant:
     @pytest.mark.requires_api_key
     def test_clear_history(self):
         """Test clearing conversation history"""
-        from ai_assistant import AIAssistant
+        from omnix.ai_assistant import AIAssistant
 
-        if not any([
-            os.getenv("ANTHROPIC_API_KEY"),
-            os.getenv("OPENAI_API_KEY"),
-            os.getenv("GEMINI_API_KEY")
-        ]):
+        if not any(
+            [
+                os.getenv("ANTHROPIC_API_KEY"),
+                os.getenv("OPENAI_API_KEY"),
+                os.getenv("GEMINI_API_KEY"),
+            ]
+        ):
             pytest.skip("No API keys configured")
 
         try:
@@ -115,13 +125,15 @@ class TestAIAssistantEdgeCases:
     @pytest.mark.skip_ci
     def test_set_game_with_empty_dict(self):
         """Test setting game with empty dictionary"""
-        from ai_assistant import AIAssistant
+        from omnix.ai_assistant import AIAssistant
 
-        if not any([
-            os.getenv("ANTHROPIC_API_KEY"),
-            os.getenv("OPENAI_API_KEY"),
-            os.getenv("GEMINI_API_KEY")
-        ]):
+        if not any(
+            [
+                os.getenv("ANTHROPIC_API_KEY"),
+                os.getenv("OPENAI_API_KEY"),
+                os.getenv("GEMINI_API_KEY"),
+            ]
+        ):
             pytest.skip("No API keys configured")
 
         try:
@@ -135,13 +147,15 @@ class TestAIAssistantEdgeCases:
     @pytest.mark.skip_ci
     def test_set_game_with_none_values(self):
         """Test setting game with None values"""
-        from ai_assistant import AIAssistant
+        from omnix.ai_assistant import AIAssistant
 
-        if not any([
-            os.getenv("ANTHROPIC_API_KEY"),
-            os.getenv("OPENAI_API_KEY"),
-            os.getenv("GEMINI_API_KEY")
-        ]):
+        if not any(
+            [
+                os.getenv("ANTHROPIC_API_KEY"),
+                os.getenv("OPENAI_API_KEY"),
+                os.getenv("GEMINI_API_KEY"),
+            ]
+        ):
             pytest.skip("No API keys configured")
 
         try:

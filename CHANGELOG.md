@@ -1,5 +1,20 @@
 # Changelog
 
+## 3.0.0 - 2026-09-05
+
+- Consolidated the application into the installable `omnix` Python package and
+  retired the React and Tauri clients.
+- Added atomic, backed-up profile schema migrations.
+- Added SQLite FTS5 persistence for knowledge chunks with TF-IDF reranking.
+- Added explicit Windows/macOS/X11 capability handling and safe Wayland feature
+  disablement.
+- Moved license lookup and seat enforcement behind a private Supabase Edge
+  Function.
+- Refreshed the native desktop theme, wired macro and knowledge settings, and
+  added cooperative worker shutdown.
+- Added Python 3.11 cross-platform CI, dependency locking, and unsigned desktop
+  release bundles.
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),

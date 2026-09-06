@@ -5,11 +5,11 @@ Tests that the overlay window properly saves its position, size,
 and minimized state through the debounced timer mechanism.
 """
 
-import pytest
 import sys
 from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
+import pytest
 from PyQt6.QtCore import QPoint, QSize
 from PyQt6.QtGui import QMoveEvent, QResizeEvent
 
@@ -23,31 +23,32 @@ class TestOverlayWindowGeometry:
 
     def test_overlay_window_has_required_geometry_methods(self):
         """Test that OverlayWindow has the required geometry-related methods."""
-        from src.gui import OverlayWindow
+        from omnix.gui import OverlayWindow
 
         # Verify the required methods exist
-        assert hasattr(OverlayWindow, 'moveEvent')
-        assert hasattr(OverlayWindow, 'resizeEvent')
-        assert hasattr(OverlayWindow, '_save_geometry')
+        assert hasattr(OverlayWindow, "moveEvent")
+        assert hasattr(OverlayWindow, "resizeEvent")
+        assert hasattr(OverlayWindow, "_save_geometry")
 
         # Verify they are callable
-        assert callable(getattr(OverlayWindow, 'moveEvent'))
-        assert callable(getattr(OverlayWindow, 'resizeEvent'))
-        assert callable(getattr(OverlayWindow, '_save_geometry'))
+        assert callable(getattr(OverlayWindow, "moveEvent"))
+        assert callable(getattr(OverlayWindow, "resizeEvent"))
+        assert callable(getattr(OverlayWindow, "_save_geometry"))
 
     def test_move_event_triggers_save_timer(self, qapp):
         """Test that moveEvent starts the debounced save timer."""
-        with patch('src.gui.QTimer') as mock_timer_class, \
-             patch('src.gui.OmnixDesignSystem') as mock_ds:
-
+        with (
+            patch("omnix.gui.QTimer") as mock_timer_class,
+            patch("omnix.gui.OmnixDesignSystem") as mock_ds,
+        ):
             mock_timer = MagicMock()
             mock_timer_class.return_value = mock_timer
 
             mock_ds_instance = MagicMock()
-            mock_ds_instance.get_overlay_stylesheet.return_value = ""
+            mock_ds_instance.generate_overlay_stylesheet.return_value = ""
             mock_ds.return_value = mock_ds_instance
 
-            from src.gui import OverlayWindow
+            from omnix.gui import OverlayWindow
 
             mock_config = Mock()
             mock_config.overlay_x = 100
@@ -76,17 +77,18 @@ class TestOverlayWindowGeometry:
 
     def test_resize_event_triggers_save_timer(self, qapp):
         """Test that resizeEvent starts the debounced save timer."""
-        with patch('src.gui.QTimer') as mock_timer_class, \
-             patch('src.gui.OmnixDesignSystem') as mock_ds:
-
+        with (
+            patch("omnix.gui.QTimer") as mock_timer_class,
+            patch("omnix.gui.OmnixDesignSystem") as mock_ds,
+        ):
             mock_timer = MagicMock()
             mock_timer_class.return_value = mock_timer
 
             mock_ds_instance = MagicMock()
-            mock_ds_instance.get_overlay_stylesheet.return_value = ""
+            mock_ds_instance.generate_overlay_stylesheet.return_value = ""
             mock_ds.return_value = mock_ds_instance
 
-            from src.gui import OverlayWindow
+            from omnix.gui import OverlayWindow
 
             mock_config = Mock()
             mock_config.overlay_x = 100
@@ -115,17 +117,18 @@ class TestOverlayWindowGeometry:
 
     def test_save_geometry_updates_config_and_saves(self, qapp):
         """Test that _save_geometry updates config with current position/size."""
-        with patch('src.gui.QTimer') as mock_timer_class, \
-             patch('src.gui.OmnixDesignSystem') as mock_ds:
-
+        with (
+            patch("omnix.gui.QTimer") as mock_timer_class,
+            patch("omnix.gui.OmnixDesignSystem") as mock_ds,
+        ):
             mock_timer = MagicMock()
             mock_timer_class.return_value = mock_timer
 
             mock_ds_instance = MagicMock()
-            mock_ds_instance.get_overlay_stylesheet.return_value = ""
+            mock_ds_instance.generate_overlay_stylesheet.return_value = ""
             mock_ds.return_value = mock_ds_instance
 
-            from src.gui import OverlayWindow
+            from omnix.gui import OverlayWindow
 
             mock_config = Mock()
             mock_config.overlay_x = 100
@@ -159,17 +162,18 @@ class TestOverlayWindowGeometry:
 
     def test_minimize_state_is_tracked(self, qapp):
         """Test that minimized state is properly tracked."""
-        with patch('src.gui.QTimer') as mock_timer_class, \
-             patch('src.gui.OmnixDesignSystem') as mock_ds:
-
+        with (
+            patch("omnix.gui.QTimer") as mock_timer_class,
+            patch("omnix.gui.OmnixDesignSystem") as mock_ds,
+        ):
             mock_timer = MagicMock()
             mock_timer_class.return_value = mock_timer
 
             mock_ds_instance = MagicMock()
-            mock_ds_instance.get_overlay_stylesheet.return_value = ""
+            mock_ds_instance.generate_overlay_stylesheet.return_value = ""
             mock_ds.return_value = mock_ds_instance
 
-            from src.gui import OverlayWindow
+            from omnix.gui import OverlayWindow
 
             mock_config = Mock()
             mock_config.overlay_x = 100
@@ -192,18 +196,20 @@ class TestOverlayWindowDragging:
 
     def test_mouse_press_sets_drag_position(self, qapp):
         """Test that left mouse press sets up drag position."""
-        with patch('src.gui.QTimer') as mock_timer_class, \
-             patch('src.gui.OmnixDesignSystem') as mock_ds:
-
+        with (
+            patch("omnix.gui.QTimer") as mock_timer_class,
+            patch("omnix.gui.OmnixDesignSystem") as mock_ds,
+        ):
             mock_timer = MagicMock()
             mock_timer_class.return_value = mock_timer
 
             mock_ds_instance = MagicMock()
-            mock_ds_instance.get_overlay_stylesheet.return_value = ""
+            mock_ds_instance.generate_overlay_stylesheet.return_value = ""
             mock_ds.return_value = mock_ds_instance
 
-            from src.gui import OverlayWindow
             from PyQt6.QtCore import Qt
+
+            from omnix.gui import OverlayWindow
 
             mock_config = Mock()
             mock_config.overlay_x = 100
@@ -231,18 +237,20 @@ class TestOverlayWindowDragging:
 
     def test_mouse_move_drags_window(self, qapp):
         """Test that mouse move with drag position moves the window."""
-        with patch('src.gui.QTimer') as mock_timer_class, \
-             patch('src.gui.OmnixDesignSystem') as mock_ds:
-
+        with (
+            patch("omnix.gui.QTimer") as mock_timer_class,
+            patch("omnix.gui.OmnixDesignSystem") as mock_ds,
+        ):
             mock_timer = MagicMock()
             mock_timer_class.return_value = mock_timer
 
             mock_ds_instance = MagicMock()
-            mock_ds_instance.get_overlay_stylesheet.return_value = ""
+            mock_ds_instance.generate_overlay_stylesheet.return_value = ""
             mock_ds.return_value = mock_ds_instance
 
-            from src.gui import OverlayWindow
             from PyQt6.QtCore import Qt
+
+            from omnix.gui import OverlayWindow
 
             mock_config = Mock()
             mock_config.overlay_x = 100
@@ -272,17 +280,18 @@ class TestOverlayWindowDragging:
 
     def test_mouse_release_clears_drag_position(self, qapp):
         """Test that mouse release clears drag position."""
-        with patch('src.gui.QTimer') as mock_timer_class, \
-             patch('src.gui.OmnixDesignSystem') as mock_ds:
-
+        with (
+            patch("omnix.gui.QTimer") as mock_timer_class,
+            patch("omnix.gui.OmnixDesignSystem") as mock_ds,
+        ):
             mock_timer = MagicMock()
             mock_timer_class.return_value = mock_timer
 
             mock_ds_instance = MagicMock()
-            mock_ds_instance.get_overlay_stylesheet.return_value = ""
+            mock_ds_instance.generate_overlay_stylesheet.return_value = ""
             mock_ds.return_value = mock_ds_instance
 
-            from src.gui import OverlayWindow
+            from omnix.gui import OverlayWindow
 
             mock_config = Mock()
             mock_config.overlay_x = 100

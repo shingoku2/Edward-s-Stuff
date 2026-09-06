@@ -1,4 +1,10 @@
-# CI/CD Quick Start Guide
+# CI/CD Quick Start Guide — Omnix 3.0
+
+```bash
+python -m pip install -e ".[dev,build]"
+QT_QPA_PLATFORM=offscreen PYNPUT_BACKEND=dummy \
+OMNIX_MASTER_PASSWORD=test-only-password pytest
+```
 
 Quick reference for working with the Omnix CI/CD pipeline.
 
@@ -15,7 +21,7 @@ pytest -m unit
 pytest -m integration
 
 # Run with coverage
-pytest --cov=src --cov-report=html
+pytest --cov=omnix --cov-report=html
 
 # Simulate CI environment
 export QT_QPA_PLATFORM=offscreen

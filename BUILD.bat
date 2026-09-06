@@ -45,9 +45,9 @@ echo [✓] pip found
 python -m pip --version
 echo.
 
-REM 3. Install dependencies
+REM 3. Install the packaged application and dependencies
 echo [1/5] Installing dependencies...
-python -m pip install -r requirements.txt --quiet --upgrade
+python -m pip install -e ".[build]" --quiet --upgrade
 if errorlevel 1 (
     echo ERROR: Failed to install dependencies
     pause
@@ -56,8 +56,7 @@ if errorlevel 1 (
 echo    [✓] Dependencies installed
 
 echo.
-echo [2/5] React frontend removed - pure PyQt6 UI (see feature/pure-pyqt6-migration)
-REM React frontend removed - pure PyQt6 UI (see feature/pure-pyqt6-migration)
+echo [2/5] Using the maintained PyQt6 desktop UI
 
 echo.
 echo [3/5] Installing PyInstaller...

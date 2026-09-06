@@ -1,5 +1,5 @@
 
-from src.game_detector import GameDetector
+from omnix.game_detector import GameDetector
 import sys
 
 try:

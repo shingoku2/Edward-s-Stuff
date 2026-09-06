@@ -3,6 +3,7 @@ Unit tests for GameDetector module
 
 Tests game process detection, custom game management, and executable matching.
 """
+
 import pytest
 
 
@@ -12,22 +13,22 @@ class TestGameDetector:
 
     def test_detector_initialization(self):
         """Test creating a GameDetector instance"""
-        from game_detector import GameDetector
+        from omnix.game_detector import GameDetector
 
         detector = GameDetector()
         assert detector is not None
-        assert hasattr(detector, 'common_games')
+        assert hasattr(detector, "common_games")
 
     def test_common_games_populated(self):
         """Test that common_games has pre-configured games"""
-        from game_detector import GameDetector
+        from omnix.game_detector import GameDetector
 
         detector = GameDetector()
         assert len(detector.common_games) > 0
 
     def test_detect_running_game(self):
         """Test detecting currently running game"""
-        from game_detector import GameDetector
+        from omnix.game_detector import GameDetector
 
         detector = GameDetector()
         game = detector.detect_running_game()
@@ -36,7 +37,7 @@ class TestGameDetector:
 
     def test_get_running_games(self):
         """Test getting all running games"""
-        from game_detector import GameDetector
+        from omnix.game_detector import GameDetector
 
         detector = GameDetector()
         games = detector.get_running_games()
@@ -44,7 +45,7 @@ class TestGameDetector:
 
     def test_add_custom_game(self):
         """Test adding a custom game"""
-        from game_detector import GameDetector
+        from omnix.game_detector import GameDetector
 
         detector = GameDetector()
         success = detector.add_custom_game("Test Game", ["test.exe"])
@@ -53,7 +54,7 @@ class TestGameDetector:
 
     def test_add_duplicate_game_fails(self):
         """Test that adding duplicate game fails"""
-        from game_detector import GameDetector
+        from omnix.game_detector import GameDetector
 
         detector = GameDetector()
         # First add succeeds
@@ -64,7 +65,7 @@ class TestGameDetector:
 
     def test_add_duplicate_process_fails(self):
         """Test that adding duplicate process fails"""
-        from game_detector import GameDetector
+        from omnix.game_detector import GameDetector
 
         detector = GameDetector()
         detector.add_custom_game("Game 1", ["shared.exe"])
@@ -79,7 +80,7 @@ class TestGameDetectorEdgeCases:
 
     def test_empty_process_name(self):
         """Test handling empty process name"""
-        from game_detector import GameDetector
+        from omnix.game_detector import GameDetector
 
         detector = GameDetector()
         result = detector._is_process_running("")
@@ -87,7 +88,7 @@ class TestGameDetectorEdgeCases:
 
     def test_nonexistent_process(self):
         """Test checking for nonexistent process"""
-        from game_detector import GameDetector
+        from omnix.game_detector import GameDetector
 
         detector = GameDetector()
         result = detector._is_process_running("nonexistent_xyz_12345.exe")
@@ -95,7 +96,7 @@ class TestGameDetectorEdgeCases:
 
     def test_add_custom_game_empty_list(self):
         """Test adding game with empty process list"""
-        from game_detector import GameDetector
+        from omnix.game_detector import GameDetector
 
         detector = GameDetector()
         result = detector.add_custom_game("Empty Game", [])
@@ -104,7 +105,7 @@ class TestGameDetectorEdgeCases:
 
     def test_case_insensitive_matching(self):
         """Test that game matching is case-insensitive"""
-        from game_detector import GameDetector
+        from omnix.game_detector import GameDetector
 
         detector = GameDetector()
         # Add game with lowercase

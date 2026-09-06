@@ -18,9 +18,9 @@ if sys.platform == 'win32':
 # Add src directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-from config import Config
-from ai_assistant import AIAssistant
-from game_detector import GameDetector
+from omnix.config import Config
+from omnix.ai_assistant import AIAssistant
+from omnix.game_detector import GameDetector
 
 print("=" * 70)
 print("GAMING AI ASSISTANT - LIVE API TEST")

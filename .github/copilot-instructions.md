@@ -1,8 +1,8 @@
 # Omnix Gaming Companion - AI Coding Agent Instructions
 
 **Project:** Omnix - All-knowing Gaming Companion  
-**Stack:** Python 3.8+, PyQt6, Multi-Provider AI (OpenAI/Anthropic/Gemini)  
-**Status:** Active development (~14,700 LOC)
+**Stack:** Python 3.11+, PyQt6, Multi-Provider AI (OpenAI/Anthropic/Gemini)
+**Status:** Omnix 3.0 active development
 
 ## Architecture Overview
 
@@ -72,10 +72,10 @@ Persistence (config.py, credential_store.py, *_store.py)
 - **Important:** Never block the main thread; use `time.sleep()` in worker threads only
 - Example: `game_changed = pyqtSignal(str, object)` → `game_changed.connect(on_game_changed_handler)`
 
-### UI Design System (`src/ui/`)
+### UI Design System (`src/omnix/ui/`)
 - **Tokens:** All colors/spacing/typography centralized in `tokens.py` (COLORS, SPACING, RADIUS, TYPOGRAPHY)
 - **Components:** Reusable in `components/` (OmnixButton, OmnixLineEdit, OmnixTextEdit, etc.)
-- **Convention:** Always import from `ui.tokens` and `ui.components`, never hardcode values
+- **Convention:** Always import from `omnix.ui.tokens` and `omnix.ui.components`, never hardcode values
 - **Colors:** Dark theme (#1A1A2E base, #00BFFF accent, #39FF14 success)
 
 ### Macro System (`macro_runner.py`, `keybind_manager.py`)
@@ -90,14 +90,13 @@ Persistence (config.py, credential_store.py, *_store.py)
 ### Setup & Testing
 ```pwsh
 # Install dependencies (Windows PowerShell)
-pip install -r requirements.txt
-pip install -r requirements-dev.txt
+python -m pip install -e ".[dev,build]"
 
 # Run all tests
 pytest
 
 # Run with coverage report
-pytest --cov=src --cov-report=html
+pytest --cov=omnix --cov-report=html
 ```
 
 ### Running Locally

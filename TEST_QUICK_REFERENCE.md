@@ -1,5 +1,7 @@
-# Test Quick Reference Guide
-**Last Updated:** 2025-12-09
+# Test Quick Reference Guide — Omnix 3.0
+
+Canonical setup: `python -m pip install -e ".[dev,build]"`.
+**Last Updated:** 2026-09-05
 **Quick access guide for testing the Omnix Gaming Companion**
 
 ---
@@ -11,7 +13,7 @@
 pytest
 
 # Run with coverage
-pytest --cov=src --cov-report=html
+pytest --cov=omnix --cov-report=html
 
 # Run specific test file
 pytest tests/unit/test_game_detector.py -v
@@ -28,14 +30,13 @@ pytest tests/integration/ -v
 
 ---
 
-## 📊 Current Test Status (2025-12-09)
+## 📊 Current Test Status (2026-09-05)
 
 | Category | Tests | Status |
 |----------|-------|--------|
-| Unit | ~150 | ✅ Passing |
-| Integration | ~30 | ✅ Passing |
-| UI | ~10 | ⚠️ Manual/Headless |
-| **TOTAL** | **~190** | **✅ Stable** |
+| Automated suite | 337 passed, 10 skipped | ✅ Passing |
+| UI/manual checks | Headless and manual | ⚠️ Environment-dependent |
+| **TOTAL** | **347 collected** | **✅ Stable** |
 
 ---
 
@@ -96,19 +97,19 @@ pytest -m integration -v
 
 ```bash
 # Generate HTML coverage report
-pytest --cov=src --cov-report=html
+pytest --cov=omnix --cov-report=html
 
 # View in browser (Windows)
 start htmlcov\index.html
 
 # Generate terminal coverage report
-pytest --cov=src --cov-report=term-missing
+pytest --cov=omnix --cov-report=term-missing
 
 # Generate XML for CI/CD
-pytest --cov=src --cov-report=xml
+pytest --cov=omnix --cov-report=xml
 
 # Coverage for specific module
-pytest tests/unit/test_game_detector.py --cov=src.game_detector --cov-report=term
+pytest tests/unit/test_game_detector.py --cov=omnix.game_detector --cov-report=term
 ```
 
 ---
@@ -117,8 +118,8 @@ pytest tests/unit/test_game_detector.py --cov=src.game_detector --cov-report=ter
 
 ```bash
 # Run Bandit security scanner
-bandit -r src/ -f json -o bandit_report.json
-bandit -r src/ -f txt
+bandit -r src/omnix/ -f json -o bandit_report.json
+bandit -r src/omnix/ -f txt
 
 # Check for vulnerabilities in dependencies
 safety check
@@ -209,7 +210,7 @@ timeout = 300
 - name: Run tests
   run: |
     pytest tests/ \
-      --cov=src \
+      --cov=omnix \
       --cov-report=xml \
       -m "not requires_api_key" \
       --maxfail=5
@@ -243,13 +244,13 @@ Overall:             19.13% ⚠️  (Heavily weighted by GUI code)
 pytest tests/unit/test_[your_module].py -v
 
 # 2. Check coverage impact
-pytest tests/unit/test_[your_module].py --cov=src.[your_module] --cov-report=term
+pytest tests/unit/test_[your_module].py --cov=omnix.[your_module] --cov-report=term
 
 # 3. Run full suite to ensure no breakage
 pytest tests/ -v
 
 # 4. Update security scan
-bandit -r src/ -f json -o bandit_report.json
+bandit -r src/omnix/ -f json -o bandit_report.json
 ```
 
 ### Adding New Tests:

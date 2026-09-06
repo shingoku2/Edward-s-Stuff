@@ -9,14 +9,11 @@ Usage:
     python test_ollama_integration.py
 """
 
-import sys
 import logging
+import sys
 
 # Setup logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(levelname)s: %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -28,6 +25,7 @@ def test_ollama_library():
 
     try:
         import ollama
+
         print("✅ Ollama library is installed")
         print(f"   Version: {ollama.__version__ if hasattr(ollama, '__version__') else 'Unknown'}")
         return True
@@ -46,6 +44,7 @@ def test_ollama_connection(base_url="http://localhost:11434"):
 
     try:
         import ollama
+
         client = ollama.Client(host=base_url)
 
         # Try to list models
@@ -85,7 +84,7 @@ def test_omnix_provider():
     print("=" * 60)
 
     try:
-        from src.providers import OllamaProvider
+        from omnix.providers import OllamaProvider
 
         # Initialize provider
         provider = OllamaProvider()
@@ -118,6 +117,7 @@ def test_omnix_provider():
         print(f"❌ Failed to test OllamaProvider")
         print(f"   Error: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -129,7 +129,7 @@ def test_simple_chat():
     print("=" * 60)
 
     try:
-        from src.providers import OllamaProvider
+        from omnix.providers import OllamaProvider
 
         provider = OllamaProvider()
 
@@ -140,9 +140,7 @@ def test_simple_chat():
         print("   Sending test message: 'Say hello in 5 words or less'")
         print("   (This may take a moment...)")
 
-        messages = [
-            {"role": "user", "content": "Say hello in 5 words or less"}
-        ]
+        messages = [{"role": "user", "content": "Say hello in 5 words or less"}]
 
         response = provider.chat(messages)
 

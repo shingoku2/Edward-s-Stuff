@@ -1,4 +1,4 @@
-# Initial Concept
+# Omnix 3.0 product
 Omnix is a sophisticated desktop AI gaming companion designed to enhance the gaming experience through automated game detection, AI-powered assistance, macro automation, and session coaching. It leverages local LLMs (via Ollama) to ensure privacy and offline capability.
 
 # Product Guide: Omnix
@@ -19,13 +19,13 @@ Omnix addresses the friction and privacy risks in modern gaming:
 
 ## Key Features
 - **Automatic Game Detection:** Real-time monitoring of running processes to instantly load game-specific profiles and knowledge bases.
-- **Modular AI Integration:** Support for local LLMs via Ollama or any OpenAI-compatible API (LM Studio, AnythingLLM), ensuring cost-free, private, and offline-capable AI inference.
-- **In-Game Overlay:** A modern, customizable React-based UI that provides assistance directly over the game window, seamlessly integrated via a hybrid architecture.
+- **Local AI Integration:** Ollama-backed local inference, with provider boundaries kept behind one factory.
+- **In-Game Overlay:** A native, customizable PyQt6 overlay with no web runtime.
 - **Knowledge Integration:** Semantic search across PDFs, wikis, and documents for context-aware answers.
 - **Session Coaching:** AI-powered analysis of gameplay patterns to provide personalized improvement insights.
 
 ## Success Metrics
-- **Seamless Integration:** Achieving zero-latency detection and profile switching that feels like a native part of the game.
+- **Seamless Integration:** Passive detection and profile switching that feels native without blocking the game.
 - **Intelligence Accuracy:** Providing high-relevance gaming advice and information that users can trust.
 - **Performance Efficiency:** Maintaining a negligible footprint on system resources to ensure the user's frame rate remains unaffected.
 

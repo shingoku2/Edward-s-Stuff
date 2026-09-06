@@ -10,15 +10,15 @@ def test_no_circular_imports():
     # Get all .py files in src/ (recursively) but we will try to import top-level and direct submodules first
     # A simple approach is to list files in src/
     
-    # We want to test modules like src.game_profile, src.ai_assistant, etc.
+    # We want to test modules like omnix.game_profile, omnix.ai_assistant, etc.
     
     modules_to_test = []
     
     for root, dirs, files in os.walk(src_dir):
         for f in files:
-            if f.endswith('.py') and f != '__init__.py':
+            if f.endswith('.py') and f not in {'__init__.py', '__main__.py'}:
                 # Construct module path from file path
-                rel_path = os.path.relpath(os.path.join(root, f), os.path.dirname(src_dir))
+                rel_path = os.path.relpath(os.path.join(root, f), src_dir)
                 module_name = rel_path.replace(os.path.sep, '.')[:-3] # remove .py
                 modules_to_test.append(module_name)
     

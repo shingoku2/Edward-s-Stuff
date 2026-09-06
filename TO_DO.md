@@ -1,4 +1,9 @@
-# Omnix Gaming Companion - Comprehensive TODO List
+# Omnix Gaming Companion — Historical TODO Audit
+
+> This checklist records a pre-3.0 codebase audit and is retained for
+> historical context. Several paths, commands, and frontend references below
+> describe retired implementations. Current requirements and ownership live in
+> [AGENTS.md](AGENTS.md), [README.md](README.md), and `docs/`.
 
 **Generated:** 2025-12-09
 **Based on:** Complete codebase audit (5 specialized agents)
@@ -560,10 +565,9 @@ def main():
   - Lines 21, 64, 80-81
   - Verify no tooling depends on `_refresh_legacy_mappings()`
 
-- [ ] **Consider PyQt6 version bump**
-  - Current: `PyQt6>=6.6.0` (Nov 2023)
-  - Latest: PyQt6 6.8.x (Dec 2025)
-  - Test for breaking changes before updating
+- [x] **Update PyQt6 dependency**
+  - Updated to `PyQt6>=6.11.0`
+  - Validated with the full test suite
 
 ---
 

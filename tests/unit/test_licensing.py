@@ -4,16 +4,18 @@ Unit tests for licensing validation.
 Tests LicenseValidator for valid/invalid keys and offline grace period.
 """
 
-import pytest
-import time
-from unittest.mock import patch, MagicMock
 import sys
+import time
 from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+import pytest
+import requests
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
-from src.licensing import LicenseValidator, get_machine_id
+from omnix.licensing import LicenseValidator, get_machine_id
 
 
 @pytest.mark.unit
@@ -48,11 +50,9 @@ class TestLicenseValidation:
         # Mock successful response with active status
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = [
-            {"status": "active", "expires_at": "2030-12-31T23:59:59Z"}
-        ]
+        mock_response.json.return_value = {"valid": True, "message": "License valid."}
 
-        with patch('requests.get', return_value=mock_response):
+        with patch("requests.post", return_value=mock_response):
             is_valid, message = validator.validate("valid-license-key")
 
         assert is_valid is True
@@ -67,9 +67,10 @@ class TestLicenseValidation:
         # Mock empty response (key not found)
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = []
+        mock_response.status_code = 404
+        mock_response.json.return_value = {"valid": False, "message": "License key not found."}
 
-        with patch('requests.get', return_value=mock_response):
+        with patch("requests.post", return_value=mock_response):
             is_valid, message = validator.validate("nonexistent-key")
 
         assert is_valid is False
@@ -82,11 +83,10 @@ class TestLicenseValidation:
         # Mock response with expired status
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = [
-            {"status": "active", "expires_at": "2020-01-01T00:00:00Z"}
-        ]
+        mock_response.status_code = 403
+        mock_response.json.return_value = {"valid": False, "message": "License expired."}
 
-        with patch('requests.get', return_value=mock_response):
+        with patch("requests.post", return_value=mock_response):
             is_valid, message = validator.validate("expired-key")
 
         assert is_valid is False
@@ -98,11 +98,10 @@ class TestLicenseValidation:
 
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = [
-            {"status": "cancelled", "expires_at": None}
-        ]
+        mock_response.status_code = 403
+        mock_response.json.return_value = {"valid": False, "message": "License is cancelled."}
 
-        with patch('requests.get', return_value=mock_response):
+        with patch("requests.post", return_value=mock_response):
             is_valid, message = validator.validate("cancelled-key")
 
         assert is_valid is False
@@ -115,7 +114,7 @@ class TestLicenseValidation:
         mock_response = MagicMock()
         mock_response.status_code = 500
 
-        with patch('requests.get', return_value=mock_response):
+        with patch("requests.post", return_value=mock_response):
             is_valid, message = validator.validate("some-key")
 
         # Should fall back to grace period
@@ -126,7 +125,7 @@ class TestLicenseValidation:
         """Test network error triggers grace period fallback."""
         validator = LicenseValidator("https://example.supabase.co", "test-key")
 
-        with patch('requests.get', side_effect=Exception("Network unavailable")):
+        with patch("requests.post", side_effect=requests.ConnectionError("Network unavailable")):
             is_valid, message = validator.validate("some-key")
 
         # Should return False (no prior valid check)
@@ -145,7 +144,7 @@ class TestLicenseGracePeriod:
         validator._last_valid = time.time() - (24 * 3600)  # 24 hours ago
 
         # Network error - but should pass due to grace period
-        with patch('requests.get', side_effect=Exception("Offline")):
+        with patch("requests.post", side_effect=requests.ConnectionError("Offline")):
             is_valid, message = validator.validate("offline-key")
 
         assert is_valid is True
@@ -158,7 +157,7 @@ class TestLicenseGracePeriod:
         # Set _last_valid to 73 hours ago (beyond grace period)
         validator._last_valid = time.time() - (73 * 3600)
 
-        with patch('requests.get', side_effect=Exception("Offline")):
+        with patch("requests.post", side_effect=requests.ConnectionError("Offline")):
             is_valid, message = validator.validate("old-key")
 
         assert is_valid is False
@@ -192,22 +191,22 @@ class TestLicenseValidatorSingleton:
 
     def test_get_validator_returns_instance(self):
         """Test get_validator returns a LicenseValidator instance."""
-        from src.licensing import get_validator
-
         # Clear any existing singleton
-        import src.licensing
-        src.licensing._validator = None
+        import omnix.licensing
+        from omnix.licensing import get_validator
+
+        omnix.licensing._validator = None
 
         validator = get_validator("https://example.supabase.co", "test-key")
         assert isinstance(validator, LicenseValidator)
 
     def test_get_validator_returns_same_instance(self):
         """Test get_validator returns the same instance on subsequent calls."""
-        from src.licensing import get_validator
-
         # Clear any existing singleton
-        import src.licensing
-        src.licensing._validator = None
+        import omnix.licensing
+        from omnix.licensing import get_validator
+
+        omnix.licensing._validator = None
 
         validator1 = get_validator("https://example.supabase.co", "test-key")
         validator2 = get_validator()

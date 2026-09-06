@@ -1,7 +1,12 @@
-# Specification: Settings Implementation & Dynamic HUD
+# Specification: Settings Implementation & Dynamic HUD (Superseded)
+
+> **Historical track.** Superseded by Omnix 3.0. The maintained desktop UI is
+> PyQt6 under `src/omnix/ui`; the React/Tauri implementation described below
+> is not part of the shipped application.
 
 ## Overview
-This track focuses on transforming the currently static Settings module into a fully functional control center and updating the HUD to display real-time, accurate information about the active game. It bridges the new React frontend with the existing Python backend logic for configuration and game monitoring.
+This track records the earlier effort to transform the static Settings module
+into a functional control center and update the HUD with live game data.
 
 ## Functional Requirements
 - **Functional Settings Module:**

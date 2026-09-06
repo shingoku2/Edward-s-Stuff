@@ -5,19 +5,26 @@ This file is automatically discovered by pytest and provides fixtures
 that are available to all test files.
 """
 
+import builtins
 import os
+import shutil
 import sys
 import tempfile
-import shutil
 from pathlib import Path
 from typing import Dict, Generator
-from unittest.mock import Mock, MagicMock
-import builtins
+from unittest.mock import MagicMock, Mock
 
 import pytest
 
+# Keep all default application storage inside a disposable directory during tests.
+_TEST_CONFIG_ROOT = tempfile.TemporaryDirectory(prefix="omnix-tests-")
+os.environ["OMNIX_CONFIG_DIR"] = str(Path(_TEST_CONFIG_ROOT.name) / ".gaming_ai_assistant")
+
+# pynput otherwise attempts to connect to a real X server during module import.
+os.environ.setdefault("PYNPUT_BACKEND", "dummy")
+
 # Add src to Python path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 
 def pytest_addoption(parser):
@@ -36,6 +43,7 @@ def pytest_addoption(parser):
 # Session-scoped fixtures (run once per test session)
 # ============================================================================
 
+
 @pytest.fixture(scope="session")
 def test_data_dir() -> Path:
     """Return path to test data directory."""
@@ -45,6 +53,7 @@ def test_data_dir() -> Path:
 # ============================================================================
 # Function-scoped fixtures (run for each test)
 # ============================================================================
+
 
 @pytest.fixture
 def temp_dir() -> Generator[Path, None, None]:
@@ -66,9 +75,7 @@ def temp_dir() -> Generator[Path, None, None]:
 @pytest.fixture
 def temp_config_dir(temp_dir) -> Path:
     """Provide a temporary config directory for testing."""
-    # Use a workspace-local temp path to avoid OS temp directory permission issues.
-    root = Path.cwd() / ".tmp_tests" / temp_dir.name
-    config_dir = root / ".gaming_ai_assistant"
+    config_dir = temp_dir / ".gaming_ai_assistant"
     config_dir.mkdir(parents=True, exist_ok=True)
     return config_dir
 
@@ -99,7 +106,7 @@ def mock_config(temp_config_dir):
         def test_something(mock_config):
             assert mock_config.ai_provider == "anthropic"
     """
-    from src.config import Config
+    from omnix.config import Config
 
     # Create config with temp directory
     config = Config(config_dir=str(temp_config_dir))
@@ -122,7 +129,8 @@ def mock_game_detector():
             detector = mock_game_detector
             game = detector.detect_running_game()
     """
-    from src.game_detector import GameDetector
+    from omnix.game_detector import GameDetector
+
     return GameDetector()
 
 
@@ -151,7 +159,7 @@ def mock_game_profile():
         def test_profile(mock_game_profile):
             assert mock_game_profile.id == "elden_ring"
     """
-    from src.game_profile import GameProfile
+    from omnix.game_profile import GameProfile
 
     return GameProfile(
         id="elden_ring",
@@ -159,7 +167,7 @@ def mock_game_profile():
         exe_names=["eldenring.exe"],
         system_prompt="You are an expert Elden Ring guide.",
         default_provider="ollama",
-        overlay_mode_default="full"
+        overlay_mode_default="full",
     )
 
 
@@ -182,14 +190,14 @@ def mock_ai_provider():
         return {
             "content": "This is a test response.",
             "model": "test-model",
-            "usage": {"total_tokens": 100}
+            "usage": {"total_tokens": 100},
         }
 
     mock.chat = mock_chat
 
     # Mock test_connection
     def mock_test():
-        return type('Health', (), {'healthy': True, 'message': 'OK'})()
+        return type("Health", (), {"healthy": True, "message": "OK"})()
 
     mock.test_connection = mock_test
 
@@ -205,7 +213,7 @@ def mock_credential_store(temp_config_dir):
         def test_creds(mock_credential_store):
             mock_credential_store.save_credentials({"key": "value"})
     """
-    from src.credential_store import CredentialStore
+    from omnix.credential_store import CredentialStore
 
     # Use temp directory for credential storage
     return CredentialStore(base_dir=str(temp_config_dir))
@@ -220,7 +228,7 @@ def sample_macro():
         def test_macro(sample_macro):
             assert len(sample_macro.steps) > 0
     """
-    from src.macro_manager import Macro, MacroStep, MacroStepType
+    from omnix.macro_manager import Macro, MacroStep, MacroStepType
 
     return Macro(
         id="test_macro",
@@ -229,8 +237,8 @@ def sample_macro():
         steps=[
             MacroStep(type=MacroStepType.KEY_PRESS.value, key="a"),
             MacroStep(type=MacroStepType.DELAY.value, duration_ms=100),
-            MacroStep(type=MacroStepType.KEY_PRESS.value, key="b")
-        ]
+            MacroStep(type=MacroStepType.KEY_PRESS.value, key="b"),
+        ],
     )
 
 
@@ -243,13 +251,13 @@ def sample_knowledge_pack():
         def test_knowledge(sample_knowledge_pack):
             assert len(sample_knowledge_pack.sources) > 0
     """
-    from src.knowledge_pack import KnowledgePack, KnowledgeSource
+    from omnix.knowledge_pack import KnowledgePack, KnowledgeSource
 
     source = KnowledgeSource(
         id="test_source",
         type="note",
         title="Test Note",
-        content="This is test content about game mechanics."
+        content="This is test content about game mechanics.",
     )
 
     return KnowledgePack(
@@ -257,7 +265,7 @@ def sample_knowledge_pack():
         name="Test Pack",
         description="A test knowledge pack",
         game_profile_id="elden_ring",
-        sources=[source]
+        sources=[source],
     )
 
 
@@ -270,8 +278,9 @@ def sample_session_events():
         def test_session(sample_session_events):
             assert len(sample_session_events) > 0
     """
-    from src.session_logger import SessionEvent
     from datetime import datetime
+
+    from omnix.session_logger import SessionEvent
 
     return [
         SessionEvent(
@@ -279,60 +288,63 @@ def sample_session_events():
             event_type="question",
             game_profile_id="elden_ring",
             content="How do I beat Margit?",
-            meta={}
+            meta={},
         ),
         SessionEvent(
             timestamp=datetime.now(),
             event_type="answer",
             game_profile_id="elden_ring",
             content="Use ranged attacks and summon help.",
-            meta={"tokens": 50}
-        )
+            meta={"tokens": 50},
+        ),
     ]
 
 
 @pytest.fixture
 def game_profile_store():
     """Provide a GameProfileStore instance"""
-    from src.game_profile import GameProfileStore
+    from omnix.game_profile import GameProfileStore
+
     return GameProfileStore()
 
 
 @pytest.fixture
 def macro_store(temp_config_dir):
     """Provide a MacroStore instance"""
-    from src.macro_store import MacroStore
+    from omnix.macro_store import MacroStore
+
     return MacroStore(str(temp_config_dir))
 
 
 @pytest.fixture
 def knowledge_pack_store(temp_config_dir):
     """Provide a KnowledgePackStore instance"""
-    from src.knowledge_store import KnowledgePackStore
+    from omnix.knowledge_store import KnowledgePackStore
+
     return KnowledgePackStore(config_dir=str(temp_config_dir))
 
 
 @pytest.fixture
 def knowledge_index(temp_config_dir):
     """Provide a KnowledgeIndex instance"""
-    from src.knowledge_index import KnowledgeIndex, SimpleTFIDFEmbedding
+    from omnix.knowledge_index import KnowledgeIndex, SimpleTFIDFEmbedding
+
     embedding_provider = SimpleTFIDFEmbedding()
-    return KnowledgeIndex(
-        config_dir=str(temp_config_dir),
-        embedding_provider=embedding_provider
-    )
+    return KnowledgeIndex(config_dir=str(temp_config_dir), embedding_provider=embedding_provider)
 
 
 @pytest.fixture
 def session_logger(temp_config_dir):
     """Provide a SessionLogger instance"""
-    from src.session_logger import SessionLogger
+    from omnix.session_logger import SessionLogger
+
     return SessionLogger(config_dir=str(temp_config_dir))
 
 
 # ============================================================================
 # Qt/GUI fixtures
 # ============================================================================
+
 
 @pytest.fixture(scope="session")
 def qapp():
@@ -348,8 +360,9 @@ def qapp():
             button = QPushButton("Test")
             assert button.text() == "Test"
     """
-    from PyQt6.QtWidgets import QApplication
     import sys
+
+    from PyQt6.QtWidgets import QApplication
 
     # Check if QApplication already exists
     app = QApplication.instance()
@@ -378,6 +391,7 @@ def qtbot(qapp, request):
     """
     try:
         from pytestqt.qtbot import QtBot
+
         bot = QtBot(request)
         yield bot
     except ImportError:
@@ -387,6 +401,7 @@ def qtbot(qapp, request):
 # ============================================================================
 # Mocking fixtures
 # ============================================================================
+
 
 @pytest.fixture
 def mock_keyring():
@@ -398,13 +413,13 @@ def mock_keyring():
             # keyring operations will be mocked
             pass
     """
-    import keyring
     from unittest.mock import patch
 
-    with patch('keyring.get_password') as mock_get, \
-         patch('keyring.set_password') as mock_set, \
-         patch('keyring.delete_password') as mock_del:
+    import keyring
 
+    with patch("keyring.get_password") as mock_get, patch(
+        "keyring.set_password"
+    ) as mock_set, patch("keyring.delete_password") as mock_del:
         # Store in-memory credentials
         credentials = {}
 
@@ -423,11 +438,7 @@ def mock_keyring():
         mock_get.side_effect = get_password
         mock_del.side_effect = delete_password
 
-        yield {
-            'get': mock_get,
-            'set': mock_set,
-            'delete': mock_del
-        }
+        yield {"get": mock_get, "set": mock_set, "delete": mock_del}
 
 
 @pytest.fixture
@@ -440,13 +451,13 @@ def mock_psutil():
             # psutil.process_iter() will return mock processes
             pass
     """
-    from unittest.mock import patch, MagicMock
+    from unittest.mock import MagicMock, patch
 
-    with patch('psutil.process_iter') as mock_iter:
+    with patch("psutil.process_iter") as mock_iter:
         # Create mock processes
         mock_process = MagicMock()
-        mock_process.info = {'name': 'eldenring.exe', 'pid': 12345}
-        mock_process.name.return_value = 'eldenring.exe'
+        mock_process.info = {"name": "eldenring.exe", "pid": 12345}
+        mock_process.name.return_value = "eldenring.exe"
 
         mock_iter.return_value = [mock_process]
 
@@ -456,6 +467,7 @@ def mock_psutil():
 # ============================================================================
 # Environment fixtures
 # ============================================================================
+
 
 @pytest.fixture
 def clean_env():
@@ -493,8 +505,8 @@ def test_api_keys():
     """
     original_env = os.environ.copy()
 
-    os.environ.setdefault('OLLAMA_HOST', 'http://localhost:11434')
-    os.environ.setdefault('OLLAMA_MODEL', 'llama3')
+    os.environ.setdefault("OLLAMA_HOST", "http://localhost:11434")
+    os.environ.setdefault("OLLAMA_MODEL", "llama3")
 
     yield
 
@@ -507,11 +519,12 @@ def test_api_keys():
 # Markers and hooks
 # ============================================================================
 
+
 def pytest_configure(config):
     """Configure pytest with custom settings."""
     # Ensure Qt platform is set for headless testing
-    if 'QT_QPA_PLATFORM' not in os.environ:
-        os.environ['QT_QPA_PLATFORM'] = 'offscreen'
+    if "QT_QPA_PLATFORM" not in os.environ:
+        os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 
 def pytest_collection_modifyitems(config, items):
@@ -529,4 +542,6 @@ def pytest_collection_modifyitems(config, items):
 
         # Skip tests requiring API keys (deprecated in Ollama-only mode)
         if "requires_api_key" in item.keywords:
-            item.add_marker(pytest.mark.skip(reason="API-key provider tests disabled (Ollama default)"))
+            item.add_marker(
+                pytest.mark.skip(reason="API-key provider tests disabled (Ollama default)")
+            )

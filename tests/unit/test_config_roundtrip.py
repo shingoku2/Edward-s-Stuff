@@ -5,17 +5,18 @@ Tests that configuration values can be saved to .env file and
 loaded back correctly through the Config class.
 """
 
-import pytest
 import os
 import sys
 import tempfile
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
-from src.config import Config
+from omnix.config import Config
 
 
 @pytest.mark.unit
@@ -28,7 +29,7 @@ class TestConfigSaveToEnv:
             env_path = Path(tmpdir) / ".env"
 
             # Mock sys.executable and sys.frozen for the method
-            with patch('src.config.sys') as mock_sys:
+            with patch("omnix.config.sys") as mock_sys:
                 mock_sys.executable = str(tmpdir) + "\\app.exe"
                 mock_sys.frozen = True
 
@@ -38,7 +39,7 @@ class TestConfigSaveToEnv:
                     overlay_width=800,
                     overlay_height=600,
                     ollama_host="http://localhost:11434",
-                    ollama_model="llama3"
+                    ollama_model="llama3",
                 )
 
             # Can't easily test in temp dir since save_to_env uses __file__ parent
@@ -53,14 +54,14 @@ class TestConfigSaveToEnv:
             # Write initial .env
             env_path.write_text("OLLAMA_HOST=http://old-host:11434\nOLLAMA_MODEL=old-model\n")
 
-            with patch('src.config.sys') as mock_sys:
+            with patch("omnix.config.sys") as mock_sys:
                 mock_sys.executable = str(Path(tmpdir) / "app.exe")
                 mock_sys.frozen = True
 
-                with patch('src.config.Path') as mock_path:
+                with patch("omnix.config.Path") as mock_path:
                     # Make it return our temp path
                     def make_path(*args, **kwargs):
-                        if 'frozen' in str(args[0]) or 'exe' in str(args[0]):
+                        if "frozen" in str(args[0]) or "exe" in str(args[0]):
                             return Path(tmpdir) / ".env"
                         return Path(*args, **kwargs)
 
@@ -69,10 +70,9 @@ class TestConfigSaveToEnv:
                     mock_path.return_value.__truediv__ = lambda self, other: Path(tmpdir) / ".env"
 
                     # Patch ensure_private_file to be a no-op
-                    with patch('src.config.ensure_private_file'):
+                    with patch("omnix.config.ensure_private_file"):
                         Config.save_to_env(
-                            ollama_host="http://new-host:11434",
-                            ollama_model="new-model"
+                            ollama_host="http://new-host:11434", ollama_model="new-model"
                         )
 
             # Should have updated values
@@ -160,11 +160,7 @@ class TestConfigDynamicAccess:
         """Test updating multiple values at once."""
         config = Config(require_keys=False)
 
-        config.update({
-            "key1": "value1",
-            "key2": "value2",
-            "key3": 123
-        })
+        config.update({"key1": "value1", "key2": "value2", "key3": 123})
 
         assert config.get("key1") == "value1"
         assert config.get("key2") == "value2"

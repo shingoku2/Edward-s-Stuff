@@ -3,8 +3,10 @@ Unit tests for game profile system
 
 Tests game profile creation, management, storage, and matching.
 """
-import pytest
+
 from pathlib import Path
+
+import pytest
 
 
 @pytest.mark.unit
@@ -13,7 +15,7 @@ class TestGameProfile:
 
     def test_profile_creation(self):
         """Test creating a game profile"""
-        from game_profile import GameProfile
+        from omnix.game_profile import GameProfile
 
         profile = GameProfile(
             id="test_game",
@@ -21,7 +23,7 @@ class TestGameProfile:
             exe_names=["test.exe"],
             system_prompt="Test prompt",
             default_provider="anthropic",
-            overlay_mode_default="compact"
+            overlay_mode_default="compact",
         )
         assert profile.id == "test_game"
         assert profile.display_name == "Test Game"
@@ -30,19 +32,16 @@ class TestGameProfile:
 
     def test_profile_serialization(self):
         """Test profile to_dict and from_dict"""
-        from game_profile import GameProfile
+        from omnix.game_profile import GameProfile
 
         profile = GameProfile(
-            id="test",
-            display_name="Test",
-            exe_names=["test.exe"],
-            system_prompt="Prompt"
+            id="test", display_name="Test", exe_names=["test.exe"], system_prompt="Prompt"
         )
 
         # Serialize
         profile_dict = profile.to_dict()
         assert isinstance(profile_dict, dict)
-        assert profile_dict['id'] == 'test'
+        assert profile_dict["id"] == "test"
 
         # Deserialize
         restored = GameProfile.from_dict(profile_dict)
@@ -51,13 +50,13 @@ class TestGameProfile:
 
     def test_matches_executable(self):
         """Test executable name matching"""
-        from game_profile import GameProfile
+        from omnix.game_profile import GameProfile
 
         profile = GameProfile(
             id="elden_ring",
             display_name="Elden Ring",
             exe_names=["eldenring.exe", "elden_ring.exe"],
-            system_prompt="Prompt"
+            system_prompt="Prompt",
         )
 
         # Should match case-insensitively
@@ -68,21 +67,21 @@ class TestGameProfile:
 
     def test_builtin_flag(self):
         """Test built-in profile flag"""
-        from game_profile import GameProfile
+        from omnix.game_profile import GameProfile
 
         builtin = GameProfile(
             id="generic",
             display_name="Generic",
             exe_names=[],
             system_prompt="Prompt",
-            is_builtin=True
+            is_builtin=True,
         )
         custom = GameProfile(
             id="custom",
             display_name="Custom",
             exe_names=["custom.exe"],
             system_prompt="Prompt",
-            is_builtin=False
+            is_builtin=False,
         )
 
         assert builtin.is_builtin is True
@@ -95,7 +94,7 @@ class TestGameProfileStore:
 
     def test_store_initialization(self):
         """Test creating a profile store"""
-        from game_profile import GameProfileStore
+        from omnix.game_profile import GameProfileStore
 
         store = GameProfileStore()
         assert store is not None
@@ -104,7 +103,7 @@ class TestGameProfileStore:
 
     def test_builtin_profiles_loaded(self):
         """Test that built-in profiles are loaded"""
-        from game_profile import GameProfileStore
+        from omnix.game_profile import GameProfileStore
 
         store = GameProfileStore()
         profiles = store.list_profiles()
@@ -115,7 +114,7 @@ class TestGameProfileStore:
 
     def test_get_profile_by_id(self):
         """Test retrieving profile by ID"""
-        from game_profile import GameProfileStore
+        from omnix.game_profile import GameProfileStore
 
         store = GameProfileStore()
         profile = store.get_profile_by_id("elden_ring")
@@ -126,7 +125,7 @@ class TestGameProfileStore:
 
     def test_get_profile_by_executable(self):
         """Test retrieving profile by executable name"""
-        from game_profile import GameProfileStore
+        from omnix.game_profile import GameProfileStore
 
         store = GameProfileStore()
         profile = store.get_profile_by_executable("eldenring.exe")
@@ -136,7 +135,7 @@ class TestGameProfileStore:
 
     def test_unknown_executable_returns_generic(self):
         """Test that unknown executable returns generic profile"""
-        from game_profile import GameProfileStore
+        from omnix.game_profile import GameProfileStore
 
         store = GameProfileStore()
         profile = store.get_profile_by_executable("unknown.exe")
@@ -146,7 +145,7 @@ class TestGameProfileStore:
 
     def test_create_custom_profile(self, temp_dir):
         """Test creating a custom profile"""
-        from game_profile import GameProfileStore, GameProfile
+        from omnix.game_profile import GameProfile, GameProfileStore
 
         store = GameProfileStore()
         test_id = "test_custom_unique"
@@ -160,7 +159,7 @@ class TestGameProfileStore:
             display_name="My Game",
             exe_names=["mygame.exe"],
             system_prompt="Custom prompt",
-            is_builtin=False
+            is_builtin=False,
         )
 
         success = store.create_profile(profile)
@@ -175,7 +174,7 @@ class TestGameProfileStore:
 
     def test_duplicate_profile_fails(self):
         """Test that creating duplicate profile fails"""
-        from game_profile import GameProfileStore, GameProfile
+        from omnix.game_profile import GameProfile, GameProfileStore
 
         store = GameProfileStore()
 
@@ -183,7 +182,7 @@ class TestGameProfileStore:
             id="dup_test_unique",
             display_name="Duplicate Test",
             exe_names=["dup.exe"],
-            system_prompt="Prompt"
+            system_prompt="Prompt",
         )
 
         # Clean up if exists
@@ -200,7 +199,7 @@ class TestGameProfileStore:
 
     def test_cannot_update_builtin(self):
         """Test that built-in profiles cannot be updated"""
-        from game_profile import GameProfileStore
+        from omnix.game_profile import GameProfileStore
 
         store = GameProfileStore()
         generic = store.get_profile_by_id("generic_game")
@@ -211,7 +210,7 @@ class TestGameProfileStore:
 
     def test_cannot_delete_builtin(self):
         """Test that built-in profiles cannot be deleted"""
-        from game_profile import GameProfileStore
+        from omnix.game_profile import GameProfileStore
 
         store = GameProfileStore()
         success = store.delete_profile("generic_game")
@@ -227,7 +226,7 @@ class TestOverlayModes:
 
     def test_mode_validation(self):
         """Test mode validation"""
-        from overlay_modes import OverlayModeConfig
+        from omnix.overlay_modes import OverlayModeConfig
 
         assert OverlayModeConfig.is_valid_mode("compact") is True
         assert OverlayModeConfig.is_valid_mode("full") is True
@@ -235,15 +234,15 @@ class TestOverlayModes:
 
     def test_mode_config_retrieval(self):
         """Test retrieving mode configuration"""
-        from overlay_modes import OverlayModeConfig
+        from omnix.overlay_modes import OverlayModeConfig
 
         config = OverlayModeConfig.get_mode_config("compact")
         assert config is not None
-        assert config['display_name'] == 'Compact'
+        assert config["display_name"] == "Compact"
 
     def test_default_dimensions(self):
         """Test getting default dimensions"""
-        from overlay_modes import OverlayModeConfig
+        from omnix.overlay_modes import OverlayModeConfig
 
         width, height = OverlayModeConfig.get_default_dimensions("compact")
         assert width > 0
@@ -256,7 +255,7 @@ class TestOverlayModes:
 
     def test_visibility_settings(self):
         """Test visibility settings for modes"""
-        from overlay_modes import OverlayModeConfig
+        from omnix.overlay_modes import OverlayModeConfig
 
         # Compact should not show full history
         assert OverlayModeConfig.should_show_conversation_history("compact") is False

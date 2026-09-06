@@ -3,8 +3,8 @@
 Test GUI startup to identify specific issues
 """
 
-import sys
 import os
+import sys
 from pathlib import Path
 
 # Add src to path
@@ -12,43 +12,52 @@ src_path = Path(__file__).parent / "src"
 sys.path.insert(0, str(src_path))
 
 # Set offscreen platform for headless testing
-os.environ['QT_QPA_PLATFORM'] = 'offscreen'
+os.environ["QT_QPA_PLATFORM"] = "offscreen"
+
 
 def test_imports():
     """Test that all GUI modules can be imported"""
     print("Testing imports...")
     try:
-        from config import Config
+        from omnix.config import Config
+
         print("✓ Config")
 
-        from credential_store import CredentialStore
+        from omnix.credential_store import CredentialStore
+
         print("✓ CredentialStore")
 
-        from ui.design_system import design_system
+        from omnix.ui.design_system import design_system
+
         print("✓ Design System")
 
         from PyQt6.QtWidgets import QApplication
+
         print("✓ PyQt6")
 
-        from gui import MainWindow
+        from omnix.gui import MainWindow
+
         print("✓ MainWindow")
 
         return True
     except Exception as e:
         print(f"✗ Import error: {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 def test_basic_init():
     """Test basic initialization"""
     print("\nTesting basic initialization...")
     try:
         from PyQt6.QtWidgets import QApplication
-        from config import Config
-        from credential_store import CredentialStore
-        from ui.design_system import design_system
-        from gui import MainWindow
+
+        from omnix.config import Config
+        from omnix.credential_store import CredentialStore
+        from omnix.gui import MainWindow
+        from omnix.ui.design_system import design_system
 
         app = QApplication(sys.argv)
         print("✓ QApplication created")
@@ -65,7 +74,7 @@ def test_basic_init():
             config=config,
             credential_store=credential_store,
             design_system=design_system,
-            game_detector=None  # No game detector for test
+            game_detector=None,  # No game detector for test
         )
         print("✓ MainWindow created")
 
@@ -77,8 +86,10 @@ def test_basic_init():
     except Exception as e:
         print(f"✗ Initialization error: {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 if __name__ == "__main__":
     print("=" * 60)

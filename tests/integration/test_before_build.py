@@ -5,15 +5,16 @@ Test script to verify all components work before building .exe
 Run this BEFORE building to catch issues early
 """
 
-import sys
 import os
+import sys
 from pathlib import Path
 
 # Set UTF-8 encoding for Windows console
-if sys.platform == 'win32':
+if sys.platform == "win32":
     import codecs
-    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
-    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'strict')
+
+    sys.stdout = codecs.getwriter("utf-8")(sys.stdout.buffer, "strict")
+    sys.stderr = codecs.getwriter("utf-8")(sys.stderr.buffer, "strict")
 
 STRICT_ENV = os.getenv("STRICT_PREBUILD_CHECKS") == "1"
 HEADLESS_ENV = bool(
@@ -33,7 +34,7 @@ print()
 
 # Add src to path (tests/integration -> tests -> repo root -> src)
 repo_root = Path(__file__).resolve().parents[2]
-src_path = repo_root / 'src'
+src_path = repo_root / "src"
 sys.path.insert(0, str(src_path))
 
 errors = []
@@ -42,7 +43,8 @@ warnings = []
 # Test 1: Verify config module functionality
 print("[1/7] Testing config module...")
 try:
-    from config import Config
+    from omnix.config import Config
+
     test_config = Config(require_keys=False)  # Don't require keys for this test
     print(f"  OK: Config module works")
     print(f"    AI Provider: {test_config.ai_provider}")
@@ -55,7 +57,8 @@ print()
 # Test 2: Import game detector
 print("[2/7] Testing game_detector module...")
 try:
-    from game_detector import GameDetector
+    from omnix.game_detector import GameDetector
+
     detector = GameDetector()
     print(f"  OK: Game detector works")
     print(f"    Known games: {len(detector.KNOWN_GAMES)}")
@@ -68,7 +71,8 @@ print()
 # Test 3: Import AI assistant
 print("[3/7] Testing ai_assistant module...")
 try:
-    from ai_assistant import AIAssistant
+    from omnix.ai_assistant import AIAssistant
+
     # Don't initialize, just test import
     print(f"  OK: AI assistant module works")
 except Exception as e:
@@ -80,7 +84,8 @@ print()
 # Test 4: Import GUI (without starting it)
 print("[4/7] Testing gui module...")
 try:
-    from gui import run_gui
+    from omnix.gui import run_gui
+
     print(f"  OK: GUI module imports successfully")
 except Exception as e:
     message = f"GUI import failed: {e}"
@@ -96,9 +101,10 @@ print()
 # Test 5: Check PyQt6
 print("[5/7] Testing PyQt6...")
 try:
-    from PyQt6.QtWidgets import QApplication
     from PyQt6.QtCore import Qt
     from PyQt6.QtGui import QIcon
+    from PyQt6.QtWidgets import QApplication
+
     print(f"  OK: PyQt6 is installed and working")
 except Exception as e:
     message = f"PyQt6 not working: {e}"
@@ -114,7 +120,18 @@ print()
 # Test 6: Check all dependencies
 print("[6/7] Checking dependencies...")
 missing_deps = []
-required = ['psutil', 'requests', 'beautifulsoup4', 'lxml', 'ollama', 'dotenv', 'PyYAML', 'cryptography', 'keyring', 'pynput']
+required = [
+    "psutil",
+    "requests",
+    "beautifulsoup4",
+    "lxml",
+    "ollama",
+    "dotenv",
+    "PyYAML",
+    "cryptography",
+    "keyring",
+    "pynput",
+]
 
 for dep in required:
     try:
@@ -133,6 +150,7 @@ print()
 print("[7/7] Testing PyQt6...")
 try:
     from PyQt6.QtWidgets import QApplication
+
     print(f"  OK: PyQt6 is installed and working")
 except ImportError as e:
     errors.append(f"PyQt6 not installed: {e} (required for GUI)")
@@ -164,9 +182,8 @@ else:
     print("  - Run BUILD.bat")
     print()
 
-RUNNING_UNDER_PYTEST = (
-    os.getenv("PYTEST_CURRENT_TEST")
-    or any("pytest" in arg.lower() for arg in sys.argv)
+RUNNING_UNDER_PYTEST = os.getenv("PYTEST_CURRENT_TEST") or any(
+    "pytest" in arg.lower() for arg in sys.argv
 )
 
 if RUNNING_UNDER_PYTEST:

@@ -1,4 +1,7 @@
-# Omnix CI/CD Scripts
+# Omnix 3.0 CI/CD Scripts
+
+Scripts operate on the native Python package under `src/omnix`. Frontend and
+Tauri scripts are retired; run `python -m omnix` for the application.
 
 Automation scripts for CI/CD pipeline and deployment management.
 
@@ -220,7 +223,7 @@ STAGING_DIR=/tmp/test_staging ./scripts/deploy_staging.sh
 ## Dependencies
 
 ### verify_ci.py
-- Python 3.8+
+- Python 3.11+
 - pytest (optional, for test execution)
 - flake8 (optional, for linting check)
 - gh CLI (optional, for workflow status)
@@ -228,7 +231,7 @@ STAGING_DIR=/tmp/test_staging ./scripts/deploy_staging.sh
 ### deploy_staging.sh
 - bash 4.0+
 - rsync
-- Python 3.8+
+- Python 3.11+
 - git
 
 ---
@@ -263,4 +266,4 @@ ls -t /opt/omnix/backups/ | tail -n +6 | xargs -I {} rm -rf /opt/omnix/backups/{
 
 ---
 
-**Last Updated:** 2025-11-20
+**Last Updated:** 2026-09-05

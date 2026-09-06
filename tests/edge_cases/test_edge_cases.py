@@ -3,9 +3,11 @@ Edge case and error handling tests
 
 Tests boundary conditions, error scenarios, and resilience.
 """
-import pytest
+
 import os
 from pathlib import Path
+
+import pytest
 
 
 @pytest.mark.unit
@@ -14,12 +16,12 @@ class TestConfigEdgeCases:
 
     def test_config_with_corrupted_file(self, temp_dir):
         """Test Config recovery from corrupted file"""
-        from config import Config
+        from omnix.config import Config
 
         config_path = Path(temp_dir) / "bad_config.json"
 
         # Write invalid JSON
-        with open(config_path, 'w') as f:
+        with open(config_path, "w") as f:
             f.write("{invalid json content")
 
         # Try to load (should recover)
@@ -31,7 +33,7 @@ class TestConfigEdgeCases:
 
     def test_config_get_with_default(self, temp_dir):
         """Test Config.get() with default value"""
-        from config import Config
+        from omnix.config import Config
 
         config = Config(require_keys=False)
         value = config.get("nonexistent_key", "default_value")
@@ -39,7 +41,7 @@ class TestConfigEdgeCases:
 
     def test_config_update_multiple(self, temp_dir):
         """Test updating multiple values"""
-        from config import Config
+        from omnix.config import Config
 
         config = Config(require_keys=False)
         config.update({"test1": "value1", "test2": "value2"})
@@ -54,7 +56,7 @@ class TestGameDetectorEdgeCases:
 
     def test_empty_process_name(self):
         """Test handling empty process name"""
-        from game_detector import GameDetector
+        from omnix.game_detector import GameDetector
 
         detector = GameDetector()
         result = detector._is_process_running("")
@@ -62,7 +64,7 @@ class TestGameDetectorEdgeCases:
 
     def test_nonexistent_process(self):
         """Test checking nonexistent process"""
-        from game_detector import GameDetector
+        from omnix.game_detector import GameDetector
 
         detector = GameDetector()
         result = detector._is_process_running("nonexistent_xyz_12345.exe")
@@ -70,7 +72,7 @@ class TestGameDetectorEdgeCases:
 
     def test_add_custom_game_empty_list(self):
         """Test adding game with empty process list"""
-        from game_detector import GameDetector
+        from omnix.game_detector import GameDetector
 
         detector = GameDetector()
         result = detector.add_custom_game("Empty Game", [])
@@ -78,7 +80,7 @@ class TestGameDetectorEdgeCases:
 
     def test_duplicate_detection(self):
         """Test duplicate game detection"""
-        from game_detector import GameDetector
+        from omnix.game_detector import GameDetector
 
         detector = GameDetector()
 
@@ -100,7 +102,7 @@ class TestAIAssistantEdgeCases:
     @pytest.mark.skip_ci
     def test_invalid_provider(self):
         """Test AIAssistant with invalid provider"""
-        from ai_assistant import AIAssistant
+        from omnix.ai_assistant import AIAssistant
 
         try:
             assistant = AIAssistant(provider="invalid_provider")
@@ -111,13 +113,15 @@ class TestAIAssistantEdgeCases:
     @pytest.mark.skip_ci
     def test_set_game_empty_dict(self):
         """Test setting game with empty dict"""
-        from ai_assistant import AIAssistant
+        from omnix.ai_assistant import AIAssistant
 
-        if not any([
-            os.getenv("ANTHROPIC_API_KEY"),
-            os.getenv("OPENAI_API_KEY"),
-            os.getenv("GEMINI_API_KEY")
-        ]):
+        if not any(
+            [
+                os.getenv("ANTHROPIC_API_KEY"),
+                os.getenv("OPENAI_API_KEY"),
+                os.getenv("GEMINI_API_KEY"),
+            ]
+        ):
             pytest.skip("No API keys configured")
 
         try:
@@ -130,13 +134,15 @@ class TestAIAssistantEdgeCases:
     @pytest.mark.skip_ci
     def test_get_conversation_summary_empty(self):
         """Test getting summary on empty history"""
-        from ai_assistant import AIAssistant
+        from omnix.ai_assistant import AIAssistant
 
-        if not any([
-            os.getenv("ANTHROPIC_API_KEY"),
-            os.getenv("OPENAI_API_KEY"),
-            os.getenv("GEMINI_API_KEY")
-        ]):
+        if not any(
+            [
+                os.getenv("ANTHROPIC_API_KEY"),
+                os.getenv("OPENAI_API_KEY"),
+                os.getenv("GEMINI_API_KEY"),
+            ]
+        ):
             pytest.skip("No API keys configured")
 
         try:
@@ -153,8 +159,9 @@ class TestConcurrentOperations:
 
     def test_concurrent_config_operations(self):
         """Test concurrent config operations"""
-        from config import Config
         import threading
+
+        from omnix.config import Config
 
         errors = []
 
@@ -170,7 +177,7 @@ class TestConcurrentOperations:
         # Run operations in parallel
         threads = [
             threading.Thread(target=config_operations),
-            threading.Thread(target=config_operations)
+            threading.Thread(target=config_operations),
         ]
 
         for thread in threads:
@@ -183,8 +190,9 @@ class TestConcurrentOperations:
 
     def test_concurrent_detector_operations(self):
         """Test concurrent detector operations"""
-        from game_detector import GameDetector
         import threading
+
+        from omnix.game_detector import GameDetector
 
         errors = []
 
@@ -199,7 +207,7 @@ class TestConcurrentOperations:
 
         threads = [
             threading.Thread(target=detector_operations),
-            threading.Thread(target=detector_operations)
+            threading.Thread(target=detector_operations),
         ]
 
         for thread in threads:
@@ -219,13 +227,10 @@ class TestProfileEdgeCases:
 
     def test_empty_executable_list(self):
         """Test profile with empty executable list"""
-        from game_profile import GameProfile
+        from omnix.game_profile import GameProfile
 
         profile = GameProfile(
-            id="generic",
-            display_name="Generic",
-            exe_names=[],
-            system_prompt="Matches any game"
+            id="generic", display_name="Generic", exe_names=[], system_prompt="Matches any game"
         )
 
         # Should not match anything specifically
@@ -233,13 +238,10 @@ class TestProfileEdgeCases:
 
     def test_none_executable_matching(self):
         """Test matching with None or invalid input"""
-        from game_profile import GameProfile
+        from omnix.game_profile import GameProfile
 
         profile = GameProfile(
-            id="test",
-            display_name="Test",
-            exe_names=["test.exe"],
-            system_prompt="Prompt"
+            id="test", display_name="Test", exe_names=["test.exe"], system_prompt="Prompt"
         )
 
         # Should not crash
@@ -252,7 +254,7 @@ class TestOverlayModeEdgeCases:
 
     def test_invalid_mode(self):
         """Test invalid overlay mode"""
-        from overlay_modes import OverlayModeConfig
+        from omnix.overlay_modes import OverlayModeConfig
 
         # Invalid mode should have fallback
         config = OverlayModeConfig.get_mode_config("invalid_mode")
@@ -265,12 +267,12 @@ class TestErrorRecovery:
 
     def test_corrupted_config_recovery(self, temp_dir):
         """Test Config recovery from corrupted state"""
-        from config import Config
+        from omnix.config import Config
 
         config_path = Path(temp_dir) / "bad_config.json"
 
         # Write invalid JSON
-        with open(config_path, 'w') as f:
+        with open(config_path, "w") as f:
             f.write("{invalid json content")
 
         # Try to load (should recover)

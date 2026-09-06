@@ -1,4 +1,8 @@
-# Plan: Settings Implementation & Dynamic HUD
+# Plan: Settings Implementation & Dynamic HUD (Superseded)
+
+> **Historical plan.** Retained for auditability only. Omnix 3.0 uses the
+> PyQt6 UI in `src/omnix/ui`; React/Tauri milestones below are no longer
+> actionable. See `docs/UPGRADING.md` for the current migration path.
 
 ## Phase 1: Backend Infrastructure (Python) [checkpoint: 8015144]
 - [x] Task: Extend `JSBridge` with new slots for fetching current config and saving updated settings. 51377a6

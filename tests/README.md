@@ -67,7 +67,7 @@ pytest -m "not ui"                 # Exclude UI tests
 
 ### Run with coverage
 ```bash
-pytest --cov=src --cov-report=html
+pytest --cov=omnix --cov-report=html
 ```
 
 ### Run in verbose mode
@@ -169,7 +169,7 @@ class TestWithFixtures:
 
     def test_with_config(self, config):
         """Test using shared config"""
-        assert config.ai_provider in ["anthropic", "openai", "gemini"]
+        assert config.ai_provider == "ollama"
 ```
 
 ### Testing edge cases
@@ -217,7 +217,7 @@ CI environment automatically:
 
 Coverage reports are generated with:
 ```bash
-pytest --cov=src --cov-report=html
+pytest --cov=omnix --cov-report=html
 ```
 
 View HTML report at: `htmlcov/index.html`
@@ -243,7 +243,7 @@ Tests requiring API keys are marked with `@pytest.mark.requires_api_key` and `@p
 
 To run locally with API keys:
 ```bash
-export ANTHROPIC_API_KEY=your_key_here
+export OLLAMA_HOST=http://localhost:11434
 pytest -m requires_api_key
 ```
 

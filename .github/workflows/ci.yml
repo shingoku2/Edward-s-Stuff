@@ -1,42 +1,51 @@
-name: CI Pipeline
+name: CI
 
 on:
   push:
-    branches: [ main, staging, dev ]
+    branches: [main, staging, dev]
   pull_request:
-    branches: [ main, staging ]
+    branches: [main, staging]
+
+permissions:
+  contents: read
 
 jobs:
   test:
-    runs-on: self-hosted
-    
+    name: ${{ matrix.os }} / Python ${{ matrix.python }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.11"]
+    runs-on: ${{ matrix.os }}
+    env:
+      QT_QPA_PLATFORM: offscreen
+      OMNIX_MASTER_PASSWORD: ci-only-master-password
+      PYNPUT_BACKEND: dummy
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v6
-    
-    - name: Set up Python
-      run: |
-        cd /opt/omnix
-        source venv/bin/activate
-        python --version
-    
-    - name: Install dependencies
-      run: |
-        cd /opt/omnix
-        source venv/bin/activate
-        pip install -r requirements.txt -r requirements-dev.txt
-    
-    - name: Run linters
-      run: |
-        cd /opt/omnix
-        source venv/bin/activate
-        flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics
-        flake8 src/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    
-    - name: Run tests
-      run: |
-        cd /opt/omnix
-        source venv/bin/activate
-        xvfb-run -a pytest tests/ -v --tb=short
-      env:
-        QT_QPA_PLATFORM: offscreen
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - name: Install
+        run: python -m pip install --upgrade pip ".[dev,build]"
+      - name: Validate package
+        run: python -m compileall -q src && python -c "import omnix; print(omnix.__version__)"
+      - name: Test
+        run: pytest --cov=omnix --cov-report=xml
+      - name: Security scan
+        run: bandit -q -r src/omnix -ll
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install --upgrade pip ".[dev]"
+      - run: find src tests -name '*.py' -exec black --check {} \;
+      - run: isort --check-only src tests
+      - run: flake8 src/omnix --count --select=E9,F63,F7,F82 --show-source --statistics

@@ -2,10 +2,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-import src.ai_assistant as ai_assistant
-from src.ai_router import AIRouter
-from src.ai_assistant import AIAssistant
-from src.providers import ProviderError, ProviderConnectionError
+import omnix.ai_assistant as ai_assistant
+from omnix.ai_assistant import AIAssistant
+from omnix.ai_router import AIRouter
+from omnix.providers import ProviderConnectionError, ProviderError
 
 
 class StubConfig:
@@ -27,7 +27,7 @@ class StubConfig:
             "OLLAMA_MODEL": self.ollama_model,
             "AI_API_KEY": None,
             "AI_BASE_URL": None,
-            "AI_MODEL": None
+            "AI_MODEL": None,
         }
 
 
@@ -83,7 +83,7 @@ def _assistant(config_provider=None, router=None, knowledge_integration=None):
 @pytest.mark.unit
 def test_aiassistant_trims_conversation_history(monkeypatch):
     cfg, router_factory, knowledge_factory = _assistant()
-    
+
     mock_provider = MagicMock()
     mock_provider.generate_response.return_value = "response"
     monkeypatch.setattr(ai_assistant, "get_provider", lambda config: mock_provider)
@@ -102,15 +102,13 @@ def test_aiassistant_trims_conversation_history(monkeypatch):
 
     assistant._trim_conversation_history()
     assert len(assistant.conversation_history) == assistant.MAX_CONVERSATION_MESSAGES
-    assert (
-        len([m for m in assistant.conversation_history if m["role"] == "system"]) <= 3
-    )
+    assert len([m for m in assistant.conversation_history if m["role"] == "system"]) <= 3
 
 
 @pytest.mark.unit
 def test_aiassistant_handles_empty_question(monkeypatch):
     cfg, router_factory, knowledge_factory = _assistant()
-    
+
     mock_provider = MagicMock()
     monkeypatch.setattr(ai_assistant, "get_provider", lambda config: mock_provider)
     monkeypatch.setattr(ai_assistant, "get_knowledge_integration", knowledge_factory)
@@ -123,11 +121,11 @@ def test_aiassistant_handles_empty_question(monkeypatch):
 @pytest.mark.unit
 def test_aiassistant_formats_provider_errors(monkeypatch):
     cfg, _, knowledge_factory = _assistant()
-    
+
     # Mock provider instance that raises error
     mock_provider = MagicMock()
     mock_provider.generate_response.side_effect = ProviderError("Ollama error")
-    
+
     # Patch get_provider to return our mock
     monkeypatch.setattr(ai_assistant, "get_provider", lambda config: mock_provider)
     monkeypatch.setattr(ai_assistant, "get_knowledge_integration", knowledge_factory)

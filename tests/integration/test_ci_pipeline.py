@@ -3,10 +3,12 @@ Integration tests for CI/CD pipeline components
 
 Tests that verify the CI/CD pipeline can properly test the application.
 """
-import pytest
+
 import os
 import sys
 from pathlib import Path
+
+import pytest
 
 
 @pytest.mark.integration
@@ -16,24 +18,26 @@ class TestCIPipeline:
     def test_environment_setup(self):
         """Test that CI environment is properly configured"""
         # Check Python version
-        assert sys.version_info >= (3, 8), "Python 3.8+ required"
+        assert sys.version_info >= (3, 11), "Python 3.11+ required"
 
         # Check required environment variables for CI
         if os.getenv("CI"):
-            assert os.getenv("QT_QPA_PLATFORM") == "offscreen", "Qt platform should be offscreen in CI"
+            assert (
+                os.getenv("QT_QPA_PLATFORM") == "offscreen"
+            ), "Qt platform should be offscreen in CI"
 
     def test_module_imports(self):
         """Test that all critical modules can be imported"""
         critical_modules = [
-            "config",
-            "game_detector",
-            "game_profile",
-            "ai_router",
-            "ai_assistant",
-            "knowledge_pack",
-            "knowledge_index",
-            "macro_manager",
-            "session_logger",
+            "omnix.config",
+            "omnix.game_detector",
+            "omnix.game_profile",
+            "omnix.ai_router",
+            "omnix.ai_assistant",
+            "omnix.knowledge_pack",
+            "omnix.knowledge_index",
+            "omnix.macro_manager",
+            "omnix.session_logger",
         ]
 
         for module_name in critical_modules:
@@ -44,15 +48,15 @@ class TestCIPipeline:
 
     def test_config_initialization_headless(self):
         """Test Config can initialize in headless environment"""
-        from config import Config
+        from omnix.config import Config
 
         config = Config(require_keys=False)
         assert config is not None
-        assert hasattr(config, 'ai_provider')
+        assert hasattr(config, "ai_provider")
 
     def test_game_detector_headless(self):
         """Test GameDetector works in headless environment"""
-        from game_detector import GameDetector
+        from omnix.game_detector import GameDetector
 
         detector = GameDetector()
         assert detector is not None
@@ -63,8 +67,8 @@ class TestCIPipeline:
 
     def test_ai_router_initialization_no_keys(self):
         """Test AIRouter can initialize without API keys"""
-        from config import Config
-        from ai_router import AIRouter
+        from omnix.ai_router import AIRouter
+        from omnix.config import Config
 
         config = Config(require_keys=False)
         router = AIRouter(config)
@@ -75,16 +79,14 @@ class TestCIPipeline:
 
     def test_knowledge_system_headless(self, temp_dir):
         """Test knowledge system works in headless environment"""
-        from knowledge_pack import KnowledgePack, KnowledgeSource
-        from knowledge_store import KnowledgePackStore
-        from knowledge_index import KnowledgeIndex, SimpleTFIDFEmbedding
+        from omnix.knowledge_index import KnowledgeIndex, SimpleTFIDFEmbedding
+        from omnix.knowledge_pack import KnowledgePack, KnowledgeSource
+        from omnix.knowledge_store import KnowledgePackStore
 
         store = KnowledgePackStore(config_dir=temp_dir)
         embedding = SimpleTFIDFEmbedding()
         index = KnowledgeIndex(
-            config_dir=temp_dir,
-            embedding_provider=embedding,
-            knowledge_store=store
+            config_dir=temp_dir, embedding_provider=embedding, knowledge_store=store
         )
 
         # Create and index a pack
@@ -92,7 +94,7 @@ class TestCIPipeline:
             id="test_source",
             type="note",
             title="Test Note",
-            content="Test content for CI pipeline verification"
+            content="Test content for CI pipeline verification",
         )
 
         pack = KnowledgePack(
@@ -100,31 +102,25 @@ class TestCIPipeline:
             name="Test Pack",
             description="Test pack",
             game_profile_id="test_game",
-            sources=[source]
+            sources=[source],
         )
 
         store.save_pack(pack)
         index.add_pack(pack)
 
         # Query should work
-        results = index.query(
-            game_profile_id="test_game",
-            question="test",
-            top_k=1
-        )
+        results = index.query(game_profile_id="test_game", question="test", top_k=1)
         assert len(results) >= 0  # May be 0 if no matches
 
     def test_macro_system_headless(self):
         """Test macro system works in headless environment"""
-        from macro_manager import Macro, MacroStep, MacroStepType
+        from omnix.macro_manager import Macro, MacroStep, MacroStepType
 
         macro = Macro(
             id="test_macro",
             name="Test Macro",
             description="Test macro for CI",
-            steps=[
-                MacroStep(type=MacroStepType.DELAY.value, duration_ms=10)
-            ]
+            steps=[MacroStep(type=MacroStepType.DELAY.value, duration_ms=10)],
         )
 
         assert macro is not None
@@ -132,7 +128,7 @@ class TestCIPipeline:
 
     def test_session_logger_headless(self, temp_dir):
         """Test session logger works in headless environment"""
-        from session_logger import SessionLogger
+        from omnix.session_logger import SessionLogger
 
         logger = SessionLogger(config_dir=temp_dir)
 
@@ -140,7 +136,7 @@ class TestCIPipeline:
             event_type="test",
             game_profile_id="test_game",
             content="Test event",
-            meta={"test": True}
+            meta={"test": True},
         )
 
         events = logger.get_recent_events("test_game")
@@ -168,16 +164,16 @@ class TestDeploymentReadiness:
     def test_src_directory_structure(self):
         """Test that src directory has expected structure"""
         required_modules = [
-            "src/config.py",
-            "src/game_detector.py",
-            "src/game_profile.py",
-            "src/ai_router.py",
-            "src/ai_assistant.py",
-            "src/providers.py",
-            "src/knowledge_pack.py",
-            "src/knowledge_index.py",
-            "src/macro_manager.py",
-            "src/session_logger.py",
+            "src/omnix/config.py",
+            "src/omnix/game_detector.py",
+            "src/omnix/game_profile.py",
+            "src/omnix/ai_router.py",
+            "src/omnix/ai_assistant.py",
+            "src/omnix/providers.py",
+            "src/omnix/knowledge_pack.py",
+            "src/omnix/knowledge_index.py",
+            "src/omnix/macro_manager.py",
+            "src/omnix/session_logger.py",
         ]
 
         for module_path in required_modules:
@@ -233,7 +229,8 @@ class TestHeadlessGUI:
     def test_design_system_import(self):
         """Test design system can be imported"""
         try:
-            from ui.design_system import OmnixDesignSystem
+            from omnix.ui.design_system import OmnixDesignSystem
+
             assert OmnixDesignSystem is not None
         except ImportError as e:
             pytest.skip(f"Design system import failed: {e}")
@@ -242,7 +239,8 @@ class TestHeadlessGUI:
     def test_theme_manager_headless(self):
         """Test theme manager works in headless environment"""
         try:
-            from ui.theme_manager import OmnixThemeManager
+            from omnix.ui.theme_manager import OmnixThemeManager
+
             theme_mgr = OmnixThemeManager()
             assert theme_mgr is not None
         except ImportError as e:
@@ -255,7 +253,7 @@ class TestDatabaseIntegrity:
 
     def test_config_persistence(self, temp_dir):
         """Test config can be saved and loaded"""
-        from config import Config
+        from omnix.config import Config
 
         config_path = Path(temp_dir) / "test_config.json"
         config1 = Config(config_path=str(config_path), require_keys=False)
@@ -267,7 +265,7 @@ class TestDatabaseIntegrity:
 
     def test_game_profile_persistence(self, temp_dir):
         """Test game profiles can be saved and loaded"""
-        from game_profile import GameProfile, GameProfileStore
+        from omnix.game_profile import GameProfile, GameProfileStore
 
         store = GameProfileStore(config_dir=temp_dir)
 
@@ -275,7 +273,7 @@ class TestDatabaseIntegrity:
             id="test_profile_persist",
             display_name="Test Profile",
             exe_names=["test.exe"],
-            system_prompt="Test prompt"
+            system_prompt="Test prompt",
         )
 
         store.create_profile(profile)
@@ -290,8 +288,8 @@ class TestDatabaseIntegrity:
 
     def test_macro_persistence(self, temp_dir):
         """Test macros can be saved and loaded"""
-        from macro_manager import Macro, MacroStep, MacroStepType
-        from macro_store import MacroStore
+        from omnix.macro_manager import Macro, MacroStep, MacroStepType
+        from omnix.macro_store import MacroStore
 
         store = MacroStore(config_dir=temp_dir)
 
@@ -299,9 +297,7 @@ class TestDatabaseIntegrity:
             id="test_macro_persist",
             name="Test Macro",
             description="Test",
-            steps=[
-                MacroStep(type=MacroStepType.DELAY.value, duration_ms=100)
-            ]
+            steps=[MacroStep(type=MacroStepType.DELAY.value, duration_ms=100)],
         )
 
         store.save_macro(macro)

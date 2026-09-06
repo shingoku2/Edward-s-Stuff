@@ -44,7 +44,7 @@ def load_qt_modules():
     from PyQt6.QtTest import QTest as QtTest
     from PyQt6.QtWidgets import QApplication as QtApplication
 
-    from gui import ChatWidget as ChatWidgetType
+    from omnix.gui import ChatWidget as ChatWidgetType
 
     Qt = QtCore
     QTest = QtTest

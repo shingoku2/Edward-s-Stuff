@@ -5,15 +5,16 @@ Tests that the background worker correctly calls the assistant
 and emits signals with responses or errors.
 """
 
-import pytest
 import sys
 from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
-from src.gui import AIWorkerThread
+from omnix.gui import AIWorkerThread
 
 
 @pytest.mark.unit
@@ -145,12 +146,12 @@ class TestAIWorkerThreadSignals:
     def test_worker_has_finished_signal(self):
         """Test worker has finished pyqtSignal."""
         worker = AIWorkerThread(Mock(), "test")
-        assert hasattr(worker, 'finished')
+        assert hasattr(worker, "finished")
 
     def test_worker_has_error_signal(self):
         """Test worker has error pyqtSignal."""
         worker = AIWorkerThread(Mock(), "test")
-        assert hasattr(worker, 'error')
+        assert hasattr(worker, "error")
 
     def test_multiple_signal_connections(self):
         """Test multiple functions can connect to finished signal."""

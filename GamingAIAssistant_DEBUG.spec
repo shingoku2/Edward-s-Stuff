@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 # Omnix Gaming Companion - DEBUG Build Specification
-# Version 2.1+ (Pure PyQt6 - no React frontend)
+# Version 3.0 (Pure PyQt6 desktop application)
 #
 # This debug build includes console output for troubleshooting
 #
@@ -9,8 +9,13 @@
 # - Removed PyQt6-WebEngine dependency (2026-05)
 
 import os
+import sys
 
 _SPEC_DIR = os.path.dirname(os.path.abspath(SPEC))
+_PYNPUT_IMPORTS = {
+    'win32': ['pynput.keyboard._win32', 'pynput.mouse._win32'],
+    'darwin': ['pynput.keyboard._darwin', 'pynput.mouse._darwin'],
+}.get(sys.platform, ['pynput.keyboard._xorg', 'pynput.mouse._xorg'])
 
 a = Analysis(
     ['main.py'],
@@ -20,31 +25,34 @@ a = Analysis(
         ('.env.example', '.'),
         ('README.md', '.'),
         ('SETUP.md', '.'),
-        ('src/ui/omnix.qss', 'ui'),
+        ('src/omnix/ui/omnix.qss', 'omnix/ui'),
     ],
-    hiddenimports=[
+    hiddenimports=_PYNPUT_IMPORTS + [
         'PyQt6.QtCore', 'PyQt6.QtGui', 'PyQt6.QtWidgets',
-        'config', 'game_detector', 'ai_assistant', 'gui',
-        'credential_store', 'provider_tester', 'providers', 'ai_router',
-        'setup_wizard', 'providers_tab', 'settings_dialog', 'settings_tabs',
-        'appearance_tabs', 'keybind_manager', 'macro_manager', 'theme_manager',
-        'game_profile', 'game_profiles_tab', 'game_watcher', 'overlay_modes',
-        'macro_store', 'macro_runner', 'macro_ai_generator',
-        'knowledge_pack', 'knowledge_store', 'knowledge_index', 'knowledge_ingestion',
-        'knowledge_integration', 'knowledge_packs_tab',
-        'session_logger', 'session_coaching', 'session_recap_dialog',
+        'omnix.config', 'omnix.game_detector', 'omnix.ai_assistant', 'omnix.gui',
+        'omnix.credential_store', 'omnix.provider_tester', 'omnix.providers', 'omnix.ai_router',
+        'omnix.setup_wizard', 'omnix.providers_tab', 'omnix.settings_dialog',
+        'omnix.settings_tabs', 'omnix.appearance_tabs', 'omnix.keybind_manager',
+        'omnix.macro_manager', 'omnix.ui.theme_manager', 'omnix.game_profile',
+        'omnix.game_profiles_tab', 'omnix.game_watcher', 'omnix.overlay_modes',
+        'omnix.macro_store', 'omnix.macro_runner', 'omnix.macro_ai_generator',
+        'omnix.knowledge_pack', 'omnix.knowledge_store', 'omnix.knowledge_index',
+        'omnix.knowledge_ingestion', 'omnix.knowledge_integration',
+        'omnix.knowledge_packs_tab', 'omnix.session_logger', 'omnix.session_coaching',
+        'omnix.session_recap_dialog',
         'psutil', 'requests', 'bs4', 'dotenv', 'cryptography', 'keyring', 'pynput',
-        'ui.design_system', 'ui.tokens', 'ui.icons',
-        'ui.components.buttons', 'ui.components.inputs', 'ui.components.cards',
-        'ui.components.layouts', 'ui.components.navigation', 'ui.components.modals',
-        'ui.components.dashboard_button', 'ui.components.avatar_display', 'ui.components.overlay',
-        'ui.components.dashboard',
-        'omnix_hud'
+        'omnix.ui.design_system', 'omnix.ui.tokens', 'omnix.ui.icons',
+        'omnix.ui.components.buttons', 'omnix.ui.components.inputs', 'omnix.ui.components.cards',
+        'omnix.ui.components.layouts', 'omnix.ui.components.navigation',
+        'omnix.ui.components.modals', 'omnix.ui.components.dashboard_button',
+        'omnix.ui.components.avatar_display', 'omnix.ui.components.overlay',
+        'omnix.ui.components.dashboard',
+        'omnix.migrations', 'omnix.capabilities'
     ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=['IPython', 'black', 'isort', 'mypy', 'pylint', 'pytest', 'tkinter'],
     noarchive=False,
     optimize=0,
 )

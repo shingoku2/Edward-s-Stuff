@@ -91,7 +91,7 @@ All tasks follow a strict lifecycle:
     -   You **must** generate a step-by-step plan that walks the user through the verification process, including any necessary commands and specific, expected outcomes.
     -   The plan you present to the user **must** follow this format:
 
-        **For a Frontend Change:**
+        **For a Desktop UI Change:**
         ```
         The automated tests have passed. For manual verification, please follow these steps:
 

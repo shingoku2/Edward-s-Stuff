@@ -1,44 +1,45 @@
 # Development and Testing Dependencies for Omnix Gaming Companion
-# Install with: pip install -r requirements-dev.txt
+# Preferred install: python -m pip install -e ".[dev,build]"
 
 # Testing Framework
-pytest>=7.4.0
-pytest-cov>=4.1.0         # Code coverage
-pytest-mock>=3.11.0       # Mocking utilities
-pytest-asyncio>=0.21.0    # Async test support
-pytest-qt>=4.2.0          # PyQt6 testing utilities
-pytest-timeout>=2.1.0     # Test timeout enforcement
-pytest-xdist>=3.3.0       # Parallel test execution
-PyYAML>=6.0               # Workflow validation
+pytest>=9.1.1
+pytest-cov>=7.1.0         # Code coverage
+pytest-mock>=3.15.1       # Mocking utilities
+pytest-asyncio>=1.4.0     # Async test support
+pytest-qt>=4.5.0          # PyQt6 testing utilities
+pytest-timeout>=2.4.0     # Test timeout enforcement
+pytest-xdist>=3.8.0       # Parallel test execution
+PyYAML>=6.0.3             # Workflow validation
 
 # Code Coverage
-coverage[toml]>=7.3.0
+coverage[toml]>=7.16.0
 
 # Code Quality
-flake8>=6.1.0             # Linting
-pylint>=2.17.0            # Advanced linting
-black>=23.7.0             # Code formatting
-isort>=5.12.0             # Import sorting
-mypy>=1.5.0               # Type checking
+flake8>=7.3.0             # Linting
+pylint>=4.0.8             # Advanced linting
+black>=26.5.1             # Code formatting
+isort>=9.0.1              # Import sorting
+mypy>=2.3.1               # Type checking
 
 # Security
-bandit>=1.7.5             # Security vulnerability scanning
-safety>=2.3.5             # Dependency vulnerability checking
+bandit>=1.9.4             # Security vulnerability scanning
+safety>=3.8.1             # Dependency vulnerability checking
 
 # Testing Utilities
-freezegun>=1.2.2          # Time mocking
-responses>=0.23.0         # HTTP request mocking
-faker>=19.3.0             # Fake data generation
-filelock>=3.14.0          # Cross-platform file locking
+freezegun>=1.5.5          # Time mocking
+responses>=0.26.3         # HTTP request mocking
+faker>=40.38.0            # Fake data generation
+filelock>=3.32.5          # Cross-platform file locking
 
 # Development Tools
-ipython>=8.14.0           # Enhanced REPL
+ipython>=9.17.1           # Enhanced REPL
 ipdb>=0.13.13             # Debugger
-pre-commit>=3.3.3         # Git hooks
+pre-commit>=4.6.2         # Git hooks
+pyinstaller>=6.22.2       # Windows executable builds
 
 # Documentation (optional)
-sphinx>=7.1.0
-sphinx-rtd-theme>=1.3.0
+sphinx>=9.0.4
+sphinx-rtd-theme>=3.1.0
 
-types-decorator
-types-requests
+types-decorator>=5.2.0.20260712
+types-requests>=2.33.0.20260712

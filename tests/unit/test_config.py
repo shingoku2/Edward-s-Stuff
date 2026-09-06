@@ -3,12 +3,15 @@ Test suite for Config module
 
 Tests configuration loading, saving, and defaults.
 """
-import os
+
 import json
-import pytest
+import os
 from pathlib import Path
-from unittest.mock import patch, MagicMock
-from src.config import Config
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+from omnix.config import Config
 
 
 @pytest.mark.unit
@@ -31,14 +34,14 @@ class TestConfig:
     def test_config_has_provider_key(self, temp_config_dir):
         """Test has_provider_key check"""
         config = Config(config_dir=str(temp_config_dir))
-        
+
         # Ollama always has "key" (it doesn't need one)
         assert config.has_provider_key("ollama") is True
 
     def test_config_overlay_settings(self, temp_config_dir):
         """Test overlay settings"""
         config = Config(config_dir=str(temp_config_dir))
-        
+
         # Check defaults
         assert config.overlay_width == 900
         assert config.overlay_height == 700
@@ -51,7 +54,7 @@ class TestConfig:
 
     def test_config_persistence(self, temp_config_dir, temp_dir):
         """Test saving and loading configuration"""
-        from config import Config
+        from omnix.config import Config
 
         config_path = Path(temp_dir) / "test_config.json"
         config = Config(config_path=str(config_path), require_keys=False)
@@ -71,7 +74,7 @@ class TestConfigEdgeCases:
 
     def test_config_with_custom_path(self, temp_dir):
         """Test Config with custom config path"""
-        from config import Config
+        from omnix.config import Config
 
         config_path = Path(temp_dir) / "custom_config.json"
         config = Config(config_path=str(config_path), require_keys=False)
@@ -79,7 +82,7 @@ class TestConfigEdgeCases:
 
     def test_config_get_with_default(self, temp_config_dir):
         """Test Config.get() with default value"""
-        from config import Config
+        from omnix.config import Config
 
         config = Config(require_keys=False)
         value = config.get("nonexistent_key", "default_value")
@@ -87,7 +90,7 @@ class TestConfigEdgeCases:
 
     def test_config_update_multiple_values(self, temp_config_dir):
         """Test updating multiple values at once"""
-        from config import Config
+        from omnix.config import Config
 
         config = Config(require_keys=False)
         config.update({"test1": "value1", "test2": "value2"})
@@ -96,7 +99,7 @@ class TestConfigEdgeCases:
 
     def test_config_reset_to_defaults(self, temp_config_dir):
         """Test resetting configuration to defaults"""
-        from src.config import Config
+        from omnix.config import Config
 
         config = Config(require_keys=False)
         config.set("ai_provider", "test_provider")

@@ -1,5 +1,11 @@
 # CLI Agent Usage Instructions: CodeAuditor, CodeFixer, Foreman
 
+For this repository, use `src/omnix` as the source root and Python 3.11+ as the
+supported runtime. The current quality commands are `pytest`, Black, isort,
+fatal flake8 checks, and Bandit; see `AGENTS.md` for the authoritative command
+set. Historical archive plans may mention frontend or Tauri work, but those are
+not active implementation targets.
+
 You are a coding assistant working in a CLI environment that provides three specialized agents:
 
 - **CodeAuditor** – reviews code for issues and risks.

@@ -2,9 +2,9 @@ from pathlib import Path
 
 import pytest
 
-from src.knowledge_ingestion import FileIngestor, IngestionError
-from src.knowledge_index import KnowledgeIndex, SimpleTFIDFEmbedding
-from src.knowledge_pack import KnowledgePack, KnowledgeSource
+from omnix.knowledge_index import KnowledgeIndex, SimpleTFIDFEmbedding
+from omnix.knowledge_ingestion import FileIngestor, IngestionError
+from omnix.knowledge_pack import KnowledgePack, KnowledgeSource
 
 
 @pytest.mark.unit
@@ -12,10 +12,10 @@ def test_ingest_file_valid_and_invalid_paths(tmp_path, monkeypatch):
     # Setup fake home to control allowed paths
     fake_home = tmp_path / "fake_home"
     fake_home.mkdir()
-    
+
     # Mock Path.home() in knowledge_ingestion to return our fake home
     # We need to mock it where it is imported or used
-    monkeypatch.setattr("knowledge_ingestion.Path.home", lambda: fake_home)
+    monkeypatch.setattr("omnix.knowledge_ingestion.Path.home", lambda: fake_home)
 
     # Valid file inside fake home (simulating Downloads)
     downloads_dir = fake_home / "Downloads" / "omnix_test"
@@ -39,7 +39,7 @@ def test_ingest_file_blocks_path_traversal(tmp_path, monkeypatch):
     # Setup fake home to control allowed paths
     fake_home = tmp_path / "fake_home"
     fake_home.mkdir()
-    monkeypatch.setattr("knowledge_ingestion.Path.home", lambda: fake_home)
+    monkeypatch.setattr("omnix.knowledge_ingestion.Path.home", lambda: fake_home)
 
     sneaky_dir = fake_home / "nested"
     sneaky_dir.mkdir(parents=True, exist_ok=True)
@@ -48,17 +48,17 @@ def test_ingest_file_blocks_path_traversal(tmp_path, monkeypatch):
 
     # This file effectively resolves to fake_home/escape.txt
     # which IS inside fake_home. So it SHOULD be allowed if we just check "is inside home".
-    # Wait, the test expects failure. 
+    # Wait, the test expects failure.
     # If the file is inside home, it is valid.
     # To test traversal BLOCKING, we need to traverse OUT of home.
-    
+
     # Let's try to traverse out of fake_home
     outside_file = tmp_path / "outside_home.txt"
     outside_file.write_text("outside")
-    
+
     # Construct a path that looks like it's inside but traverses out?
     # Or just use the absolute path to outside_file
-    
+
     with pytest.raises(IngestionError):
         FileIngestor.ingest_file(str(outside_file))
 
@@ -98,3 +98,4 @@ def test_knowledge_index_adds_and_queries_chunks(tmp_path):
     assert results
     assert "fire damage" in results[0].text
     assert (Path(tmp_path) / "knowledge_index" / "index.json").exists()
+    assert (Path(tmp_path) / "knowledge_index" / "knowledge.db").exists()

@@ -3,14 +3,13 @@ Test suite for Credential Store
 
 Tests secure API key storage and encryption.
 """
-import pytest
+
 import os
 from pathlib import Path
-from src.credential_store import (
-    CredentialStore,
-    CredentialStoreError,
-    CredentialDecryptionError
-)
+
+import pytest
+
+from omnix.credential_store import CredentialDecryptionError, CredentialStore, CredentialStoreError
 
 
 @pytest.mark.unit
@@ -26,7 +25,7 @@ class TestCredentialStoreInitialization:
         """Test that store creates encryption key"""
         store = CredentialStore(base_dir=temp_config_dir, allow_password_prompt=False)
         # Should have encryption key (cipher)
-        assert hasattr(store, '_cipher')
+        assert hasattr(store, "_cipher")
 
 
 @pytest.mark.unit
@@ -67,11 +66,7 @@ class TestCredentialStorage:
         store = CredentialStore(base_dir=temp_config_dir, allow_password_prompt=False)
 
         # Store multiple
-        store.save_credentials({
-            "key1": "value1",
-            "key2": "value2",
-            "key3": "value3"
-        })
+        store.save_credentials({"key1": "value1", "key2": "value2", "key3": "value3"})
 
         # Retrieve all
         assert store.get("key1") == "value1"

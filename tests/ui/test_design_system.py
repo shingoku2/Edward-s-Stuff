@@ -7,7 +7,7 @@ Quick test to verify all components import correctly and basic functionality wor
 Run with:
     python -m pytest src/ui/test_design_system.py
     or
-    python -m src.ui.test_design_system
+    python -m omnix.ui.test_design_system
 """
 
 import sys
@@ -18,42 +18,41 @@ def test_imports():
     print("Testing imports...")
 
     # Core modules (use relative imports)
-    from src.ui import tokens
-    from src.ui import design_system
-    from src.ui.tokens import COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS, ANIMATION, Z_INDEX
-    from src.ui.design_system import OmnixDesignSystem
-    from src.ui.icons import OmnixIcons, icons
+    from omnix.ui import design_system, tokens
 
     # Components
-    from src.ui.components import (
+    from omnix.ui.components import (
         OmnixButton,
-        OmnixIconButton,
-        OmnixLineEdit,
-        OmnixTextEdit,
-        OmnixComboBox,
         OmnixCard,
-        OmnixPanel,
-        OmnixInfoCard,
-        OmnixVBox,
-        OmnixHBox,
-        OmnixGrid,
+        OmnixComboBox,
+        OmnixConfirmDialog,
+        OmnixDialog,
         OmnixFormLayout,
+        OmnixGrid,
+        OmnixHBox,
+        OmnixHeaderBar,
+        OmnixIconButton,
+        OmnixInfoCard,
+        OmnixInputDialog,
+        OmnixLineEdit,
+        OmnixMessageDialog,
+        OmnixPanel,
         OmnixSidebar,
         OmnixSidebarButton,
-        OmnixHeaderBar,
-        OmnixDialog,
-        OmnixConfirmDialog,
-        OmnixMessageDialog,
-        OmnixInputDialog,
+        OmnixTextEdit,
+        OmnixVBox,
     )
 
     # Overlay components
-    from src.ui.components.overlay import (
-        OmnixOverlayPanel,
+    from omnix.ui.components.overlay import (
         OmnixOverlayChatWidget,
-        OmnixOverlayTip,
+        OmnixOverlayPanel,
         OmnixOverlayStatus,
+        OmnixOverlayTip,
     )
+    from omnix.ui.design_system import OmnixDesignSystem
+    from omnix.ui.icons import OmnixIcons, icons
+    from omnix.ui.tokens import ANIMATION, COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY, Z_INDEX
 
     print("✓ All imports successful (basic UI modules)")
 
@@ -62,11 +61,11 @@ def test_tokens():
     """Test design tokens."""
     print("\nTesting design tokens...")
 
-    from src.ui.tokens import tokens, COLORS
+    from omnix.ui.tokens import COLORS, tokens
 
     # Test color palette
-    assert COLORS.bg_primary == "#050508"
-    assert COLORS.accent_primary == "#00F0FF"
+    assert COLORS.bg_primary == "#0B0F14"
+    assert COLORS.accent_primary == "#5CC8BE"
     assert COLORS.text_primary == "#FFFFFF"
 
     # Test token access
@@ -85,15 +84,15 @@ def test_stylesheet_generation():
     """Test stylesheet generation."""
     print("\nTesting stylesheet generation...")
 
-    from src.ui.design_system import design_system
+    from omnix.ui.design_system import design_system
 
     # Generate complete stylesheet
     stylesheet = design_system.generate_complete_stylesheet()
     assert isinstance(stylesheet, str)
     assert len(stylesheet) > 0
     assert "QWidget" in stylesheet
-    assert "#050508" in stylesheet  # bg_primary
-    assert "#00F0FF" in stylesheet  # accent_primary
+    assert "#0B0F14" in stylesheet  # bg_primary
+    assert "#5CC8BE" in stylesheet  # accent_primary
 
     # Generate overlay stylesheet
     overlay_style = design_system.generate_overlay_stylesheet(opacity=0.75)
@@ -107,9 +106,10 @@ def test_stylesheet_generation():
 def test_icons():
     """Test icon system."""
     import os
+
     print("\nTesting icon system...")
 
-    from src.ui.icons import icons
+    from omnix.ui.icons import icons
 
     # Get available icons
     available = icons.available_icons()
@@ -126,6 +126,7 @@ def test_icons():
 
     try:
         from PyQt6.QtGui import QIcon
+
         icon = icons.get_icon("chat", size=32)
         assert isinstance(icon, QIcon)
         print("✓ Icon system working correctly (PyQt6 available)")
@@ -138,7 +139,7 @@ def test_theme_compatibility():
     print("\nTesting theme compatibility... SKIPPED (module missing)")
     return
 
-    # from src.theme_compat import ThemeManagerCompat, LegacyTheme
+    # from omnix.theme_compat import ThemeManagerCompat, LegacyTheme
     #
     # compat = ThemeManagerCompat()
     # assert compat.current_theme is not None
@@ -178,7 +179,8 @@ def test_component_creation():
 
     try:
         from PyQt6.QtWidgets import QApplication
-        from src.ui.components import OmnixButton, OmnixCard, OmnixPanel
+
+        from omnix.ui.components import OmnixButton, OmnixCard, OmnixPanel
 
         # Create minimal app
         app = QApplication.instance() or QApplication([])
@@ -222,6 +224,7 @@ def run_all_tests():
     except Exception as e:
         print(f"\n✗ Test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
