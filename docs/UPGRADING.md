@@ -27,5 +27,7 @@ If a profile reports a schema newer than the application supports, Omnix stops
 instead of attempting a downgrade. Install the newer application or restore a
 matching backup.
 
-React/Tauri assets and their workflows were removed. There is no web-client
-migration; all features are available through the PyQt desktop app.
+React/Tauri assets and their workflows were removed from this repository. The
+Tauri edition is now maintained independently in
+[Omnix Tauri](https://github.com/shingoku2/Omnix-Tauri); Python 3.0 upgrades do
+not install or migrate that application.

@@ -5,7 +5,8 @@
 Implement against Python 3.11+ and the `src/omnix` package. Use PyQt6 for UI
 work, `omnix.ui.tokens` for styling, and preserve the layered boundaries in
 `docs/ARCHITECTURE.md`. Data changes require an idempotent migration and a
-backup-aware test. Do not add React/Tauri code or direct Supabase table access.
+backup-aware test. Do not add React/Tauri code here; make those changes in
+https://github.com/shingoku2/Omnix-Tauri. Do not add direct Supabase table access.
 CI fixes must preserve the hosted Python 3.11 Ubuntu/Windows/macOS matrix,
 offscreen Qt variables, Linux `libegl1`, and the `setuptools>=83` audit floor.
 Normalize both operands in filesystem containment checks and add a regression

@@ -5,7 +5,8 @@
 The merge target is the Python 3.11+ PyQt6 desktop package in `src/omnix`.
 Review against the current migration, FTS5, platform capability, licensing,
 packaging, and cross-platform CI contracts in `docs/ARCHITECTURE.md` and
-`README.md`; retired React/Tauri artifacts are not release targets.
+`README.md`. Tauri artifacts are maintained in
+https://github.com/shingoku2/Omnix-Tauri and are not release targets here.
 For CI reviews, require the GitHub-hosted three-OS matrix, Linux `libegl1`, an
 active-environment `setuptools>=83` upgrade before pip-audit, and canonical path
 tests. A queued self-hosted job with no steps is an infrastructure mismatch,

@@ -2,8 +2,9 @@
 
 Omnix uses GitHub-hosted runners to validate the native PyQt6 Python package.
 The active workflows are `.github/workflows/ci.yml` and
-`.github/workflows/release.yml`; retired React/Tauri and self-hosted workflows
-are not release targets.
+`.github/workflows/release.yml`. Tauri CI and releases are owned by the separate
+[Omnix Tauri](https://github.com/shingoku2/Omnix-Tauri) repository; self-hosted
+workflows are not release targets.
 
 **Last reviewed:** 2026-09-07
 

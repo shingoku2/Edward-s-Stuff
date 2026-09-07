@@ -4,6 +4,9 @@
 **Stack:** Python 3.11+, PyQt6, Ollama-first provider architecture
 **Status:** Omnix 3.0 active development
 
+This repository contains the Python/PyQt6 edition only. Rust/Tauri work belongs
+in https://github.com/shingoku2/Omnix-Tauri.
+
 ## Architecture Overview
 
 Omnix follows a **strict layered architecture** designed for AI integration:

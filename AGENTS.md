@@ -35,6 +35,10 @@
 **Headless CI:** Set `OMNIX_MASTER_PASSWORD` env var for credential testing  
 **Focus:** When changing UI/game code, explicitly run `test_gui_minimal.py`, `test_macro_runner_execution.py`
 
+## Repository Boundary
+**Python only:** Keep this repository focused on the Python/PyQt6 edition. Rust,
+Tauri, React, and Vite code belongs in https://github.com/shingoku2/Omnix-Tauri.
+
 ## CI Guardrails
 **Hosted matrix:** `.github/workflows/ci.yml` runs Python 3.11 on Ubuntu, Windows, and macOS; do not change it back to an unavailable `self-hosted` runner.
 **Linux Qt:** Install `libegl1` before importing PyQt6 on hosted Ubuntu runners.

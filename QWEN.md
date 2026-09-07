@@ -1,7 +1,8 @@
 # Omnix contributor context
 
 Follow [AGENTS.md](AGENTS.md). Omnix 3.0 has one native PyQt6 desktop client and
-an installable Python package rooted at `src/omnix`.
+an installable Python package rooted at `src/omnix`. The Rust/Tauri edition is
+maintained separately in [Omnix Tauri](https://github.com/shingoku2/Omnix-Tauri).
 
 Before changing service boundaries or stored data, read
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and

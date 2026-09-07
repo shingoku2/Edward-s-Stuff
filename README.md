@@ -4,8 +4,9 @@ Omnix is a privacy-first desktop gaming companion. It detects active games, adds
 game-specific local knowledge to Ollama conversations, runs opt-in macros, and
 provides a movable in-game assistant overlay.
 
-The 3.0 application has one interface and one runtime: native PyQt6 on Python
-3.11+. The experimental React and Tauri clients have been retired.
+The 3.0 application in this repository has one interface and one runtime:
+native PyQt6 on Python 3.11+. The Rust/Tauri edition is maintained separately
+in [Omnix Tauri](https://github.com/shingoku2/Omnix-Tauri).
 
 ## Features
 

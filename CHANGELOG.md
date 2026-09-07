@@ -22,6 +22,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Split the Rust/Tauri edition into the standalone
+  [Omnix Tauri](https://github.com/shingoku2/Omnix-Tauri) repository with its
+  Tauri-specific history, CI, dependency updates, and contributor guidance.
+- Updated Python repository context and documentation to enforce the boundary
+  between the Python/PyQt6 and Rust/Tauri editions.
+
 ### Fixed
 
 - GitHub-hosted Ubuntu CI now installs `libegl1` before pytest imports PyQt6,

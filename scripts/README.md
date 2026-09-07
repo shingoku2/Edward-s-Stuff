@@ -1,7 +1,8 @@
 # Omnix 3.0 CI/CD Scripts
 
-Scripts operate on the native Python package under `src/omnix`. Frontend and
-Tauri scripts are retired; run `python -m omnix` for the application.
+Scripts operate on the native Python package under `src/omnix`. Tauri scripts
+live in the separate [Omnix Tauri](https://github.com/shingoku2/Omnix-Tauri)
+repository; run `python -m omnix` for this application.
 
 Automation scripts for CI/CD pipeline and deployment management.
 

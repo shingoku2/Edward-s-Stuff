@@ -2,7 +2,8 @@
 
 - Runtime: Python 3.11+, PyQt6, Ollama.
 - Package: `src/omnix`; entry point: `omnix.__main__:main`.
-- UI: native PyQt6 only. React and Tauri have been retired.
+- UI: native PyQt6 only in this repository. The Rust/Tauri edition is maintained
+  separately at https://github.com/shingoku2/Omnix-Tauri.
 - Storage: atomic JSON stores, encrypted credential vault, SQLite FTS5 knowledge index.
 - Platforms: Windows, macOS, and Linux X11; Wayland automation is disabled explicitly.
 - Quality: GitHub-hosted Python 3.11 pytest CI on Ubuntu/Windows/macOS, fatal

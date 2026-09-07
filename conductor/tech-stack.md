@@ -1,5 +1,8 @@
 # Technology Stack: Omnix
 
+This file describes the Python/PyQt6 repository. The Rust/Tauri stack is
+maintained separately at https://github.com/shingoku2/Omnix-Tauri.
+
 ## Omnix 3.0 runtime
 - **Primary Language:** Python 3.11+
 - **Application Framework:** PyQt6 (Main application shell, system tray, and heavy-duty window management).

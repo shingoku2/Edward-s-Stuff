@@ -2,8 +2,9 @@
 
 ## Omnix repository context
 
-The active application is the Python 3.11+ package under `src/omnix` and its
-native PyQt6 UI. React/Tauri directories are retired. Treat
+The active application in this repository is the Python 3.11+ package under
+`src/omnix` and its native PyQt6 UI. Tauri code is maintained separately at
+https://github.com/shingoku2/Omnix-Tauri. Treat
 `docs/ARCHITECTURE.md` and `docs/UPGRADING.md` as the current contracts. Audit
 user-data migrations, SQLite FTS5 persistence, encrypted credentials, platform
 capability checks, and the Supabase Edge Function as first-class boundaries.

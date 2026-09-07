@@ -1,8 +1,9 @@
 # Omnix contributor context
 
-Follow [AGENTS.md](AGENTS.md). The canonical 3.0 application is the Python 3.11+
-PyQt6 package in `src/omnix`. Do not recreate the retired React/Tauri clients or
-flat `src.<module>` imports.
+Follow [AGENTS.md](AGENTS.md). This repository's canonical 3.0 application is
+the Python 3.11+ PyQt6 package in `src/omnix`. Keep Tauri code in the separate
+[Omnix Tauri](https://github.com/shingoku2/Omnix-Tauri) repository and do not
+recreate it here. Do not add flat `src.<module>` imports.
 
 Architecture and data-migration contracts live in
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
