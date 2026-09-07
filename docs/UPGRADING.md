@@ -6,8 +6,8 @@ longer supported.
 
 ```bash
 python -m venv .venv
-python -m pip install --upgrade pip
-python -m pip install -e ".[dev,build]"
+python -m pip install --upgrade pip "setuptools>=83"
+python -m pip install --upgrade ".[dev,build]"
 ```
 
 The first launch runs ordered, idempotent data migrations. Existing settings,

@@ -9,7 +9,14 @@ Automation scripts for CI/CD pipeline and deployment management.
 
 ### `verify_ci.py`
 
-**Purpose:** Verify CI/CD pipeline configuration and health
+**Purpose:** Legacy verification helper for the former self-hosted deployment
+environment.
+
+> **Status:** This script still checks for a self-hosted runner and is not the
+> authority for the current GitHub-hosted Ubuntu/Windows/macOS CI matrix. Use
+> `.github/workflows/ci.yml`, `gh run`, and `docs/CI_CD_GUIDE.md` for current CI
+> verification. Do not interpret its self-hosted-runner result as hosted CI
+> health.
 
 **Usage:**
 ```bash
@@ -21,7 +28,7 @@ python scripts/verify_ci.py
 - ✅ GitHub Actions workflow files
 - ✅ Test suite configuration
 - ✅ Python dependencies (pytest, flake8)
-- ✅ Self-hosted runner status
+- ⚠️ Legacy self-hosted runner probe (not used by current CI)
 - ✅ Sample test execution
 
 **Output:** Color-coded status report with pass/fail for each check

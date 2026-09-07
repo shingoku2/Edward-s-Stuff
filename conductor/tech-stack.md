@@ -22,6 +22,8 @@
 
 ## Deployment & Build
 - **Packaging:** PyInstaller specs for unsigned Windows, macOS, and Linux bundles.
-- **Testing:** `pytest` with headless Qt and cross-platform CI.
-- **Linting & Analysis:** Black, isort, flake8 fatal checks, Bandit, and targeted mypy.
+- **Testing:** `pytest` with headless Qt on GitHub-hosted Python 3.11 Ubuntu,
+  Windows, and macOS runners; Ubuntu installs `libegl1` for PyQt6.
+- **Linting & Analysis:** Black, isort, flake8 fatal checks, Bandit, targeted
+  mypy, and pip-audit with `setuptools>=83` in the audited environment.
 - **Licensing:** Supabase Edge Function; clients have no direct license-table access.

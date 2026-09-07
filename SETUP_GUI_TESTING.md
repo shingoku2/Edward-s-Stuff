@@ -4,7 +4,8 @@ The test suite uses PyQt6 in headless mode. Install the development extra and
 set the documented test environment:
 
 ```bash
-python -m pip install -e ".[dev,build]"
+sudo apt-get update && sudo apt-get install --yes libegl1  # Ubuntu/Debian
+python -m pip install --upgrade "setuptools>=83" ".[dev,build]"
 export QT_QPA_PLATFORM=offscreen
 export PYNPUT_BACKEND=dummy
 export OMNIX_MASTER_PASSWORD=test-only-password

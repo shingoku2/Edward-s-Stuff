@@ -27,7 +27,7 @@ python -m venv .venv
 # Linux/macOS
 source .venv/bin/activate
 # Windows PowerShell: .venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
+python -m pip install --upgrade pip "setuptools>=83"
 python -m pip install -e .
 ollama pull llama3
 python -m omnix
@@ -86,9 +86,13 @@ bandit -r src/omnix -ll
 pyinstaller GamingAIAssistant.spec --clean --noconfirm
 ```
 
-CI tests Windows, macOS, and Linux. Tag builds and manual release runs create
-unsigned PyInstaller bundles for all three operating systems. Code signing and
-automatic updates are intentionally outside the 3.0 release scope.
+CI uses GitHub-hosted Python 3.11 runners for Windows, macOS, and Linux. Ubuntu
+installs `libegl1` for headless PyQt6, and the lint job audits the active
+dependency environment with pip-audit. Tag builds and manual release runs create
+unsigned PyInstaller bundles for all three operating systems. See
+[CI_CD_GUIDE.md](docs/CI_CD_GUIDE.md) for reproduction and troubleshooting.
+Code signing and automatic updates are intentionally outside the 3.0 release
+scope.
 
 ## Architecture
 

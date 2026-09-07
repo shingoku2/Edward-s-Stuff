@@ -7,3 +7,7 @@ flat `src.<module>` imports.
 Architecture and data-migration contracts live in
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
 [docs/UPGRADING.md](docs/UPGRADING.md).
+
+CI uses GitHub-hosted Python 3.11 runners on Ubuntu, Windows, and macOS. Read
+[docs/CI_CD_GUIDE.md](docs/CI_CD_GUIDE.md) before changing runner packages,
+headless Qt setup, path-sensitive tests, or dependency auditing.

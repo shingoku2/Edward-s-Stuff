@@ -7,6 +7,9 @@ native PyQt6 UI. React/Tauri directories are retired. Treat
 `docs/ARCHITECTURE.md` and `docs/UPGRADING.md` as the current contracts. Audit
 user-data migrations, SQLite FTS5 persistence, encrypted credentials, platform
 capability checks, and the Supabase Edge Function as first-class boundaries.
+For CI findings, distinguish runner prerequisites from product regressions:
+hosted Linux requires `libegl1` for PyQt6, dependency audits inspect the active
+environment, and containment checks must canonicalize both paths.
 
 ## Role
 

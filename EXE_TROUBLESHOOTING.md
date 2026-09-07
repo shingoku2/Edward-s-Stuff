@@ -14,7 +14,7 @@ The console shows the startup log and the exact missing dependency or Qt
 platform error. Rebuild after installing dependencies with:
 
 ```powershell
-python -m pip install -e ".[dev,build]"
+python -m pip install --upgrade "setuptools>=83" ".[dev,build]"
 python -m PyInstaller GamingAIAssistant.spec --clean --noconfirm
 ```
 

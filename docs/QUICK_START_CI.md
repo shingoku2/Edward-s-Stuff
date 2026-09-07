@@ -1,130 +1,58 @@
-# CI/CD Quick Start Guide — Omnix 3.0
+# CI/CD Quick Start — Omnix 3.0
+
+CI runs Python 3.11 on GitHub-hosted Ubuntu, Windows, and macOS runners.
+
+## Reproduce CI locally
 
 ```bash
-python -m pip install -e ".[dev,build]"
-QT_QPA_PLATFORM=offscreen PYNPUT_BACKEND=dummy \
-OMNIX_MASTER_PASSWORD=test-only-password pytest
-```
-
-Quick reference for working with the Omnix CI/CD pipeline.
-
-## Quick Commands
-
-### Testing
-
-```bash
-# Run all tests
-pytest
-
-# Run specific test category
-pytest -m unit
-pytest -m integration
-
-# Run with coverage
-pytest --cov=omnix --cov-report=html
-
-# Simulate CI environment
+python -m pip install --upgrade pip "setuptools>=83" ".[dev,build]"
 export QT_QPA_PLATFORM=offscreen
-xvfb-run -a pytest tests/ -v
+export PYNPUT_BACKEND=dummy
+export OMNIX_MASTER_PASSWORD=ci-only-master-password
+pytest --cov=omnix --cov-report=xml
 ```
 
-### Verification
+Ubuntu/Debian hosts need the PyQt6 runtime library:
 
 ```bash
-# Verify CI/CD pipeline
-python scripts/verify_ci.py
-
-# Check workflow status
-gh run list --limit 5
-
-# View latest run
-gh run view
-
-# Re-run failed workflow
-gh run rerun
+sudo apt-get update
+sudo apt-get install --yes libegl1
 ```
 
-### Deployment
+## Quality and security
 
 ```bash
-# Deploy to staging (automatic)
-git checkout staging
-git merge main
-git push origin staging
-
-# Deploy to staging (manual)
-./scripts/deploy_staging.sh
-
-# Verify deployment
-cat /opt/omnix/staging/.deployment_info
+black --check src tests
+isort --check-only src tests
+flake8 src/omnix --count --select=E9,F63,F7,F82 --show-source --statistics
+bandit -q -r src/omnix -ll
+pip-audit --local --skip-editable
 ```
 
-### Runner Management
+## Required focused checks
 
 ```bash
-# Check runner status
-ssh pve
-sudo pct enter 200
-sudo systemctl status actions-runner
-
-# Restart runner
-sudo systemctl restart actions-runner
-
-# View logs
-sudo journalctl -u actions-runner -f
+pytest tests/ui/test_gui_minimal.py tests/unit/test_macro_runner_execution.py -v
+pytest tests/test_knowledge.py tests/unit/test_knowledge_system.py -v
 ```
 
-## Workflow Files
-
-- `.github/workflows/ci.yml` - Main CI pipeline
-- `.github/workflows/staging-deploy.yml` - Staging deployment
-
-## Test Structure
-
-```
-tests/
-├── unit/               # Component tests
-├── integration/        # Integration tests
-│   └── test_ci_pipeline.py  # CI-specific tests
-├── edge_cases/         # Edge cases
-└── conftest.py         # Test fixtures
-```
-
-## Common Issues
-
-### Tests fail in CI but pass locally
+## Inspect GitHub Actions
 
 ```bash
-# Use same environment as CI
-export QT_QPA_PLATFORM=offscreen
-xvfb-run -a pytest tests/ -v
+gh run list --workflow ci.yml --limit 10
+gh run view RUN_ID --json conclusion,jobs,url
+gh run view RUN_ID --log-failed
+gh run rerun RUN_ID --failed
 ```
 
-### Runner is offline
+## Current CI invariants
 
-```bash
-ssh pve
-sudo pct enter 200
-sudo systemctl restart actions-runner
-```
+- Keep `runs-on` on the hosted three-OS matrix unless an online, maintained
+  self-hosted pool is deliberately provisioned.
+- Keep the Linux `libegl1` step before pytest imports PyQt6.
+- Upgrade the active environment to `setuptools>=83` before pip-audit.
+- Resolve both candidate and allowed filesystem roots before containment tests.
+- Keep tests isolated from real user directories.
 
-### Deployment fails
-
-```bash
-# Check deployment logs
-gh run view --log-failed
-
-# Manual deployment
-./scripts/deploy_staging.sh
-```
-
-## Resources
-
-- [Full CI/CD Guide](CI_CD_GUIDE.md)
-- [CLAUDE.md](../CLAUDE.md) - Project documentation
-- [pytest.ini](../pytest.ini) - Test configuration
-
-## Status URLs
-
-- **Actions:** https://github.com/shingoku2/Omnix-All-knowing-gaming-companion/actions
-- **Repository:** https://github.com/shingoku2/Omnix-All-knowing-gaming-companion
+See [CI_CD_GUIDE.md](CI_CD_GUIDE.md) for failure explanations and maintenance
+details.

@@ -6,6 +6,13 @@
 - Ollama
 - Windows 10/11, macOS 13+, or modern Linux
 
+Ubuntu/Debian development and CI hosts need the EGL runtime used by PyQt6:
+
+```bash
+sudo apt-get update
+sudo apt-get install --yes libegl1
+```
+
 Linux users need an X11 session for macros and global hotkeys. The desktop UI
 and game detection continue to work on Wayland.
 
@@ -28,13 +35,16 @@ source .venv/bin/activate
 Install and run:
 
 ```bash
-python -m pip install --upgrade pip
+python -m pip install --upgrade pip "setuptools>=83"
 python -m pip install -e .
 ollama pull llama3
 python -m omnix
 ```
 
-For a contributor environment, use `python -m pip install -e ".[dev,build]"`.
+For a contributor environment, use
+`python -m pip install --upgrade "setuptools>=83" ".[dev,build]"`. Keeping the
+active setuptools installation current is required for `pip-audit`; the
+isolated build dependency does not upgrade the active environment.
 
 ## Configuration
 

@@ -1,5 +1,5 @@
 # Development and Testing Dependencies for Omnix Gaming Companion
-# Preferred install: python -m pip install -e ".[dev,build]"
+# Preferred install: python -m pip install --upgrade "setuptools>=83" ".[dev,build]"
 
 # Testing Framework
 pytest>=9.1.1

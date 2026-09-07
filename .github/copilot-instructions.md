@@ -1,7 +1,7 @@
 # Omnix Gaming Companion - AI Coding Agent Instructions
 
 **Project:** Omnix - All-knowing Gaming Companion  
-**Stack:** Python 3.11+, PyQt6, Multi-Provider AI (OpenAI/Anthropic/Gemini)
+**Stack:** Python 3.11+, PyQt6, Ollama-first provider architecture
 **Status:** Omnix 3.0 active development
 
 ## Architecture Overview
@@ -27,7 +27,7 @@ Persistence (config.py, credential_store.py, *_store.py)
 2. Matches against `game_profile.json` (15 pre-configured games)
 3. Looks up game-specific system prompt from `GameProfile`
 4. `KnowledgeIntegration` augments prompt with semantic search results from knowledge packs
-5. `AIRouter` dispatches to active provider (Anthropic/OpenAI/Gemini)
+5. `AIRouter` dispatches through the configured provider (Ollama by default)
 6. `SessionLogger` records interaction for coaching analysis
 
 **Key insight:** Game detection is passive polling, not event-driven. UI updates via Qt signals only.
@@ -90,7 +90,7 @@ Persistence (config.py, credential_store.py, *_store.py)
 ### Setup & Testing
 ```pwsh
 # Install dependencies (Windows PowerShell)
-python -m pip install -e ".[dev,build]"
+python -m pip install --upgrade pip "setuptools>=83" ".[dev,build]"
 
 # Run all tests
 pytest
@@ -175,6 +175,19 @@ pyinstaller GamingAIAssistant.spec
 **Qt Import Errors:** Set `QT_QPA_PLATFORM=offscreen` for headless environments  
 **Macro Not Executing:** Verify `MacroRunner.enabled=True` and `pynput` available
 
+## CI invariants
+
+- `.github/workflows/ci.yml` uses GitHub-hosted Python 3.11 runners for Ubuntu,
+  Windows, and macOS. Do not route it to `self-hosted` without a maintained,
+  online runner pool.
+- Keep `QT_QPA_PLATFORM=offscreen`, `PYNPUT_BACKEND=dummy`, and
+  `OMNIX_MASTER_PASSWORD` in the test job.
+- Ubuntu must install `libegl1` before pytest imports PyQt6.
+- Upgrade the active environment to `setuptools>=83` before `pip-audit`; the
+  isolated build-system requirement is not sufficient.
+- In path-containment code, resolve both the candidate and allowed roots. Tests
+  should cover canonical aliases such as macOS `/var` to `/private/var`.
+
 ## Extension Points
 
 - **New Knowledge Sources:** Extend `KnowledgeSource` dataclass + add ingestion method
@@ -184,4 +197,4 @@ pyinstaller GamingAIAssistant.spec
 
 ---
 
-**Last Updated:** 2025-11-18 | **Version:** 1.2+
+**Last Updated:** 2026-09-07 | **Version:** 3.0

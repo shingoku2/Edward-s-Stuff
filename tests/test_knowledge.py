@@ -35,6 +35,20 @@ def test_ingest_file_valid_and_invalid_paths(tmp_path, monkeypatch):
 
 
 @pytest.mark.unit
+def test_ingest_file_accepts_resolved_home_alias(tmp_path, monkeypatch):
+    """The allowed root and candidate must be compared in the same canonical form."""
+    actual_home = tmp_path / "actual_home"
+    actual_home.mkdir()
+    aliased_home = tmp_path / "unused" / ".." / actual_home.name
+    monkeypatch.setattr("omnix.knowledge_ingestion.Path.home", lambda: aliased_home)
+
+    valid_file = actual_home / "notes.txt"
+    valid_file.write_text("Canonical paths remain inside the allowed home.")
+
+    assert FileIngestor.ingest_file(str(valid_file)).startswith("Canonical paths")
+
+
+@pytest.mark.unit
 def test_ingest_file_blocks_path_traversal(tmp_path, monkeypatch):
     # Setup fake home to control allowed paths
     fake_home = tmp_path / "fake_home"

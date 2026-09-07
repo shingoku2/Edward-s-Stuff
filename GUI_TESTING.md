@@ -17,3 +17,6 @@ settings navigation, and token-generated stylesheets. For a manual run use
 Platform behavior is intentional: Windows and macOS use native automation,
 Linux X11 supports automation, and Linux Wayland leaves the UI usable while
 showing that macros/global hotkeys are unavailable.
+
+On Ubuntu/Debian, install `libegl1` before running the suite. Offscreen mode
+removes the display requirement but does not supply PyQt6's native EGL library.

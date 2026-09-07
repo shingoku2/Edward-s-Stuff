@@ -7,7 +7,6 @@ This directory contains the comprehensive test suite for the Omnix Gaming Compan
 ```
 tests/
 ├── __init__.py                 # Package initialization
-├── conftest.py                 # Shared pytest fixtures
 ├── helpers.py                  # Test utility functions
 ├── README.md                   # This file
 │
@@ -93,7 +92,8 @@ Tests are categorized using pytest markers:
 
 ## Shared Fixtures
 
-Common test fixtures are defined in `conftest.py`:
+Common test fixtures are defined in the repository-root `conftest.py`, which
+sets a disposable `OMNIX_CONFIG_DIR` before application imports:
 
 - `temp_dir` - Temporary directory for test files
 - `clean_config_dir` - Clean configuration directory
@@ -203,15 +203,16 @@ class TestEdgeCases:
 ## Continuous Integration
 
 Tests are automatically run in GitHub Actions on:
-- Pull requests
-- Pushes to main branch
-- Manual workflow dispatch
+- Pull requests targeting `main` or `staging`
+- Pushes to `main`, `staging`, or `dev`
 
 CI environment automatically:
-- Skips UI tests (headless environment)
-- Skips tests marked with `@pytest.mark.skip_ci`
+- Runs Python 3.11 on Ubuntu, Windows, and macOS
 - Uses offscreen Qt platform for PyQt6 tests
+- Installs `libegl1` on Ubuntu before importing PyQt6
 - Sets test master password for credential store
+- Uses the dummy pynput backend
+- Runs Bandit and audits the active environment with pip-audit
 
 ## Coverage
 

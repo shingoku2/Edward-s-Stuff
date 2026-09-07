@@ -22,6 +22,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- GitHub-hosted Ubuntu CI now installs `libegl1` before pytest imports PyQt6,
+  preventing `ImportError: libEGL.so.1` during pytest-qt initialization.
+- Knowledge-ingestion containment checks now resolve both the candidate file and
+  allowed roots, avoiding false rejections from macOS and Windows path aliases
+  while preserving traversal protection.
+- CI upgrades the active environment to `setuptools>=83` before pip-audit, and
+  the package build-system floor now matches the fixed dependency version for
+  `PYSEC-2026-3447`.
+
+### Tests
+
+- Added a cross-platform regression test for an aliased knowledge-ingestion
+  home path. Verified 343 passed and 8 skipped tests locally, plus clean Black,
+  isort, flake8, Bandit, and pip-audit checks.
+
 ### Removed
 
 - HRM (Hierarchical Reasoning Model) integration: `src/hrm_integration.py`, the HRM Settings tab, `HRM_ENABLED`/`HRM_MAX_INFERENCE_TIME` config, the vendored `HRM-main/` model source, and the Tauri `hrm.rs` reasoning-prefix module. No longer used by the app.

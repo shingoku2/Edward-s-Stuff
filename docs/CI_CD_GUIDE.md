@@ -1,541 +1,168 @@
 # CI/CD Pipeline Guide for Omnix 3.0
 
-CI targets the native PyQt6 Python 3.11+ package under `src/omnix`. React/Tauri
-builds and frontend deployment are retired. Active workflows are
-`.github/workflows/ci.yml` and `.github/workflows/release.yml`.
+Omnix uses GitHub-hosted runners to validate the native PyQt6 Python package.
+The active workflows are `.github/workflows/ci.yml` and
+`.github/workflows/release.yml`; retired React/Tauri and self-hosted workflows
+are not release targets.
 
-**Last Updated:** 2026-09-05
-**Environment:** Proxmox Self-Hosted
+**Last reviewed:** 2026-09-07
 
----
+## Continuous integration
 
-## Table of Contents
+CI runs on pushes to `main`, `staging`, and `dev`, and pull requests targeting
+`main` or `staging`.
 
-1. [Overview](#overview)
-2. [Infrastructure](#infrastructure)
-3. [CI/CD Workflows](#cicd-workflows)
-4. [Deployment Process](#deployment-process)
-5. [Testing Strategy](#testing-strategy)
-6. [Troubleshooting](#troubleshooting)
-7. [Maintenance](#maintenance)
+The test job is a Python 3.11 matrix:
 
----
+| Runner | Purpose | Platform prerequisite |
+| --- | --- | --- |
+| `ubuntu-latest` | Linux package and headless GUI tests | Install `libegl1` before importing PyQt6 |
+| `windows-latest` | Windows path, package, and GUI behavior | None beyond Python dependencies |
+| `macos-latest` | macOS path, package, and GUI behavior | None beyond Python dependencies |
 
-## Overview
+Every test runner sets:
 
-Omnix uses a **self-hosted CI/CD pipeline** running on Proxmox infrastructure. This provides:
-
-- ✅ Full control over the build environment
-- ✅ Faster build times (no queue)
-- ✅ Consistent testing environment
-- ✅ Cost-effective (no cloud runner costs)
-- ✅ Integration with staging deployments
-
-### Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     GitHub Repository                        │
-│  (code, workflows, configurations)                           │
-└───────────────────────┬─────────────────────────────────────┘
-                        │
-                        │ webhook
-                        ▼
-┌─────────────────────────────────────────────────────────────┐
-│            GitHub Actions Self-Hosted Runner                 │
-│  (Proxmox LXC Container: omnix-staging, ID 200)              │
-│                                                              │
-│  • Ubuntu 24.04                                              │
-│  • Docker + Docker Compose                                   │
-│  • Python 3.12.3 + venv                                      │
-│  • All dependencies installed                                │
-└───────────────────────┬─────────────────────────────────────┘
-                        │
-                        │ runs workflows
-                        ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   CI/CD Workflows                            │
-│  • Lint code (flake8)                                        │
-│  • Run tests (pytest)                                        │
-│  • Deploy to staging                                         │
-└─────────────────────────────────────────────────────────────┘
+```text
+QT_QPA_PLATFORM=offscreen
+OMNIX_MASTER_PASSWORD=ci-only-master-password
+PYNPUT_BACKEND=dummy
 ```
 
----
+The job then installs `setuptools>=83` and `.[dev,build]`, compiles and imports
+the package, runs pytest with XML coverage, and runs Bandit at medium-or-higher
+severity.
 
-## Infrastructure
+The separate Ubuntu lint job checks Black, isort, fatal flake8 errors, and the
+active environment with `pip-audit --local --skip-editable`. It explicitly
+upgrades `setuptools>=83` because `[build-system].requires` applies only to
+pip's isolated build environment; it does not upgrade the environment that
+pip-audit examines.
 
-### Proxmox Container Details
+## Local reproduction
 
-**Container:** `omnix-staging` (ID 200)
-**OS:** Ubuntu 24.04 LTS
-**Location:** `/opt/omnix`
-
-**Key Components:**
-- **Runner:** `/opt/actions-runner/` (systemd service)
-- **Repository:** `/opt/omnix/`
-- **Virtual Environment:** `/opt/omnix/venv/`
-- **Staging Deployment:** `/opt/omnix/staging/`
-
-**Access:**
-```bash
-# From Proxmox host
-ssh pve
-sudo pct enter 200
-
-# Check runner status
-sudo systemctl status actions-runner
-```
-
-### Runner Configuration
-
-**Service:** `actions-runner.service`
-**User:** `github-runner`
-**Labels:** `self-hosted`, `linux`, `proxmox`
-
-**Service Control:**
-```bash
-# Status
-sudo systemctl status actions-runner
-
-# Restart
-sudo systemctl restart actions-runner
-
-# Logs
-sudo journalctl -u actions-runner -f
-```
-
----
-
-## CI/CD Workflows
-
-### 1. Continuous Integration (`ci.yml`)
-
-**Triggers:**
-- Push to `main`, `staging`, `dev` branches
-- Pull requests to `main`, `staging`
-
-**Steps:**
-1. Checkout code
-2. Set up Python environment
-3. Install dependencies
-4. Run flake8 linting
-5. Run pytest test suite
-
-**Configuration:**
-```yaml
-# .github/workflows/ci.yml
-name: CI Pipeline
-on:
-  push:
-    branches: [ main, staging, dev ]
-  pull_request:
-    branches: [ main, staging ]
-
-jobs:
-  test:
-    runs-on: self-hosted
-    steps:
-      # ... see file for details
-```
-
-### 2. Staging Deployment (`staging-deploy.yml`)
-
-**Triggers:**
-- Push to `staging` branch
-- Manual workflow dispatch
-
-**Steps:**
-1. Checkout code
-2. Verify deployment branch
-3. Update staging directory with rsync
-4. Install dependencies
-5. Run pre-deployment tests
-6. Create deployment marker
-7. Verify deployment
-8. Show deployment summary
-
-**Manual Trigger:**
-```bash
-# Via GitHub CLI
-gh workflow run staging-deploy.yml
-
-# Via GitHub UI
-# Actions → Deploy to Staging → Run workflow
-```
-
----
-
-## Deployment Process
-
-### Automatic Deployment
-
-**Triggered by:** Push to `staging` branch
+Install the same development inputs used by CI:
 
 ```bash
-# Create feature on staging branch
-git checkout staging
-git pull origin staging
-git merge main  # or your feature branch
-git push origin staging
-
-# Workflow runs automatically
-# Check status: https://github.com/your-repo/actions
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip "setuptools>=83" ".[dev,build]"
 ```
 
-### Manual Deployment
-
-**Option 1: Using Deployment Script**
+On Ubuntu/Debian, install the Qt runtime prerequisite:
 
 ```bash
-# SSH to Proxmox container
-ssh pve
-sudo pct enter 200
-
-# Run deployment script
-cd /opt/omnix
-./scripts/deploy_staging.sh
+sudo apt-get update
+sudo apt-get install --yes libegl1
 ```
 
-**Option 2: Using GitHub Actions**
+Run the CI-equivalent checks:
 
 ```bash
-# Trigger workflow manually
-gh workflow run staging-deploy.yml
-```
-
-### Deployment Verification
-
-After deployment, verify with:
-
-```bash
-# Check deployment info
-cat /opt/omnix/staging/.deployment_info
-
-# Verify modules import
-cd /opt/omnix/staging
-source /opt/omnix/venv/bin/activate
-python -c "import config; import game_detector; import ai_router"
-
-# Run verification script
-python scripts/verify_ci.py
-```
-
----
-
-## Testing Strategy
-
-### Test Organization
-
-```
-tests/
-├── unit/               # Unit tests (individual components)
-├── integration/        # Integration tests (component interaction)
-├── edge_cases/         # Edge case and error handling tests
-└── archive/            # Archived old tests
-```
-
-### Test Categories
-
-| Category | Marker | Purpose |
-|----------|--------|---------|
-| Unit | `@pytest.mark.unit` | Test individual components |
-| Integration | `@pytest.mark.integration` | Test component interaction |
-| UI | `@pytest.mark.ui` | Test GUI components (requires display) |
-| Slow | `@pytest.mark.slow` | Long-running tests |
-| CI Skip | `@pytest.mark.skip_ci` | Skip in CI environment |
-| Network | `@pytest.mark.network` | Requires network access |
-
-### Running Tests
-
-**Locally:**
-```bash
-# All tests
-pytest
-
-# Specific category
-pytest -m unit
-pytest -m integration
-
-# Specific file
-pytest tests/unit/test_config.py
-
-# With coverage
-pytest --cov=omnix --cov-report=html
-```
-
-**In CI:**
-```bash
-# Tests run automatically via workflow
-# Uses headless Qt platform
 export QT_QPA_PLATFORM=offscreen
-xvfb-run -a pytest tests/ -v --tb=short
+export OMNIX_MASTER_PASSWORD=ci-only-master-password
+export PYNPUT_BACKEND=dummy
+
+python -m compileall -q src
+python -c "import omnix; print(omnix.__version__)"
+pytest --cov=omnix --cov-report=xml
+black --check src tests
+isort --check-only src tests
+flake8 src/omnix --count --select=E9,F63,F7,F82 --show-source --statistics
+bandit -q -r src/omnix -ll
+pip-audit --local --skip-editable
 ```
 
-### CI-Specific Tests
+When changing UI, game, macro, or platform-sensitive code, also run:
 
-**File:** `tests/integration/test_ci_pipeline.py`
+```bash
+pytest tests/ui/test_gui_minimal.py tests/unit/test_macro_runner_execution.py -v
+```
 
-Tests that verify:
-- ✅ Environment setup (Python version, Qt platform)
-- ✅ Module imports work in headless environment
-- ✅ Core components initialize without display
-- ✅ Data persistence works
-- ✅ Deployment readiness (required files exist)
+## Cross-platform filesystem tests
 
----
+Knowledge ingestion intentionally restricts local files to the user's allowed
+directories. Containment checks must compare canonical paths on both sides:
+
+- Resolve the candidate path.
+- Resolve every allowed root.
+- Use `Path.relative_to()` or an equivalent component-aware comparison; never
+  use string prefixes.
+
+This matters in CI because macOS can expose temporary paths as `/var/...` while
+resolving them to `/private/var/...`; Windows can likewise normalize aliases or
+path spellings. Tests should use disposable paths and cover a non-canonical
+allowed-root alias. Never point tests at a real user directory.
 
 ## Troubleshooting
 
-### Common Issues
+### `ImportError: libEGL.so.1`
 
-#### 1. Runner Offline
+The Ubuntu runner is missing the EGL runtime used by PyQt6. Confirm the
+Linux-only `libegl1` installation step runs before Python imports or pytest.
+`QT_QPA_PLATFORM=offscreen` controls display behavior but does not replace
+native shared libraries.
 
-**Symptom:** Workflows stuck in "Queued" state
+### File ingestion says a temporary file is outside the allowed root
 
-**Solution:**
-```bash
-ssh pve
-sudo pct enter 200
-sudo systemctl status actions-runner
+Compare the displayed path with `Path.home()` after calling `.resolve()` on
+both. A resolved candidate and unresolved allowed root can refer to the same
+location but fail a lexical `relative_to()` comparison.
 
-# If stopped, restart
-sudo systemctl restart actions-runner
+### pip-audit reports vulnerable setuptools
 
-# Check logs
-sudo journalctl -u actions-runner -n 50
-```
-
-#### 2. Tests Failing in CI
-
-**Symptom:** Tests pass locally but fail in CI
-
-**Common Causes:**
-- Missing headless Qt platform configuration
-- Display-dependent code
-- Hardcoded paths
-
-**Solution:**
-```bash
-# Test locally with same CI environment
-export QT_QPA_PLATFORM=offscreen
-xvfb-run -a pytest tests/ -v
-
-# Check CI logs for specific error
-gh run view --log-failed
-```
-
-#### 3. Deployment Fails
-
-**Symptom:** Staging deployment workflow fails
-
-**Solution:**
-```bash
-# Check deployment logs
-gh run view
-
-# Verify staging directory
-ssh pve
-sudo pct enter 200
-ls -la /opt/omnix/staging/
-
-# Check permissions
-sudo chown -R github-runner:github-runner /opt/omnix/staging/
-
-# Manual deployment to debug
-./scripts/deploy_staging.sh
-```
-
-#### 4. Import Errors in CI
-
-**Symptom:** `ModuleNotFoundError` in CI but not locally
-
-**Solution:**
-```bash
-# Verify dependencies installed
-cd /opt/omnix
-source venv/bin/activate
-pip list
-
-# Reinstall dependencies
-python -m pip install -e . -r requirements-dev.txt
-
-# Check Python path in workflow
-# Ensure pytest.ini has: pythonpath = src
-```
-
-### Debugging Workflows
-
-**View Recent Runs:**
-```bash
-gh run list --limit 10
-```
-
-**View Specific Run:**
-```bash
-gh run view [run-id]
-gh run view --log
-```
-
-**Re-run Failed Workflow:**
-```bash
-gh run rerun [run-id]
-```
-
----
-
-## Maintenance
-
-### Regular Tasks
-
-**Daily:**
-- ✅ Monitor workflow runs for failures
-- ✅ Review test results
-
-**Weekly:**
-- ✅ Check runner disk space
-- ✅ Review deployment logs
-- ✅ Update dependencies (if needed)
-
-**Monthly:**
-- ✅ Clean up old backups
-- ✅ Review and update test coverage
-- ✅ Update runner software
-
-### Monitoring Commands
-
-**Check Disk Space:**
-```bash
-ssh pve
-sudo pct enter 200
-df -h
-du -sh /opt/omnix/*
-```
-
-**Check Runner Health:**
-```bash
-sudo systemctl status actions-runner
-sudo journalctl -u actions-runner --since "24 hours ago"
-```
-
-**Check Workflow Statistics:**
-```bash
-gh run list --limit 30 --json status,conclusion,createdAt
-```
-
-### Backup and Recovery
-
-**Create Backup:**
-```bash
-# Automatic backups created before each deployment
-ls -la /opt/omnix/backups/
-
-# Manual backup
-./scripts/deploy_staging.sh  # Creates backup automatically
-```
-
-**Restore from Backup:**
-```bash
-cd /opt/omnix/backups
-ls -t  # Find latest backup
-cp -r staging_backup_YYYYMMDD_HHMMSS ../staging/
-```
-
----
-
-## Scripts and Tools
-
-### Verification Script
-
-**Purpose:** Verify CI/CD pipeline configuration
+Check the active environment, not only `pyproject.toml`:
 
 ```bash
-python scripts/verify_ci.py
+python -m pip show setuptools
+python -m pip install --upgrade "setuptools>=83"
+pip-audit --local --skip-editable
 ```
 
-**Checks:**
-- ✅ Git repository status
-- ✅ Workflow files valid
-- ✅ Test suite configured
-- ✅ Dependencies installed
-- ✅ Sample tests run
+The CI remediation was prompted by `setuptools 79.0.1` and
+`PYSEC-2026-3447`, whose listed fix version was 83.0.0.
 
-### Deployment Script
+### A run stays queued with no steps and is canceled after 24 hours
 
-**Purpose:** Deploy to staging environment
+Inspect `runs-on`. Historical Omnix workflows used `self-hosted`; without an
+online matching runner GitHub queued the job until its timeout. The supported
+CI workflow uses the hosted OS matrix. A no-step cancellation is a scheduling
+problem, not a pytest failure.
+
+### Inspecting runs
 
 ```bash
-./scripts/deploy_staging.sh
+gh run list --workflow ci.yml --limit 10
+gh run view RUN_ID --json conclusion,jobs,url
+gh run view RUN_ID --log-failed
+gh run rerun RUN_ID --failed
 ```
 
-**Steps:**
-1. Check prerequisites
-2. Create backup
-3. Deploy code
-4. Install dependencies
-5. Run tests
-6. Create deployment info
-7. Verify deployment
+## Release workflow
 
----
+Tag pushes matching `v*` and manual release dispatches build unsigned
+PyInstaller artifacts for Windows, macOS, and Linux. Code signing and automatic
+updates remain outside the Omnix 3.0 workflow. Review
+`.github/workflows/release.yml` and `WINDOWS_BUILD_INSTRUCTIONS.md` before
+changing packaging.
 
-## Best Practices
+## 2026-09-07 remediation record
 
-### Workflow Development
+The following CI failures were diagnosed and fixed:
 
-1. **Test locally first:**
-   ```bash
-   # Simulate CI environment
-   export QT_QPA_PLATFORM=offscreen
-   xvfb-run -a pytest tests/ -v
-   ```
+- Ubuntu pytest initialization: installed `libegl1` for PyQt6.
+- macOS/Windows knowledge ingestion tests: resolved allowed roots before path
+  containment comparisons and added an alias-path regression test.
+- Ubuntu lint dependency audit: explicitly upgraded the audited environment to
+  `setuptools>=83` and raised the package build-system floor.
 
-2. **Use appropriate markers:**
-   ```python
-   @pytest.mark.skip_ci  # For tests that can't run in CI
-   @pytest.mark.requires_api_key  # For tests needing API keys
-   ```
+Local verification after the changes produced 343 passed and 8 skipped tests;
+the focused GUI/macro set passed 28 tests, the focused knowledge set passed 22,
+and Black, isort, flake8, Bandit, `git diff --check`, and pip-audit passed.
 
-3. **Keep workflows fast:**
-   - Cache dependencies
-   - Run tests in parallel where possible
-   - Use appropriate test selection
+## References
 
-### Deployment Safety
-
-1. **Always test before deploying:**
-   - CI tests must pass
-   - Manual testing on dev branch
-
-2. **Use staging for validation:**
-   - Deploy to staging first
-   - Verify functionality
-   - Then merge to main
-
-3. **Monitor deployments:**
-   - Check deployment info
-   - Review logs
-   - Verify critical functions
-
----
-
-## Resources
-
-### Documentation
-- [GitHub Actions Self-Hosted Runners](https://docs.github.com/en/actions/hosting-your-own-runners)
-- [Pytest Documentation](https://docs.pytest.org/)
-- [Proxmox LXC Containers](https://pve.proxmox.com/wiki/Linux_Container)
-
-### Internal Documentation
-- [CLAUDE.md](../CLAUDE.md) - Project overview
-- [README.md](../README.md) - User documentation
-- [pytest.ini](../pytest.ini) - Test configuration
-
-### Support
-- **Issues:** GitHub Issues
-- **Repository:** https://github.com/shingoku2/Omnix-All-knowing-gaming-companion
-
----
-
-**Maintained by:** DevOps Team
-**Last Review:** 2026-09-05
+- [CI workflow](../.github/workflows/ci.yml)
+- [Release workflow](../.github/workflows/release.yml)
+- [Testing guide](../TESTING.md)
+- [Quick CI reference](QUICK_START_CI.md)
+- [GitHub Actions runs](https://github.com/shingoku2/Omnix-All-knowing-gaming-companion/actions)

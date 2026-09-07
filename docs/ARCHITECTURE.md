@@ -28,6 +28,12 @@ User profile changes go through ordered `MigrationManager` steps. Every changed
 profile is backed up, each JSON write is atomic, and a newer unknown schema is a
 hard error. New migrations must be idempotent and include unit tests.
 
+Knowledge file ingestion treats path containment as a security boundary. It
+resolves both the candidate file and each allowed root before using
+component-aware `Path.relative_to()` checks. This preserves traversal defenses
+without rejecting equivalent macOS or Windows path aliases. Tests for this
+boundary must use disposable directories rather than real user paths.
+
 The desktop license client sends a license key and random installation UUID to
 a narrow Supabase Edge Function. Only the function service role can read license
 or seat tables. The application stores the installation UUID and last successful

@@ -1,7 +1,7 @@
 # Test Quick Reference Guide — Omnix 3.0
 
-Canonical setup: `python -m pip install -e ".[dev,build]"`.
-**Last Updated:** 2026-09-06
+Canonical setup: `python -m pip install --upgrade "setuptools>=83" ".[dev,build]"`.
+**Last Updated:** 2026-09-07
 **Quick access guide for testing the Omnix Gaming Companion**
 
 ---
@@ -30,13 +30,13 @@ pytest tests/integration/ -v
 
 ---
 
-## 📊 Current Test Status (2026-09-06)
+## 📊 Current Test Status (2026-09-07)
 
 | Category | Tests | Status |
 |----------|-------|--------|
-| Automated suite | 342 passed, 8 skipped | ✅ Passing |
+| Automated suite | 343 passed, 8 skipped | ✅ Passing |
 | UI/manual checks | Headless and manual | ⚠️ Environment-dependent |
-| **TOTAL** | **350 collected** | **✅ Stable** |
+| **TOTAL** | **351 collected** | **✅ Stable** |
 
 ---
 
@@ -70,7 +70,10 @@ pytest tests/unit/test_game_detector.py tests/unit/test_game_watcher.py tests/un
 pytest tests/unit/test_macro_system.py -v
 
 # Knowledge System
-pytest tests/unit/test_knowledge_system.py -v
+pytest tests/test_knowledge.py tests/unit/test_knowledge_system.py -v
+
+# Required GUI/macro regression checks
+pytest tests/ui/test_gui_minimal.py tests/unit/test_macro_runner_execution.py -v
 
 # Security & Config
 pytest tests/unit/test_config.py tests/unit/test_credential_store.py -v
@@ -121,8 +124,9 @@ pytest tests/unit/test_game_detector.py --cov=omnix.game_detector --cov-report=t
 bandit -r src/omnix/ -f json -o bandit_report.json
 bandit -r src/omnix/ -f txt
 
-# Check for vulnerabilities in dependencies
-pip-audit
+# Check the same active environment CI audits
+python -m pip install --upgrade "setuptools>=83"
+pip-audit --local --skip-editable
 
 # Run with security tests only
 pytest -m security -v

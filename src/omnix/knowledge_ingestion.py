@@ -42,11 +42,14 @@ class FileIngestor:
             # Convert to absolute path and resolve symlinks
             abs_path = Path(file_path).resolve()
 
-            # Define allowed base directories
+            # Resolve the allowed roots too. Temporary directories and user homes can
+            # contain aliases (for example, /var -> /private/var on macOS), and
+            # comparing a resolved file against an unresolved root rejects valid files.
+            home = Path.home().resolve()
             allowed_bases = [
-                Path.home(),  # User's home directory
-                Path.home() / "Documents",  # Common documents folder
-                Path.home() / "Downloads",  # Common downloads folder
+                home,  # User's home directory
+                (home / "Documents").resolve(),  # Common documents folder
+                (home / "Downloads").resolve(),  # Common downloads folder
             ]
 
             # Check if the path is within any allowed base directory

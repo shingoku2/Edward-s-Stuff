@@ -7,8 +7,8 @@ to PATH**.
 ```powershell
 py -3.11 -m venv .venv
 .venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -e ".[dev,build]"
+python -m pip install --upgrade pip "setuptools>=83"
+python -m pip install --upgrade ".[dev,build]"
 python -m omnix
 ```
 
